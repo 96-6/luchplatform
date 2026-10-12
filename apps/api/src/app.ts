@@ -16,6 +16,7 @@ import { AccountCrypto } from './modules/auth/crypto.js';
 import { AuthService } from './modules/auth/service.js';
 import { registerAuthRoutes } from './modules/auth/routes.js';
 import { registerAccountRoutes } from './modules/accounts/routes.js';
+import { registerContentRoutes } from './modules/content/routes.js';
 import { MailService } from './modules/mail/service.js';
 import { CaptchaService } from './modules/security/captcha.js';
 import { NetworkService, type IpInspector } from './modules/security/network.js';
@@ -72,13 +73,15 @@ export async function buildApp(
         defaultSrc: ["'self'"],
         scriptSrc: ["'self'"],
         styleSrc: ["'self'"],
-        imgSrc: ["'self'", 'data:'],
+        imgSrc: ["'self'", 'data:', 'https:'],
+        mediaSrc: ["'self'", 'https:'],
         connectSrc: ["'self'"],
         ...(network.probeTargets().length
           ? {
               imgSrc: [
                 "'self'",
                 'data:',
+                'https:',
                 ...network.probeTargets().map((target) => new URL(target.url).origin),
               ],
             }
@@ -168,7 +171,7 @@ export async function buildApp(
     });
   });
   app.get('/api/v1/system', async (request) => ({
-    data: { application: 'ЛУЧ', stage: 'accounts', devToolsEnabled: settings.ENABLE_DEV_TOOLS },
+    data: { application: 'ЛУЧ', stage: 'content', devToolsEnabled: settings.ENABLE_DEV_TOOLS },
     requestId: request.id,
   }));
   app.get('/api/v1/health/live', async (request) => ({
@@ -190,6 +193,7 @@ export async function buildApp(
   if (settings.ENABLE_DEV_TOOLS) await registerProbeRoutes(app, database);
   await registerAuthRoutes(app, auth, captcha);
   await registerAccountRoutes(app, auth);
+  await registerContentRoutes(app, auth);
 
   const webRoot = resolve(projectRoot, 'apps/web/dist');
   if (settings.SERVE_WEB) {
@@ -211,6 +215,8 @@ export async function buildApp(
     '/verify-email',
     '/authenticator',
     '/admin',
+    '/admin/content',
+    '/courses',
     '/demo-mail',
     '/network-check',
   ]);
@@ -219,7 +225,9 @@ export async function buildApp(
     if (
       settings.SERVE_WEB &&
       request.method === 'GET' &&
-      (webPaths.has(pathname) || /^\/teacher\/students\/[0-9a-f-]{36}$/.test(pathname))
+      (webPaths.has(pathname) ||
+        /^\/teacher\/students\/[0-9a-f-]{36}$/.test(pathname) ||
+        /^\/courses\/[a-z0-9-]+\/[a-z0-9-]+(?:\/lessons\/[a-z0-9-]+)?$/.test(pathname))
     ) {
       return reply.type('text/html').sendFile('index.html');
     }

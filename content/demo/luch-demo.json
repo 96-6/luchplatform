@@ -1,0 +1,2953 @@
+{
+  "format": "luch-content",
+  "formatVersion": 1,
+  "package": {
+    "id": "luch-demo",
+    "version": 1,
+    "title": "Демонстрационные маршруты РКИ и английского",
+    "author": "ЛУЧ — демонстрационный контент",
+    "license": "CC0-1.0",
+    "isDemo": true
+  },
+  "assets": [
+    {
+      "id": "introductions-ru",
+      "kind": "image",
+      "src": "/learning-media/introductions-ru-v1.svg",
+      "mediaType": "image/svg+xml",
+      "author": "ЛУЧ — демонстрационный контент",
+      "license": "CC0-1.0",
+      "sha256": "60ce73800657cb0eb9571e0954de9188c288820c19b38744dacafb5079ba258f"
+    },
+    {
+      "id": "phrases-ru",
+      "kind": "file",
+      "src": "/learning-media/phrases-ru-v1.txt",
+      "mediaType": "text/plain",
+      "author": "ЛУЧ — демонстрационный контент",
+      "license": "CC0-1.0",
+      "sha256": "4046c8d3d5e6fd553d5b4d120f28cc1b07b7d79c3eedb1e2407002a938687439"
+    },
+    {
+      "id": "introductions-en",
+      "kind": "image",
+      "src": "/learning-media/introductions-en-v1.svg",
+      "mediaType": "image/svg+xml",
+      "author": "ЛУЧ — демонстрационный контент",
+      "license": "CC0-1.0",
+      "sha256": "8521ce73485a15a525b8150af15d9a7e0651e338aba3aa4e3a9e8ce9bd89f9a9"
+    },
+    {
+      "id": "phrases-en",
+      "kind": "file",
+      "src": "/learning-media/phrases-en-v1.txt",
+      "mediaType": "text/plain",
+      "author": "ЛУЧ — демонстрационный контент",
+      "license": "CC0-1.0",
+      "sha256": "a23c12005de76e69fb4ddc37a141c37e81237e80595ed6c944fcc85070464b27"
+    }
+  ],
+  "skills": [
+    {
+      "id": "ru-introduction",
+      "title": "Знакомство",
+      "description": "Использовать базовые языковые конструкции по теме «Знакомство».",
+      "language": "ru",
+      "level": "A1"
+    },
+    {
+      "id": "ru-time",
+      "title": "Время и расписание",
+      "description": "Использовать базовые языковые конструкции по теме «Время и расписание».",
+      "language": "ru",
+      "level": "A1"
+    },
+    {
+      "id": "ru-cafe",
+      "title": "В кафе",
+      "description": "Использовать базовые языковые конструкции по теме «В кафе».",
+      "language": "ru",
+      "level": "A1"
+    },
+    {
+      "id": "ru-location",
+      "title": "Место и направление",
+      "description": "Использовать базовые языковые конструкции по теме «Место и направление».",
+      "language": "ru",
+      "level": "A1"
+    },
+    {
+      "id": "ru-family",
+      "title": "Семья и принадлежность",
+      "description": "Использовать базовые языковые конструкции по теме «Семья и принадлежность».",
+      "language": "ru",
+      "level": "A1"
+    },
+    {
+      "id": "ru-plans",
+      "title": "Повседневные планы",
+      "description": "Использовать базовые языковые конструкции по теме «Повседневные планы».",
+      "language": "ru",
+      "level": "A1"
+    },
+    {
+      "id": "en-introduction",
+      "title": "Introducing yourself",
+      "description": "Использовать базовые языковые конструкции по теме «Introducing yourself».",
+      "language": "en",
+      "level": "A1"
+    },
+    {
+      "id": "en-time",
+      "title": "Time and schedules",
+      "description": "Использовать базовые языковые конструкции по теме «Time and schedules».",
+      "language": "en",
+      "level": "A1"
+    },
+    {
+      "id": "en-cafe",
+      "title": "At the café",
+      "description": "Использовать базовые языковые конструкции по теме «At the café».",
+      "language": "en",
+      "level": "A1"
+    },
+    {
+      "id": "en-location",
+      "title": "Places and directions",
+      "description": "Использовать базовые языковые конструкции по теме «Places and directions».",
+      "language": "en",
+      "level": "A1"
+    },
+    {
+      "id": "en-family",
+      "title": "Family and possession",
+      "description": "Использовать базовые языковые конструкции по теме «Family and possession».",
+      "language": "en",
+      "level": "A1"
+    },
+    {
+      "id": "en-plans",
+      "title": "Everyday plans",
+      "description": "Использовать базовые языковые конструкции по теме «Everyday plans».",
+      "language": "en",
+      "level": "A1"
+    }
+  ],
+  "routes": [
+    {
+      "id": "rki-a1",
+      "title": "Русский как иностранный",
+      "description": "Демонстрационные ситуации начального уровня. Это короткий учебный маршрут, а не полный курс A1.",
+      "language": "ru",
+      "level": "A1",
+      "goals": ["Знакомство и повседневное общение", "Базовые ситуации в поездке"],
+      "lessonIds": ["rki-01", "rki-02", "rki-03", "rki-04", "rki-05", "rki-06"]
+    },
+    {
+      "id": "english-a1",
+      "title": "Английский",
+      "description": "Демонстрационные ситуации начального уровня. Это короткий учебный маршрут, а не полный курс A1.",
+      "language": "en",
+      "level": "A1",
+      "goals": ["Знакомство и повседневное общение", "Базовые ситуации в поездке"],
+      "lessonIds": [
+        "english-01",
+        "english-02",
+        "english-03",
+        "english-04",
+        "english-05",
+        "english-06"
+      ]
+    }
+  ],
+  "lessons": [
+    {
+      "id": "rki-01",
+      "routeId": "rki-a1",
+      "title": "Знакомство",
+      "summary": "Мини-урок: Знакомство. Короткое объяснение, слова, диалог и задания.",
+      "estimatedMinutes": 7,
+      "skillIds": ["ru-introduction"],
+      "blocks": [
+        {
+          "type": "text",
+          "id": "material",
+          "heading": "Короткое объяснение",
+          "text": "Чтобы представиться, скажите: «Меня зовут Анна». Вежливое приветствие — «Здравствуйте!». Имя собеседника можно узнать вопросом «Как вас зовут?»."
+        },
+        {
+          "type": "vocabulary",
+          "id": "words",
+          "heading": "Слова и фразы",
+          "items": [
+            {
+              "term": "Здравствуйте!",
+              "translation": "Hello!"
+            },
+            {
+              "term": "Меня зовут…",
+              "translation": "My name is…"
+            },
+            {
+              "term": "Как вас зовут?",
+              "translation": "What is your name?"
+            }
+          ]
+        },
+        {
+          "type": "dialogue",
+          "id": "dialogue",
+          "heading": "Пример диалога",
+          "lines": [
+            {
+              "speaker": "Анна",
+              "text": "Здравствуйте! Меня зовут Анна."
+            },
+            {
+              "speaker": "Олег",
+              "text": "Здравствуйте, Анна! Я Олег."
+            }
+          ]
+        },
+        {
+          "type": "image",
+          "id": "illustration",
+          "assetId": "introductions-ru",
+          "alt": "Пример представления Анны"
+        },
+        {
+          "type": "file",
+          "id": "phrase-sheet",
+          "assetId": "phrases-ru",
+          "label": "Скачать фразы для знакомства"
+        }
+      ]
+    },
+    {
+      "id": "rki-02",
+      "routeId": "rki-a1",
+      "title": "Время и расписание",
+      "summary": "Мини-урок: Время и расписание. Короткое объяснение, слова, диалог и задания.",
+      "estimatedMinutes": 7,
+      "skillIds": ["ru-time"],
+      "blocks": [
+        {
+          "type": "text",
+          "id": "material",
+          "heading": "Короткое объяснение",
+          "text": "Время события удобно уточнить вопросом «Во сколько?». Для начала занятия используйте «в»: «Урок в девять». Продолжительность: «Урок длится час»."
+        },
+        {
+          "type": "vocabulary",
+          "id": "words",
+          "heading": "Слова и фразы",
+          "items": [
+            {
+              "term": "во сколько?",
+              "translation": "at what time?"
+            },
+            {
+              "term": "в девять",
+              "translation": "at nine"
+            },
+            {
+              "term": "час",
+              "translation": "an hour"
+            }
+          ]
+        },
+        {
+          "type": "dialogue",
+          "id": "dialogue",
+          "heading": "Пример диалога",
+          "lines": [
+            {
+              "speaker": "Ученик",
+              "text": "Во сколько урок?"
+            },
+            {
+              "speaker": "Учитель",
+              "text": "Урок в девять."
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "id": "rki-03",
+      "routeId": "rki-a1",
+      "title": "В кафе",
+      "summary": "Мини-урок: В кафе. Короткое объяснение, слова, диалог и задания.",
+      "estimatedMinutes": 7,
+      "skillIds": ["ru-cafe"],
+      "blocks": [
+        {
+          "type": "text",
+          "id": "material",
+          "heading": "Короткое объяснение",
+          "text": "Вежливая просьба в кафе: «Можно чай, пожалуйста?». Чтобы заказать кофе, можно сказать «Я хочу кофе». Заказ часто завершают словом «пожалуйста»."
+        },
+        {
+          "type": "vocabulary",
+          "id": "words",
+          "heading": "Слова и фразы",
+          "items": [
+            {
+              "term": "чай",
+              "translation": "tea"
+            },
+            {
+              "term": "кофе",
+              "translation": "coffee"
+            },
+            {
+              "term": "пожалуйста",
+              "translation": "please"
+            }
+          ]
+        },
+        {
+          "type": "dialogue",
+          "id": "dialogue",
+          "heading": "Пример диалога",
+          "lines": [
+            {
+              "speaker": "Гость",
+              "text": "Можно чай, пожалуйста?"
+            },
+            {
+              "speaker": "Официант",
+              "text": "Конечно."
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "id": "rki-04",
+      "routeId": "rki-a1",
+      "title": "Место и направление",
+      "summary": "Мини-урок: Место и направление. Короткое объяснение, слова, диалог и задания.",
+      "estimatedMinutes": 7,
+      "skillIds": ["ru-location"],
+      "blocks": [
+        {
+          "type": "text",
+          "id": "material",
+          "heading": "Короткое объяснение",
+          "text": "Вопрос «Где?» помогает найти место. «Здесь» указывает на близкое место, «там» — на более далёкое. Направление можно объяснить словами «прямо», «налево» и «направо»."
+        },
+        {
+          "type": "vocabulary",
+          "id": "words",
+          "heading": "Слова и фразы",
+          "items": [
+            {
+              "term": "где?",
+              "translation": "where?"
+            },
+            {
+              "term": "прямо",
+              "translation": "straight ahead"
+            },
+            {
+              "term": "налево",
+              "translation": "to the left"
+            }
+          ]
+        },
+        {
+          "type": "dialogue",
+          "id": "dialogue",
+          "heading": "Пример диалога",
+          "lines": [
+            {
+              "speaker": "Турист",
+              "text": "Где кафе?"
+            },
+            {
+              "speaker": "Прохожий",
+              "text": "Идите прямо. Кафе слева."
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "id": "rki-05",
+      "routeId": "rki-a1",
+      "title": "Семья и принадлежность",
+      "summary": "Мини-урок: Семья и принадлежность. Короткое объяснение, слова, диалог и задания.",
+      "estimatedMinutes": 7,
+      "skillIds": ["ru-family"],
+      "blocks": [
+        {
+          "type": "text",
+          "id": "material",
+          "heading": "Короткое объяснение",
+          "text": "Используйте «мой» с существительными мужского рода: «мой брат». Используйте «моя» с существительными женского рода: «моя сестра». О семье можно сказать: «Это моя семья»."
+        },
+        {
+          "type": "vocabulary",
+          "id": "words",
+          "heading": "Слова и фразы",
+          "items": [
+            {
+              "term": "брат",
+              "translation": "brother"
+            },
+            {
+              "term": "сестра",
+              "translation": "sister"
+            },
+            {
+              "term": "семья",
+              "translation": "family"
+            }
+          ]
+        },
+        {
+          "type": "dialogue",
+          "id": "dialogue",
+          "heading": "Пример диалога",
+          "lines": [
+            {
+              "speaker": "Анна",
+              "text": "Это мой брат."
+            },
+            {
+              "speaker": "Борис",
+              "text": "А это моя сестра."
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "id": "rki-06",
+      "routeId": "rki-a1",
+      "title": "Повседневные планы",
+      "summary": "Мини-урок: Повседневные планы. Короткое объяснение, слова, диалог и задания.",
+      "estimatedMinutes": 7,
+      "skillIds": ["ru-plans"],
+      "blocks": [
+        {
+          "type": "text",
+          "id": "material",
+          "heading": "Короткое объяснение",
+          "text": "О текущем действии: «Сегодня я учусь». О плане: «Завтра я буду читать». Слово «завтра» обозначает следующий день, а «сегодня» — текущий."
+        },
+        {
+          "type": "vocabulary",
+          "id": "words",
+          "heading": "Слова и фразы",
+          "items": [
+            {
+              "term": "сегодня",
+              "translation": "today"
+            },
+            {
+              "term": "завтра",
+              "translation": "tomorrow"
+            },
+            {
+              "term": "читать",
+              "translation": "to read"
+            }
+          ]
+        },
+        {
+          "type": "dialogue",
+          "id": "dialogue",
+          "heading": "Пример диалога",
+          "lines": [
+            {
+              "speaker": "Анна",
+              "text": "Что ты будешь делать завтра?"
+            },
+            {
+              "speaker": "Борис",
+              "text": "Я буду читать."
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "id": "english-01",
+      "routeId": "english-a1",
+      "title": "Introducing yourself",
+      "summary": "Мини-урок: Introducing yourself. Короткое объяснение, слова, диалог и задания.",
+      "estimatedMinutes": 7,
+      "skillIds": ["en-introduction"],
+      "blocks": [
+        {
+          "type": "text",
+          "id": "material",
+          "heading": "Короткое объяснение",
+          "text": "Чтобы назвать себя по-английски, скажите «My name is Anna» или «I am Anna». Сокращение I am — I’m. Спросить имя: «What is your name?»."
+        },
+        {
+          "type": "vocabulary",
+          "id": "words",
+          "heading": "Слова и фразы",
+          "items": [
+            {
+              "term": "Hello!",
+              "translation": "Здравствуйте!"
+            },
+            {
+              "term": "My name is…",
+              "translation": "Меня зовут…"
+            },
+            {
+              "term": "What is your name?",
+              "translation": "Как вас зовут?"
+            }
+          ]
+        },
+        {
+          "type": "dialogue",
+          "id": "dialogue",
+          "heading": "Пример диалога",
+          "lines": [
+            {
+              "speaker": "Anna",
+              "text": "Hello! My name is Anna."
+            },
+            {
+              "speaker": "Ben",
+              "text": "Hello, Anna! I am Ben."
+            }
+          ]
+        },
+        {
+          "type": "image",
+          "id": "illustration",
+          "assetId": "introductions-en",
+          "alt": "Example: Anna introduces herself"
+        },
+        {
+          "type": "file",
+          "id": "phrase-sheet",
+          "assetId": "phrases-en",
+          "label": "Скачать фразы для знакомства"
+        }
+      ]
+    },
+    {
+      "id": "english-02",
+      "routeId": "english-a1",
+      "title": "Time and schedules",
+      "summary": "Мини-урок: Time and schedules. Короткое объяснение, слова, диалог и задания.",
+      "estimatedMinutes": 7,
+      "skillIds": ["en-time"],
+      "blocks": [
+        {
+          "type": "text",
+          "id": "material",
+          "heading": "Короткое объяснение",
+          "text": "Вопрос о времени: «What time is the lesson?». Для времени начала используйте at: «The lesson is at nine». Half past nine — 9:30."
+        },
+        {
+          "type": "vocabulary",
+          "id": "words",
+          "heading": "Слова и фразы",
+          "items": [
+            {
+              "term": "at nine",
+              "translation": "в девять"
+            },
+            {
+              "term": "half past nine",
+              "translation": "половина десятого"
+            },
+            {
+              "term": "lesson",
+              "translation": "урок"
+            }
+          ]
+        },
+        {
+          "type": "dialogue",
+          "id": "dialogue",
+          "heading": "Пример диалога",
+          "lines": [
+            {
+              "speaker": "Anna",
+              "text": "What time is the lesson?"
+            },
+            {
+              "speaker": "Ben",
+              "text": "It is at nine."
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "id": "english-03",
+      "routeId": "english-a1",
+      "title": "At the café",
+      "summary": "Мини-урок: At the café. Короткое объяснение, слова, диалог и задания.",
+      "estimatedMinutes": 7,
+      "skillIds": ["en-cafe"],
+      "blocks": [
+        {
+          "type": "text",
+          "id": "material",
+          "heading": "Короткое объяснение",
+          "text": "Вежливый заказ: «Can I have tea, please?». Можно сказать «I would like coffee, please». Напиток легко заменить, сохранив конструкцию."
+        },
+        {
+          "type": "vocabulary",
+          "id": "words",
+          "heading": "Слова и фразы",
+          "items": [
+            {
+              "term": "tea",
+              "translation": "чай"
+            },
+            {
+              "term": "coffee",
+              "translation": "кофе"
+            },
+            {
+              "term": "please",
+              "translation": "пожалуйста"
+            }
+          ]
+        },
+        {
+          "type": "dialogue",
+          "id": "dialogue",
+          "heading": "Пример диалога",
+          "lines": [
+            {
+              "speaker": "Guest",
+              "text": "Can I have tea, please?"
+            },
+            {
+              "speaker": "Waiter",
+              "text": "Of course."
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "id": "english-04",
+      "routeId": "english-a1",
+      "title": "Places and directions",
+      "summary": "Мини-урок: Places and directions. Короткое объяснение, слова, диалог и задания.",
+      "estimatedMinutes": 7,
+      "skillIds": ["en-location"],
+      "blocks": [
+        {
+          "type": "text",
+          "id": "material",
+          "heading": "Короткое объяснение",
+          "text": "Вопрос о месте начинается с where: «Where is the station?». Направления: go straight, turn left, turn right. Left — налево, right — направо."
+        },
+        {
+          "type": "vocabulary",
+          "id": "words",
+          "heading": "Слова и фразы",
+          "items": [
+            {
+              "term": "where",
+              "translation": "где"
+            },
+            {
+              "term": "left",
+              "translation": "налево"
+            },
+            {
+              "term": "straight",
+              "translation": "прямо"
+            }
+          ]
+        },
+        {
+          "type": "dialogue",
+          "id": "dialogue",
+          "heading": "Пример диалога",
+          "lines": [
+            {
+              "speaker": "Tourist",
+              "text": "Where is the café?"
+            },
+            {
+              "speaker": "Local",
+              "text": "Go straight and turn left."
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "id": "english-05",
+      "routeId": "english-a1",
+      "title": "Family and possession",
+      "summary": "Мини-урок: Family and possession. Короткое объяснение, слова, диалог и задания.",
+      "estimatedMinutes": 7,
+      "skillIds": ["en-family"],
+      "blocks": [
+        {
+          "type": "text",
+          "id": "material",
+          "heading": "Короткое объяснение",
+          "text": "Чтобы сказать «мой», используйте my: «my brother». «Её» — her: «her sister». «Его» — his: «his father». Эти слова стоят перед названием члена семьи."
+        },
+        {
+          "type": "vocabulary",
+          "id": "words",
+          "heading": "Слова и фразы",
+          "items": [
+            {
+              "term": "brother",
+              "translation": "брат"
+            },
+            {
+              "term": "sister",
+              "translation": "сестра"
+            },
+            {
+              "term": "my family",
+              "translation": "моя семья"
+            }
+          ]
+        },
+        {
+          "type": "dialogue",
+          "id": "dialogue",
+          "heading": "Пример диалога",
+          "lines": [
+            {
+              "speaker": "Anna",
+              "text": "This is my brother."
+            },
+            {
+              "speaker": "Ben",
+              "text": "This is my sister."
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "id": "english-06",
+      "routeId": "english-a1",
+      "title": "Everyday plans",
+      "summary": "Мини-урок: Everyday plans. Короткое объяснение, слова, диалог и задания.",
+      "estimatedMinutes": 7,
+      "skillIds": ["en-plans"],
+      "blocks": [
+        {
+          "type": "text",
+          "id": "material",
+          "heading": "Короткое объяснение",
+          "text": "Для простого будущего можно использовать will: «I will read tomorrow». После will стоит начальная форма глагола. Today — сегодня, tomorrow — завтра."
+        },
+        {
+          "type": "vocabulary",
+          "id": "words",
+          "heading": "Слова и фразы",
+          "items": [
+            {
+              "term": "today",
+              "translation": "сегодня"
+            },
+            {
+              "term": "tomorrow",
+              "translation": "завтра"
+            },
+            {
+              "term": "read",
+              "translation": "читать"
+            }
+          ]
+        },
+        {
+          "type": "dialogue",
+          "id": "dialogue",
+          "heading": "Пример диалога",
+          "lines": [
+            {
+              "speaker": "Anna",
+              "text": "What will you do tomorrow?"
+            },
+            {
+              "speaker": "Ben",
+              "text": "I will read."
+            }
+          ]
+        }
+      ]
+    }
+  ],
+  "exercises": [
+    {
+      "id": "rki-01-diagnostic",
+      "version": 1,
+      "lessonId": "rki-01",
+      "skillId": "ru-introduction",
+      "language": "ru",
+      "level": "A1",
+      "purpose": "diagnostic",
+      "instruction": "Вы встречаете преподавателя впервые. Выберите вежливое приветствие.",
+      "blocks": [],
+      "response": {
+        "type": "choice",
+        "options": [
+          {
+            "id": "option-1",
+            "text": "Пока!"
+          },
+          {
+            "id": "option-2",
+            "text": "Спокойной ночи!"
+          },
+          {
+            "id": "option-3",
+            "text": "Здравствуйте!"
+          }
+        ]
+      },
+      "solution": {
+        "type": "choice",
+        "correctOptionIds": ["option-3"]
+      },
+      "explanation": "«Здравствуйте!» — вежливое приветствие при встрече.",
+      "hints": [],
+      "rubric": {
+        "id": "rki-01-diagnostic-rubric",
+        "version": 1,
+        "maxScore": 1,
+        "criteria": ["Выбран единственный верный вариант."]
+      },
+      "author": "ЛУЧ — демонстрационный контент",
+      "license": "CC0-1.0",
+      "review": {
+        "status": "demo"
+      }
+    },
+    {
+      "id": "rki-01-practice-choice",
+      "version": 1,
+      "lessonId": "rki-01",
+      "skillId": "ru-introduction",
+      "language": "ru",
+      "level": "A1",
+      "purpose": "practice",
+      "instruction": "Как Анне сообщить своё имя?",
+      "blocks": [],
+      "response": {
+        "type": "choice",
+        "options": [
+          {
+            "id": "option-1",
+            "text": "Меня зовут Анна."
+          },
+          {
+            "id": "option-2",
+            "text": "У меня Анна."
+          },
+          {
+            "id": "option-3",
+            "text": "Меня Анна есть."
+          }
+        ]
+      },
+      "solution": {
+        "type": "choice",
+        "correctOptionIds": ["option-1"]
+      },
+      "explanation": "Имя сообщают конструкцией «Меня зовут…».",
+      "hints": [
+        "Чтобы представиться, скажите: «Меня зовут Анна». Вежливое приветствие — «Здравствуйте!». Имя собеседника можно узнать вопросом «Как вас зовут?»."
+      ],
+      "rubric": {
+        "id": "rki-01-practice-choice-rubric",
+        "version": 1,
+        "maxScore": 1,
+        "criteria": ["Выбран единственный верный вариант."]
+      },
+      "author": "ЛУЧ — демонстрационный контент",
+      "license": "CC0-1.0",
+      "review": {
+        "status": "demo"
+      }
+    },
+    {
+      "id": "rki-01-practice-text",
+      "version": 1,
+      "lessonId": "rki-01",
+      "skillId": "ru-introduction",
+      "language": "ru",
+      "level": "A1",
+      "purpose": "practice",
+      "instruction": "Дополните: «Меня ___ Борис».",
+      "blocks": [],
+      "response": {
+        "type": "short_text",
+        "maxLength": 120,
+        "placeholder": "Короткий ответ"
+      },
+      "solution": {
+        "type": "short_text",
+        "accepted": ["зовут"],
+        "normalization": {
+          "trim": true,
+          "collapseWhitespace": true,
+          "caseSensitive": false,
+          "unicode": "NFKC"
+        }
+      },
+      "explanation": "Слово «зовут» входит в конструкцию представления.",
+      "hints": [
+        "Чтобы представиться, скажите: «Меня зовут Анна». Вежливое приветствие — «Здравствуйте!». Имя собеседника можно узнать вопросом «Как вас зовут?»."
+      ],
+      "rubric": {
+        "id": "rki-01-practice-text-rubric",
+        "version": 1,
+        "maxScore": 1,
+        "criteria": ["Ответ соответствует одному из допустимых вариантов с заданной нормализацией."]
+      },
+      "author": "ЛУЧ — демонстрационный контент",
+      "license": "CC0-1.0",
+      "review": {
+        "status": "demo"
+      }
+    },
+    {
+      "id": "rki-01-control",
+      "version": 1,
+      "lessonId": "rki-01",
+      "skillId": "ru-introduction",
+      "language": "ru",
+      "level": "A1",
+      "purpose": "control",
+      "instruction": "Напишите пропущенное слово: «Как вас ___?»",
+      "blocks": [],
+      "response": {
+        "type": "short_text",
+        "maxLength": 120,
+        "placeholder": "Короткий ответ"
+      },
+      "solution": {
+        "type": "short_text",
+        "accepted": ["зовут"],
+        "normalization": {
+          "trim": true,
+          "collapseWhitespace": true,
+          "caseSensitive": false,
+          "unicode": "NFKC"
+        }
+      },
+      "explanation": "Вопрос об имени — «Как вас зовут?».",
+      "hints": [],
+      "rubric": {
+        "id": "rki-01-control-rubric",
+        "version": 1,
+        "maxScore": 1,
+        "criteria": ["Ответ соответствует одному из допустимых вариантов с заданной нормализацией."]
+      },
+      "author": "ЛУЧ — демонстрационный контент",
+      "license": "CC0-1.0",
+      "review": {
+        "status": "demo"
+      }
+    },
+    {
+      "id": "rki-02-diagnostic",
+      "version": 1,
+      "lessonId": "rki-02",
+      "skillId": "ru-time",
+      "language": "ru",
+      "level": "A1",
+      "purpose": "diagnostic",
+      "instruction": "Выберите вопрос о времени начала урока.",
+      "blocks": [],
+      "response": {
+        "type": "choice",
+        "options": [
+          {
+            "id": "option-1",
+            "text": "Какой урок?"
+          },
+          {
+            "id": "option-2",
+            "text": "Где урок?"
+          },
+          {
+            "id": "option-3",
+            "text": "Во сколько урок?"
+          }
+        ]
+      },
+      "solution": {
+        "type": "choice",
+        "correctOptionIds": ["option-3"]
+      },
+      "explanation": "«Во сколько?» спрашивает о времени начала.",
+      "hints": [],
+      "rubric": {
+        "id": "rki-02-diagnostic-rubric",
+        "version": 1,
+        "maxScore": 1,
+        "criteria": ["Выбран единственный верный вариант."]
+      },
+      "author": "ЛУЧ — демонстрационный контент",
+      "license": "CC0-1.0",
+      "review": {
+        "status": "demo"
+      }
+    },
+    {
+      "id": "rki-02-practice-choice",
+      "version": 1,
+      "lessonId": "rki-02",
+      "skillId": "ru-time",
+      "language": "ru",
+      "level": "A1",
+      "purpose": "practice",
+      "instruction": "Выберите правильный вариант.",
+      "blocks": [],
+      "response": {
+        "type": "choice",
+        "options": [
+          {
+            "id": "option-1",
+            "text": "Урок на девять."
+          },
+          {
+            "id": "option-2",
+            "text": "Урок за девять."
+          },
+          {
+            "id": "option-3",
+            "text": "Урок в девять."
+          }
+        ]
+      },
+      "solution": {
+        "type": "choice",
+        "correctOptionIds": ["option-3"]
+      },
+      "explanation": "Для времени начала используется предлог «в».",
+      "hints": [
+        "Время события удобно уточнить вопросом «Во сколько?». Для начала занятия используйте «в»: «Урок в девять». Продолжительность: «Урок длится час»."
+      ],
+      "rubric": {
+        "id": "rki-02-practice-choice-rubric",
+        "version": 1,
+        "maxScore": 1,
+        "criteria": ["Выбран единственный верный вариант."]
+      },
+      "author": "ЛУЧ — демонстрационный контент",
+      "license": "CC0-1.0",
+      "review": {
+        "status": "demo"
+      }
+    },
+    {
+      "id": "rki-02-practice-text",
+      "version": 1,
+      "lessonId": "rki-02",
+      "skillId": "ru-time",
+      "language": "ru",
+      "level": "A1",
+      "purpose": "practice",
+      "instruction": "Вставьте предлог: «Встреча ___ десять».",
+      "blocks": [],
+      "response": {
+        "type": "short_text",
+        "maxLength": 120,
+        "placeholder": "Короткий ответ"
+      },
+      "solution": {
+        "type": "short_text",
+        "accepted": ["в"],
+        "normalization": {
+          "trim": true,
+          "collapseWhitespace": true,
+          "caseSensitive": false,
+          "unicode": "NFKC"
+        }
+      },
+      "explanation": "Время начала: «в десять».",
+      "hints": [
+        "Время события удобно уточнить вопросом «Во сколько?». Для начала занятия используйте «в»: «Урок в девять». Продолжительность: «Урок длится час»."
+      ],
+      "rubric": {
+        "id": "rki-02-practice-text-rubric",
+        "version": 1,
+        "maxScore": 1,
+        "criteria": ["Ответ соответствует одному из допустимых вариантов с заданной нормализацией."]
+      },
+      "author": "ЛУЧ — демонстрационный контент",
+      "license": "CC0-1.0",
+      "review": {
+        "status": "demo"
+      }
+    },
+    {
+      "id": "rki-02-control",
+      "version": 1,
+      "lessonId": "rki-02",
+      "skillId": "ru-time",
+      "language": "ru",
+      "level": "A1",
+      "purpose": "control",
+      "instruction": "Дополните вопрос: «Во ___ начинается занятие?»",
+      "blocks": [],
+      "response": {
+        "type": "short_text",
+        "maxLength": 120,
+        "placeholder": "Короткий ответ"
+      },
+      "solution": {
+        "type": "short_text",
+        "accepted": ["сколько"],
+        "normalization": {
+          "trim": true,
+          "collapseWhitespace": true,
+          "caseSensitive": false,
+          "unicode": "NFKC"
+        }
+      },
+      "explanation": "О времени спрашивают «во сколько».",
+      "hints": [],
+      "rubric": {
+        "id": "rki-02-control-rubric",
+        "version": 1,
+        "maxScore": 1,
+        "criteria": ["Ответ соответствует одному из допустимых вариантов с заданной нормализацией."]
+      },
+      "author": "ЛУЧ — демонстрационный контент",
+      "license": "CC0-1.0",
+      "review": {
+        "status": "demo"
+      }
+    },
+    {
+      "id": "rki-03-diagnostic",
+      "version": 1,
+      "lessonId": "rki-03",
+      "skillId": "ru-cafe",
+      "language": "ru",
+      "level": "A1",
+      "purpose": "diagnostic",
+      "instruction": "Выберите вежливую просьбу о напитке.",
+      "blocks": [],
+      "response": {
+        "type": "choice",
+        "options": [
+          {
+            "id": "option-1",
+            "text": "Вода зовут."
+          },
+          {
+            "id": "option-2",
+            "text": "Можно воду, пожалуйста?"
+          },
+          {
+            "id": "option-3",
+            "text": "Где вчера вода?"
+          }
+        ]
+      },
+      "solution": {
+        "type": "choice",
+        "correctOptionIds": ["option-2"]
+      },
+      "explanation": "«Можно…, пожалуйста?» — вежливая просьба.",
+      "hints": [],
+      "rubric": {
+        "id": "rki-03-diagnostic-rubric",
+        "version": 1,
+        "maxScore": 1,
+        "criteria": ["Выбран единственный верный вариант."]
+      },
+      "author": "ЛУЧ — демонстрационный контент",
+      "license": "CC0-1.0",
+      "review": {
+        "status": "demo"
+      }
+    },
+    {
+      "id": "rki-03-practice-choice",
+      "version": 1,
+      "lessonId": "rki-03",
+      "skillId": "ru-cafe",
+      "language": "ru",
+      "level": "A1",
+      "purpose": "practice",
+      "instruction": "Вы хотите заказать чай. Выберите фразу.",
+      "blocks": [],
+      "response": {
+        "type": "choice",
+        "options": [
+          {
+            "id": "option-1",
+            "text": "Я есть чай."
+          },
+          {
+            "id": "option-2",
+            "text": "Я зовут чай."
+          },
+          {
+            "id": "option-3",
+            "text": "Я хочу чай."
+          }
+        ]
+      },
+      "solution": {
+        "type": "choice",
+        "correctOptionIds": ["option-3"]
+      },
+      "explanation": "Желание выражают «я хочу…».",
+      "hints": [
+        "Вежливая просьба в кафе: «Можно чай, пожалуйста?». Чтобы заказать кофе, можно сказать «Я хочу кофе». Заказ часто завершают словом «пожалуйста»."
+      ],
+      "rubric": {
+        "id": "rki-03-practice-choice-rubric",
+        "version": 1,
+        "maxScore": 1,
+        "criteria": ["Выбран единственный верный вариант."]
+      },
+      "author": "ЛУЧ — демонстрационный контент",
+      "license": "CC0-1.0",
+      "review": {
+        "status": "demo"
+      }
+    },
+    {
+      "id": "rki-03-practice-text",
+      "version": 1,
+      "lessonId": "rki-03",
+      "skillId": "ru-cafe",
+      "language": "ru",
+      "level": "A1",
+      "purpose": "practice",
+      "instruction": "Вставьте слово: «Можно кофе, ___?»",
+      "blocks": [],
+      "response": {
+        "type": "short_text",
+        "maxLength": 120,
+        "placeholder": "Короткий ответ"
+      },
+      "solution": {
+        "type": "short_text",
+        "accepted": ["пожалуйста"],
+        "normalization": {
+          "trim": true,
+          "collapseWhitespace": true,
+          "caseSensitive": false,
+          "unicode": "NFKC"
+        }
+      },
+      "explanation": "Слово «пожалуйста» делает просьбу вежливой.",
+      "hints": [
+        "Вежливая просьба в кафе: «Можно чай, пожалуйста?». Чтобы заказать кофе, можно сказать «Я хочу кофе». Заказ часто завершают словом «пожалуйста»."
+      ],
+      "rubric": {
+        "id": "rki-03-practice-text-rubric",
+        "version": 1,
+        "maxScore": 1,
+        "criteria": ["Ответ соответствует одному из допустимых вариантов с заданной нормализацией."]
+      },
+      "author": "ЛУЧ — демонстрационный контент",
+      "license": "CC0-1.0",
+      "review": {
+        "status": "demo"
+      }
+    },
+    {
+      "id": "rki-03-control",
+      "version": 1,
+      "lessonId": "rki-03",
+      "skillId": "ru-cafe",
+      "language": "ru",
+      "level": "A1",
+      "purpose": "control",
+      "instruction": "Дополните заказ: «Я ___ воду».",
+      "blocks": [],
+      "response": {
+        "type": "short_text",
+        "maxLength": 120,
+        "placeholder": "Короткий ответ"
+      },
+      "solution": {
+        "type": "short_text",
+        "accepted": ["хочу"],
+        "normalization": {
+          "trim": true,
+          "collapseWhitespace": true,
+          "caseSensitive": false,
+          "unicode": "NFKC"
+        }
+      },
+      "explanation": "Для заказа подходит глагол «хочу».",
+      "hints": [],
+      "rubric": {
+        "id": "rki-03-control-rubric",
+        "version": 1,
+        "maxScore": 1,
+        "criteria": ["Ответ соответствует одному из допустимых вариантов с заданной нормализацией."]
+      },
+      "author": "ЛУЧ — демонстрационный контент",
+      "license": "CC0-1.0",
+      "review": {
+        "status": "demo"
+      }
+    },
+    {
+      "id": "rki-04-diagnostic",
+      "version": 1,
+      "lessonId": "rki-04",
+      "skillId": "ru-location",
+      "language": "ru",
+      "level": "A1",
+      "purpose": "diagnostic",
+      "instruction": "Как спросить о местоположении станции?",
+      "blocks": [],
+      "response": {
+        "type": "choice",
+        "options": [
+          {
+            "id": "option-1",
+            "text": "Когда станция?"
+          },
+          {
+            "id": "option-2",
+            "text": "Сколько станция?"
+          },
+          {
+            "id": "option-3",
+            "text": "Где станция?"
+          }
+        ]
+      },
+      "solution": {
+        "type": "choice",
+        "correctOptionIds": ["option-3"]
+      },
+      "explanation": "Местоположение спрашивают словом «где».",
+      "hints": [],
+      "rubric": {
+        "id": "rki-04-diagnostic-rubric",
+        "version": 1,
+        "maxScore": 1,
+        "criteria": ["Выбран единственный верный вариант."]
+      },
+      "author": "ЛУЧ — демонстрационный контент",
+      "license": "CC0-1.0",
+      "review": {
+        "status": "demo"
+      }
+    },
+    {
+      "id": "rki-04-practice-choice",
+      "version": 1,
+      "lessonId": "rki-04",
+      "skillId": "ru-location",
+      "language": "ru",
+      "level": "A1",
+      "purpose": "practice",
+      "instruction": "Что значит «налево»?",
+      "blocks": [],
+      "response": {
+        "type": "choice",
+        "options": [
+          {
+            "id": "option-1",
+            "text": "to the left"
+          },
+          {
+            "id": "option-2",
+            "text": "to the right"
+          },
+          {
+            "id": "option-3",
+            "text": "tomorrow"
+          }
+        ]
+      },
+      "solution": {
+        "type": "choice",
+        "correctOptionIds": ["option-1"]
+      },
+      "explanation": "«Налево» — направление в левую сторону.",
+      "hints": [
+        "Вопрос «Где?» помогает найти место. «Здесь» указывает на близкое место, «там» — на более далёкое. Направление можно объяснить словами «прямо», «налево» и «направо»."
+      ],
+      "rubric": {
+        "id": "rki-04-practice-choice-rubric",
+        "version": 1,
+        "maxScore": 1,
+        "criteria": ["Выбран единственный верный вариант."]
+      },
+      "author": "ЛУЧ — демонстрационный контент",
+      "license": "CC0-1.0",
+      "review": {
+        "status": "demo"
+      }
+    },
+    {
+      "id": "rki-04-practice-text",
+      "version": 1,
+      "lessonId": "rki-04",
+      "skillId": "ru-location",
+      "language": "ru",
+      "level": "A1",
+      "purpose": "practice",
+      "instruction": "Дополните вопрос о месте: «___ музей?»",
+      "blocks": [],
+      "response": {
+        "type": "short_text",
+        "maxLength": 120,
+        "placeholder": "Короткий ответ"
+      },
+      "solution": {
+        "type": "short_text",
+        "accepted": ["где"],
+        "normalization": {
+          "trim": true,
+          "collapseWhitespace": true,
+          "caseSensitive": false,
+          "unicode": "NFKC"
+        }
+      },
+      "explanation": "Вопрос о месте начинается со слова «где».",
+      "hints": [
+        "Вопрос «Где?» помогает найти место. «Здесь» указывает на близкое место, «там» — на более далёкое. Направление можно объяснить словами «прямо», «налево» и «направо»."
+      ],
+      "rubric": {
+        "id": "rki-04-practice-text-rubric",
+        "version": 1,
+        "maxScore": 1,
+        "criteria": ["Ответ соответствует одному из допустимых вариантов с заданной нормализацией."]
+      },
+      "author": "ЛУЧ — демонстрационный контент",
+      "license": "CC0-1.0",
+      "review": {
+        "status": "demo"
+      }
+    },
+    {
+      "id": "rki-04-control",
+      "version": 1,
+      "lessonId": "rki-04",
+      "skillId": "ru-location",
+      "language": "ru",
+      "level": "A1",
+      "purpose": "control",
+      "instruction": "Как по-русски сказать straight ahead? Напишите одно слово.",
+      "blocks": [],
+      "response": {
+        "type": "short_text",
+        "maxLength": 120,
+        "placeholder": "Короткий ответ"
+      },
+      "solution": {
+        "type": "short_text",
+        "accepted": ["прямо"],
+        "normalization": {
+          "trim": true,
+          "collapseWhitespace": true,
+          "caseSensitive": false,
+          "unicode": "NFKC"
+        }
+      },
+      "explanation": "Straight ahead — «прямо».",
+      "hints": [],
+      "rubric": {
+        "id": "rki-04-control-rubric",
+        "version": 1,
+        "maxScore": 1,
+        "criteria": ["Ответ соответствует одному из допустимых вариантов с заданной нормализацией."]
+      },
+      "author": "ЛУЧ — демонстрационный контент",
+      "license": "CC0-1.0",
+      "review": {
+        "status": "demo"
+      }
+    },
+    {
+      "id": "rki-05-diagnostic",
+      "version": 1,
+      "lessonId": "rki-05",
+      "skillId": "ru-family",
+      "language": "ru",
+      "level": "A1",
+      "purpose": "diagnostic",
+      "instruction": "Выберите верный вариант со словом «мама».",
+      "blocks": [],
+      "response": {
+        "type": "choice",
+        "options": [
+          {
+            "id": "option-1",
+            "text": "моя мама"
+          },
+          {
+            "id": "option-2",
+            "text": "мой мама"
+          },
+          {
+            "id": "option-3",
+            "text": "моё мама"
+          }
+        ]
+      },
+      "solution": {
+        "type": "choice",
+        "correctOptionIds": ["option-1"]
+      },
+      "explanation": "«Мама» — существительное женского рода, поэтому «моя».",
+      "hints": [],
+      "rubric": {
+        "id": "rki-05-diagnostic-rubric",
+        "version": 1,
+        "maxScore": 1,
+        "criteria": ["Выбран единственный верный вариант."]
+      },
+      "author": "ЛУЧ — демонстрационный контент",
+      "license": "CC0-1.0",
+      "review": {
+        "status": "demo"
+      }
+    },
+    {
+      "id": "rki-05-practice-choice",
+      "version": 1,
+      "lessonId": "rki-05",
+      "skillId": "ru-family",
+      "language": "ru",
+      "level": "A1",
+      "purpose": "practice",
+      "instruction": "Выберите верный вариант со словом «брат».",
+      "blocks": [],
+      "response": {
+        "type": "choice",
+        "options": [
+          {
+            "id": "option-1",
+            "text": "мой брат"
+          },
+          {
+            "id": "option-2",
+            "text": "моя брат"
+          },
+          {
+            "id": "option-3",
+            "text": "моё брат"
+          }
+        ]
+      },
+      "solution": {
+        "type": "choice",
+        "correctOptionIds": ["option-1"]
+      },
+      "explanation": "«Брат» — существительное мужского рода, поэтому «мой».",
+      "hints": [
+        "Используйте «мой» с существительными мужского рода: «мой брат». Используйте «моя» с существительными женского рода: «моя сестра». О семье можно сказать: «Это моя семья»."
+      ],
+      "rubric": {
+        "id": "rki-05-practice-choice-rubric",
+        "version": 1,
+        "maxScore": 1,
+        "criteria": ["Выбран единственный верный вариант."]
+      },
+      "author": "ЛУЧ — демонстрационный контент",
+      "license": "CC0-1.0",
+      "review": {
+        "status": "demo"
+      }
+    },
+    {
+      "id": "rki-05-practice-text",
+      "version": 1,
+      "lessonId": "rki-05",
+      "skillId": "ru-family",
+      "language": "ru",
+      "level": "A1",
+      "purpose": "practice",
+      "instruction": "Дополните: «Это ___ сестра».",
+      "blocks": [],
+      "response": {
+        "type": "short_text",
+        "maxLength": 120,
+        "placeholder": "Короткий ответ"
+      },
+      "solution": {
+        "type": "short_text",
+        "accepted": ["моя"],
+        "normalization": {
+          "trim": true,
+          "collapseWhitespace": true,
+          "caseSensitive": false,
+          "unicode": "NFKC"
+        }
+      },
+      "explanation": "С существительным «сестра» используется «моя».",
+      "hints": [
+        "Используйте «мой» с существительными мужского рода: «мой брат». Используйте «моя» с существительными женского рода: «моя сестра». О семье можно сказать: «Это моя семья»."
+      ],
+      "rubric": {
+        "id": "rki-05-practice-text-rubric",
+        "version": 1,
+        "maxScore": 1,
+        "criteria": ["Ответ соответствует одному из допустимых вариантов с заданной нормализацией."]
+      },
+      "author": "ЛУЧ — демонстрационный контент",
+      "license": "CC0-1.0",
+      "review": {
+        "status": "demo"
+      }
+    },
+    {
+      "id": "rki-05-control",
+      "version": 1,
+      "lessonId": "rki-05",
+      "skillId": "ru-family",
+      "language": "ru",
+      "level": "A1",
+      "purpose": "control",
+      "instruction": "Дополните: «Это ___ отец».",
+      "blocks": [],
+      "response": {
+        "type": "short_text",
+        "maxLength": 120,
+        "placeholder": "Короткий ответ"
+      },
+      "solution": {
+        "type": "short_text",
+        "accepted": ["мой"],
+        "normalization": {
+          "trim": true,
+          "collapseWhitespace": true,
+          "caseSensitive": false,
+          "unicode": "NFKC"
+        }
+      },
+      "explanation": "С существительным «отец» используется «мой».",
+      "hints": [],
+      "rubric": {
+        "id": "rki-05-control-rubric",
+        "version": 1,
+        "maxScore": 1,
+        "criteria": ["Ответ соответствует одному из допустимых вариантов с заданной нормализацией."]
+      },
+      "author": "ЛУЧ — демонстрационный контент",
+      "license": "CC0-1.0",
+      "review": {
+        "status": "demo"
+      }
+    },
+    {
+      "id": "rki-06-diagnostic",
+      "version": 1,
+      "lessonId": "rki-06",
+      "skillId": "ru-plans",
+      "language": "ru",
+      "level": "A1",
+      "purpose": "diagnostic",
+      "instruction": "Какое слово означает tomorrow?",
+      "blocks": [],
+      "response": {
+        "type": "choice",
+        "options": [
+          {
+            "id": "option-1",
+            "text": "вчера"
+          },
+          {
+            "id": "option-2",
+            "text": "завтра"
+          },
+          {
+            "id": "option-3",
+            "text": "сегодня"
+          }
+        ]
+      },
+      "solution": {
+        "type": "choice",
+        "correctOptionIds": ["option-2"]
+      },
+      "explanation": "Tomorrow — «завтра».",
+      "hints": [],
+      "rubric": {
+        "id": "rki-06-diagnostic-rubric",
+        "version": 1,
+        "maxScore": 1,
+        "criteria": ["Выбран единственный верный вариант."]
+      },
+      "author": "ЛУЧ — демонстрационный контент",
+      "license": "CC0-1.0",
+      "review": {
+        "status": "demo"
+      }
+    },
+    {
+      "id": "rki-06-practice-choice",
+      "version": 1,
+      "lessonId": "rki-06",
+      "skillId": "ru-plans",
+      "language": "ru",
+      "level": "A1",
+      "purpose": "practice",
+      "instruction": "Выберите предложение о будущем.",
+      "blocks": [],
+      "response": {
+        "type": "choice",
+        "options": [
+          {
+            "id": "option-1",
+            "text": "Завтра я буду читать."
+          },
+          {
+            "id": "option-2",
+            "text": "Вчера я читал."
+          },
+          {
+            "id": "option-3",
+            "text": "Сейчас я читаю."
+          }
+        ]
+      },
+      "solution": {
+        "type": "choice",
+        "correctOptionIds": ["option-1"]
+      },
+      "explanation": "«Завтра» и «буду читать» указывают на будущее.",
+      "hints": [
+        "О текущем действии: «Сегодня я учусь». О плане: «Завтра я буду читать». Слово «завтра» обозначает следующий день, а «сегодня» — текущий."
+      ],
+      "rubric": {
+        "id": "rki-06-practice-choice-rubric",
+        "version": 1,
+        "maxScore": 1,
+        "criteria": ["Выбран единственный верный вариант."]
+      },
+      "author": "ЛУЧ — демонстрационный контент",
+      "license": "CC0-1.0",
+      "review": {
+        "status": "demo"
+      }
+    },
+    {
+      "id": "rki-06-practice-text",
+      "version": 1,
+      "lessonId": "rki-06",
+      "skillId": "ru-plans",
+      "language": "ru",
+      "level": "A1",
+      "purpose": "practice",
+      "instruction": "Вставьте слово: «Завтра я ___ учиться».",
+      "blocks": [],
+      "response": {
+        "type": "short_text",
+        "maxLength": 120,
+        "placeholder": "Короткий ответ"
+      },
+      "solution": {
+        "type": "short_text",
+        "accepted": ["буду"],
+        "normalization": {
+          "trim": true,
+          "collapseWhitespace": true,
+          "caseSensitive": false,
+          "unicode": "NFKC"
+        }
+      },
+      "explanation": "Для будущего действия с «я» используйте «буду» и инфинитив.",
+      "hints": [
+        "О текущем действии: «Сегодня я учусь». О плане: «Завтра я буду читать». Слово «завтра» обозначает следующий день, а «сегодня» — текущий."
+      ],
+      "rubric": {
+        "id": "rki-06-practice-text-rubric",
+        "version": 1,
+        "maxScore": 1,
+        "criteria": ["Ответ соответствует одному из допустимых вариантов с заданной нормализацией."]
+      },
+      "author": "ЛУЧ — демонстрационный контент",
+      "license": "CC0-1.0",
+      "review": {
+        "status": "demo"
+      }
+    },
+    {
+      "id": "rki-06-control",
+      "version": 1,
+      "lessonId": "rki-06",
+      "skillId": "ru-plans",
+      "language": "ru",
+      "level": "A1",
+      "purpose": "control",
+      "instruction": "Как по-русски сказать today? Напишите одно слово.",
+      "blocks": [],
+      "response": {
+        "type": "short_text",
+        "maxLength": 120,
+        "placeholder": "Короткий ответ"
+      },
+      "solution": {
+        "type": "short_text",
+        "accepted": ["сегодня"],
+        "normalization": {
+          "trim": true,
+          "collapseWhitespace": true,
+          "caseSensitive": false,
+          "unicode": "NFKC"
+        }
+      },
+      "explanation": "Today — «сегодня».",
+      "hints": [],
+      "rubric": {
+        "id": "rki-06-control-rubric",
+        "version": 1,
+        "maxScore": 1,
+        "criteria": ["Ответ соответствует одному из допустимых вариантов с заданной нормализацией."]
+      },
+      "author": "ЛУЧ — демонстрационный контент",
+      "license": "CC0-1.0",
+      "review": {
+        "status": "demo"
+      }
+    },
+    {
+      "id": "english-01-diagnostic",
+      "version": 1,
+      "lessonId": "english-01",
+      "skillId": "en-introduction",
+      "language": "en",
+      "level": "A1",
+      "purpose": "diagnostic",
+      "instruction": "Choose the correct greeting when you meet someone.",
+      "blocks": [],
+      "response": {
+        "type": "choice",
+        "options": [
+          {
+            "id": "option-1",
+            "text": "Hello!"
+          },
+          {
+            "id": "option-2",
+            "text": "Goodbye!"
+          },
+          {
+            "id": "option-3",
+            "text": "Good night!"
+          }
+        ]
+      },
+      "solution": {
+        "type": "choice",
+        "correctOptionIds": ["option-1"]
+      },
+      "explanation": "Hello! — приветствие при встрече.",
+      "hints": [],
+      "rubric": {
+        "id": "english-01-diagnostic-rubric",
+        "version": 1,
+        "maxScore": 1,
+        "criteria": ["Выбран единственный верный вариант."]
+      },
+      "author": "ЛУЧ — демонстрационный контент",
+      "license": "CC0-1.0",
+      "review": {
+        "status": "demo"
+      }
+    },
+    {
+      "id": "english-01-practice-choice",
+      "version": 1,
+      "lessonId": "english-01",
+      "skillId": "en-introduction",
+      "language": "en",
+      "level": "A1",
+      "purpose": "practice",
+      "instruction": "Choose the correct sentence.",
+      "blocks": [],
+      "response": {
+        "type": "choice",
+        "options": [
+          {
+            "id": "option-1",
+            "text": "I are Anna."
+          },
+          {
+            "id": "option-2",
+            "text": "I am Anna."
+          },
+          {
+            "id": "option-3",
+            "text": "I is Anna."
+          }
+        ]
+      },
+      "solution": {
+        "type": "choice",
+        "correctOptionIds": ["option-2"]
+      },
+      "explanation": "С местоимением I используется am.",
+      "hints": [
+        "Чтобы назвать себя по-английски, скажите «My name is Anna» или «I am Anna». Сокращение I am — I’m. Спросить имя: «What is your name?»."
+      ],
+      "rubric": {
+        "id": "english-01-practice-choice-rubric",
+        "version": 1,
+        "maxScore": 1,
+        "criteria": ["Выбран единственный верный вариант."]
+      },
+      "author": "ЛУЧ — демонстрационный контент",
+      "license": "CC0-1.0",
+      "review": {
+        "status": "demo"
+      }
+    },
+    {
+      "id": "english-01-practice-text",
+      "version": 1,
+      "lessonId": "english-01",
+      "skillId": "en-introduction",
+      "language": "en",
+      "level": "A1",
+      "purpose": "practice",
+      "instruction": "Complete: “My name ___ Ben.”",
+      "blocks": [],
+      "response": {
+        "type": "short_text",
+        "maxLength": 120,
+        "placeholder": "Короткий ответ"
+      },
+      "solution": {
+        "type": "short_text",
+        "accepted": ["is"],
+        "normalization": {
+          "trim": true,
+          "collapseWhitespace": true,
+          "caseSensitive": false,
+          "unicode": "NFKC"
+        }
+      },
+      "explanation": "В конструкции My name is… используется is.",
+      "hints": [
+        "Чтобы назвать себя по-английски, скажите «My name is Anna» или «I am Anna». Сокращение I am — I’m. Спросить имя: «What is your name?»."
+      ],
+      "rubric": {
+        "id": "english-01-practice-text-rubric",
+        "version": 1,
+        "maxScore": 1,
+        "criteria": ["Ответ соответствует одному из допустимых вариантов с заданной нормализацией."]
+      },
+      "author": "ЛУЧ — демонстрационный контент",
+      "license": "CC0-1.0",
+      "review": {
+        "status": "demo"
+      }
+    },
+    {
+      "id": "english-01-control",
+      "version": 1,
+      "lessonId": "english-01",
+      "skillId": "en-introduction",
+      "language": "en",
+      "level": "A1",
+      "purpose": "control",
+      "instruction": "Complete: “She ___ Maria.”",
+      "blocks": [],
+      "response": {
+        "type": "short_text",
+        "maxLength": 120,
+        "placeholder": "Короткий ответ"
+      },
+      "solution": {
+        "type": "short_text",
+        "accepted": ["is"],
+        "normalization": {
+          "trim": true,
+          "collapseWhitespace": true,
+          "caseSensitive": false,
+          "unicode": "NFKC"
+        }
+      },
+      "explanation": "С местоимением she используется is.",
+      "hints": [],
+      "rubric": {
+        "id": "english-01-control-rubric",
+        "version": 1,
+        "maxScore": 1,
+        "criteria": ["Ответ соответствует одному из допустимых вариантов с заданной нормализацией."]
+      },
+      "author": "ЛУЧ — демонстрационный контент",
+      "license": "CC0-1.0",
+      "review": {
+        "status": "demo"
+      }
+    },
+    {
+      "id": "english-02-diagnostic",
+      "version": 1,
+      "lessonId": "english-02",
+      "skillId": "en-time",
+      "language": "en",
+      "level": "A1",
+      "purpose": "diagnostic",
+      "instruction": "Choose the question about the start time.",
+      "blocks": [],
+      "response": {
+        "type": "choice",
+        "options": [
+          {
+            "id": "option-1",
+            "text": "Who is in the class?"
+          },
+          {
+            "id": "option-2",
+            "text": "What time is the class?"
+          },
+          {
+            "id": "option-3",
+            "text": "Where is the class?"
+          }
+        ]
+      },
+      "solution": {
+        "type": "choice",
+        "correctOptionIds": ["option-2"]
+      },
+      "explanation": "What time…? — вопрос о времени.",
+      "hints": [],
+      "rubric": {
+        "id": "english-02-diagnostic-rubric",
+        "version": 1,
+        "maxScore": 1,
+        "criteria": ["Выбран единственный верный вариант."]
+      },
+      "author": "ЛУЧ — демонстрационный контент",
+      "license": "CC0-1.0",
+      "review": {
+        "status": "demo"
+      }
+    },
+    {
+      "id": "english-02-practice-choice",
+      "version": 1,
+      "lessonId": "english-02",
+      "skillId": "en-time",
+      "language": "en",
+      "level": "A1",
+      "purpose": "practice",
+      "instruction": "Choose the correct sentence.",
+      "blocks": [],
+      "response": {
+        "type": "choice",
+        "options": [
+          {
+            "id": "option-1",
+            "text": "We meet at ten."
+          },
+          {
+            "id": "option-2",
+            "text": "We meet on ten."
+          },
+          {
+            "id": "option-3",
+            "text": "We meet in ten."
+          }
+        ]
+      },
+      "solution": {
+        "type": "choice",
+        "correctOptionIds": ["option-1"]
+      },
+      "explanation": "Перед точным временем используется at.",
+      "hints": [
+        "Вопрос о времени: «What time is the lesson?». Для времени начала используйте at: «The lesson is at nine». Half past nine — 9:30."
+      ],
+      "rubric": {
+        "id": "english-02-practice-choice-rubric",
+        "version": 1,
+        "maxScore": 1,
+        "criteria": ["Выбран единственный верный вариант."]
+      },
+      "author": "ЛУЧ — демонстрационный контент",
+      "license": "CC0-1.0",
+      "review": {
+        "status": "demo"
+      }
+    },
+    {
+      "id": "english-02-practice-text",
+      "version": 1,
+      "lessonId": "english-02",
+      "skillId": "en-time",
+      "language": "en",
+      "level": "A1",
+      "purpose": "practice",
+      "instruction": "Complete: “The lesson starts ___ nine.”",
+      "blocks": [],
+      "response": {
+        "type": "short_text",
+        "maxLength": 120,
+        "placeholder": "Короткий ответ"
+      },
+      "solution": {
+        "type": "short_text",
+        "accepted": ["at"],
+        "normalization": {
+          "trim": true,
+          "collapseWhitespace": true,
+          "caseSensitive": false,
+          "unicode": "NFKC"
+        }
+      },
+      "explanation": "Точное время начала: at nine.",
+      "hints": [
+        "Вопрос о времени: «What time is the lesson?». Для времени начала используйте at: «The lesson is at nine». Half past nine — 9:30."
+      ],
+      "rubric": {
+        "id": "english-02-practice-text-rubric",
+        "version": 1,
+        "maxScore": 1,
+        "criteria": ["Ответ соответствует одному из допустимых вариантов с заданной нормализацией."]
+      },
+      "author": "ЛУЧ — демонстрационный контент",
+      "license": "CC0-1.0",
+      "review": {
+        "status": "demo"
+      }
+    },
+    {
+      "id": "english-02-control",
+      "version": 1,
+      "lessonId": "english-02",
+      "skillId": "en-time",
+      "language": "en",
+      "level": "A1",
+      "purpose": "control",
+      "instruction": "Write the missing word: “Half ___ eight” means 8:30.",
+      "blocks": [],
+      "response": {
+        "type": "short_text",
+        "maxLength": 120,
+        "placeholder": "Короткий ответ"
+      },
+      "solution": {
+        "type": "short_text",
+        "accepted": ["past"],
+        "normalization": {
+          "trim": true,
+          "collapseWhitespace": true,
+          "caseSensitive": false,
+          "unicode": "NFKC"
+        }
+      },
+      "explanation": "Half past eight — половина девятого, 8:30.",
+      "hints": [],
+      "rubric": {
+        "id": "english-02-control-rubric",
+        "version": 1,
+        "maxScore": 1,
+        "criteria": ["Ответ соответствует одному из допустимых вариантов с заданной нормализацией."]
+      },
+      "author": "ЛУЧ — демонстрационный контент",
+      "license": "CC0-1.0",
+      "review": {
+        "status": "demo"
+      }
+    },
+    {
+      "id": "english-03-diagnostic",
+      "version": 1,
+      "lessonId": "english-03",
+      "skillId": "en-cafe",
+      "language": "en",
+      "level": "A1",
+      "purpose": "diagnostic",
+      "instruction": "Choose the polite request.",
+      "blocks": [],
+      "response": {
+        "type": "choice",
+        "options": [
+          {
+            "id": "option-1",
+            "text": "Water is my name."
+          },
+          {
+            "id": "option-2",
+            "text": "Can I have water, please?"
+          },
+          {
+            "id": "option-3",
+            "text": "Where water yesterday?"
+          }
+        ]
+      },
+      "solution": {
+        "type": "choice",
+        "correctOptionIds": ["option-2"]
+      },
+      "explanation": "Can I have…, please? — вежливая просьба.",
+      "hints": [],
+      "rubric": {
+        "id": "english-03-diagnostic-rubric",
+        "version": 1,
+        "maxScore": 1,
+        "criteria": ["Выбран единственный верный вариант."]
+      },
+      "author": "ЛУЧ — демонстрационный контент",
+      "license": "CC0-1.0",
+      "review": {
+        "status": "demo"
+      }
+    },
+    {
+      "id": "english-03-practice-choice",
+      "version": 1,
+      "lessonId": "english-03",
+      "skillId": "en-cafe",
+      "language": "en",
+      "level": "A1",
+      "purpose": "practice",
+      "instruction": "Choose the correct order.",
+      "blocks": [],
+      "response": {
+        "type": "choice",
+        "options": [
+          {
+            "id": "option-1",
+            "text": "I am tea, please."
+          },
+          {
+            "id": "option-2",
+            "text": "I would like tea, please."
+          },
+          {
+            "id": "option-3",
+            "text": "I would likes tea."
+          }
+        ]
+      },
+      "solution": {
+        "type": "choice",
+        "correctOptionIds": ["option-2"]
+      },
+      "explanation": "После would like используется название желаемого напитка.",
+      "hints": [
+        "Вежливый заказ: «Can I have tea, please?». Можно сказать «I would like coffee, please». Напиток легко заменить, сохранив конструкцию."
+      ],
+      "rubric": {
+        "id": "english-03-practice-choice-rubric",
+        "version": 1,
+        "maxScore": 1,
+        "criteria": ["Выбран единственный верный вариант."]
+      },
+      "author": "ЛУЧ — демонстрационный контент",
+      "license": "CC0-1.0",
+      "review": {
+        "status": "demo"
+      }
+    },
+    {
+      "id": "english-03-practice-text",
+      "version": 1,
+      "lessonId": "english-03",
+      "skillId": "en-cafe",
+      "language": "en",
+      "level": "A1",
+      "purpose": "practice",
+      "instruction": "Complete: “Can I ___ coffee, please?”",
+      "blocks": [],
+      "response": {
+        "type": "short_text",
+        "maxLength": 120,
+        "placeholder": "Короткий ответ"
+      },
+      "solution": {
+        "type": "short_text",
+        "accepted": ["have"],
+        "normalization": {
+          "trim": true,
+          "collapseWhitespace": true,
+          "caseSensitive": false,
+          "unicode": "NFKC"
+        }
+      },
+      "explanation": "Конструкция заказа: Can I have…?",
+      "hints": [
+        "Вежливый заказ: «Can I have tea, please?». Можно сказать «I would like coffee, please». Напиток легко заменить, сохранив конструкцию."
+      ],
+      "rubric": {
+        "id": "english-03-practice-text-rubric",
+        "version": 1,
+        "maxScore": 1,
+        "criteria": ["Ответ соответствует одному из допустимых вариантов с заданной нормализацией."]
+      },
+      "author": "ЛУЧ — демонстрационный контент",
+      "license": "CC0-1.0",
+      "review": {
+        "status": "demo"
+      }
+    },
+    {
+      "id": "english-03-control",
+      "version": 1,
+      "lessonId": "english-03",
+      "skillId": "en-cafe",
+      "language": "en",
+      "level": "A1",
+      "purpose": "control",
+      "instruction": "Complete: “I would ___ water, please.”",
+      "blocks": [],
+      "response": {
+        "type": "short_text",
+        "maxLength": 120,
+        "placeholder": "Короткий ответ"
+      },
+      "solution": {
+        "type": "short_text",
+        "accepted": ["like"],
+        "normalization": {
+          "trim": true,
+          "collapseWhitespace": true,
+          "caseSensitive": false,
+          "unicode": "NFKC"
+        }
+      },
+      "explanation": "Вежливое желание выражают would like.",
+      "hints": [],
+      "rubric": {
+        "id": "english-03-control-rubric",
+        "version": 1,
+        "maxScore": 1,
+        "criteria": ["Ответ соответствует одному из допустимых вариантов с заданной нормализацией."]
+      },
+      "author": "ЛУЧ — демонстрационный контент",
+      "license": "CC0-1.0",
+      "review": {
+        "status": "demo"
+      }
+    },
+    {
+      "id": "english-04-diagnostic",
+      "version": 1,
+      "lessonId": "english-04",
+      "skillId": "en-location",
+      "language": "en",
+      "level": "A1",
+      "purpose": "diagnostic",
+      "instruction": "Choose the question about a place.",
+      "blocks": [],
+      "response": {
+        "type": "choice",
+        "options": [
+          {
+            "id": "option-1",
+            "text": "When is the museum?"
+          },
+          {
+            "id": "option-2",
+            "text": "Who is the museum?"
+          },
+          {
+            "id": "option-3",
+            "text": "Where is the museum?"
+          }
+        ]
+      },
+      "solution": {
+        "type": "choice",
+        "correctOptionIds": ["option-3"]
+      },
+      "explanation": "Where…? — вопрос о местоположении.",
+      "hints": [],
+      "rubric": {
+        "id": "english-04-diagnostic-rubric",
+        "version": 1,
+        "maxScore": 1,
+        "criteria": ["Выбран единственный верный вариант."]
+      },
+      "author": "ЛУЧ — демонстрационный контент",
+      "license": "CC0-1.0",
+      "review": {
+        "status": "demo"
+      }
+    },
+    {
+      "id": "english-04-practice-choice",
+      "version": 1,
+      "lessonId": "english-04",
+      "skillId": "en-location",
+      "language": "en",
+      "level": "A1",
+      "purpose": "practice",
+      "instruction": "What does “turn left” mean?",
+      "blocks": [],
+      "response": {
+        "type": "choice",
+        "options": [
+          {
+            "id": "option-1",
+            "text": "поверните налево"
+          },
+          {
+            "id": "option-2",
+            "text": "поверните направо"
+          },
+          {
+            "id": "option-3",
+            "text": "приходите завтра"
+          }
+        ]
+      },
+      "solution": {
+        "type": "choice",
+        "correctOptionIds": ["option-1"]
+      },
+      "explanation": "Turn left — поверните налево.",
+      "hints": [
+        "Вопрос о месте начинается с where: «Where is the station?». Направления: go straight, turn left, turn right. Left — налево, right — направо."
+      ],
+      "rubric": {
+        "id": "english-04-practice-choice-rubric",
+        "version": 1,
+        "maxScore": 1,
+        "criteria": ["Выбран единственный верный вариант."]
+      },
+      "author": "ЛУЧ — демонстрационный контент",
+      "license": "CC0-1.0",
+      "review": {
+        "status": "demo"
+      }
+    },
+    {
+      "id": "english-04-practice-text",
+      "version": 1,
+      "lessonId": "english-04",
+      "skillId": "en-location",
+      "language": "en",
+      "level": "A1",
+      "purpose": "practice",
+      "instruction": "Complete the question: “___ is the station?”",
+      "blocks": [],
+      "response": {
+        "type": "short_text",
+        "maxLength": 120,
+        "placeholder": "Короткий ответ"
+      },
+      "solution": {
+        "type": "short_text",
+        "accepted": ["where"],
+        "normalization": {
+          "trim": true,
+          "collapseWhitespace": true,
+          "caseSensitive": false,
+          "unicode": "NFKC"
+        }
+      },
+      "explanation": "Вопрос о месте начинается с where.",
+      "hints": [
+        "Вопрос о месте начинается с where: «Where is the station?». Направления: go straight, turn left, turn right. Left — налево, right — направо."
+      ],
+      "rubric": {
+        "id": "english-04-practice-text-rubric",
+        "version": 1,
+        "maxScore": 1,
+        "criteria": ["Ответ соответствует одному из допустимых вариантов с заданной нормализацией."]
+      },
+      "author": "ЛУЧ — демонстрационный контент",
+      "license": "CC0-1.0",
+      "review": {
+        "status": "demo"
+      }
+    },
+    {
+      "id": "english-04-control",
+      "version": 1,
+      "lessonId": "english-04",
+      "skillId": "en-location",
+      "language": "en",
+      "level": "A1",
+      "purpose": "control",
+      "instruction": "Complete: “Go ___” means «идите прямо».",
+      "blocks": [],
+      "response": {
+        "type": "short_text",
+        "maxLength": 120,
+        "placeholder": "Короткий ответ"
+      },
+      "solution": {
+        "type": "short_text",
+        "accepted": ["straight"],
+        "normalization": {
+          "trim": true,
+          "collapseWhitespace": true,
+          "caseSensitive": false,
+          "unicode": "NFKC"
+        }
+      },
+      "explanation": "Go straight — идите прямо.",
+      "hints": [],
+      "rubric": {
+        "id": "english-04-control-rubric",
+        "version": 1,
+        "maxScore": 1,
+        "criteria": ["Ответ соответствует одному из допустимых вариантов с заданной нормализацией."]
+      },
+      "author": "ЛУЧ — демонстрационный контент",
+      "license": "CC0-1.0",
+      "review": {
+        "status": "demo"
+      }
+    },
+    {
+      "id": "english-05-diagnostic",
+      "version": 1,
+      "lessonId": "english-05",
+      "skillId": "en-family",
+      "language": "en",
+      "level": "A1",
+      "purpose": "diagnostic",
+      "instruction": "Choose the English for «моя мать».",
+      "blocks": [],
+      "response": {
+        "type": "choice",
+        "options": [
+          {
+            "id": "option-1",
+            "text": "I mother"
+          },
+          {
+            "id": "option-2",
+            "text": "me mother"
+          },
+          {
+            "id": "option-3",
+            "text": "my mother"
+          }
+        ]
+      },
+      "solution": {
+        "type": "choice",
+        "correctOptionIds": ["option-3"]
+      },
+      "explanation": "Принадлежность «мой/моя» выражается my.",
+      "hints": [],
+      "rubric": {
+        "id": "english-05-diagnostic-rubric",
+        "version": 1,
+        "maxScore": 1,
+        "criteria": ["Выбран единственный верный вариант."]
+      },
+      "author": "ЛУЧ — демонстрационный контент",
+      "license": "CC0-1.0",
+      "review": {
+        "status": "demo"
+      }
+    },
+    {
+      "id": "english-05-practice-choice",
+      "version": 1,
+      "lessonId": "english-05",
+      "skillId": "en-family",
+      "language": "en",
+      "level": "A1",
+      "purpose": "practice",
+      "instruction": "Choose the English for «её сестра».",
+      "blocks": [],
+      "response": {
+        "type": "choice",
+        "options": [
+          {
+            "id": "option-1",
+            "text": "hers sister"
+          },
+          {
+            "id": "option-2",
+            "text": "her sister"
+          },
+          {
+            "id": "option-3",
+            "text": "she sister"
+          }
+        ]
+      },
+      "solution": {
+        "type": "choice",
+        "correctOptionIds": ["option-2"]
+      },
+      "explanation": "Перед существительным «её» выражается her.",
+      "hints": [
+        "Чтобы сказать «мой», используйте my: «my brother». «Её» — her: «her sister». «Его» — his: «his father». Эти слова стоят перед названием члена семьи."
+      ],
+      "rubric": {
+        "id": "english-05-practice-choice-rubric",
+        "version": 1,
+        "maxScore": 1,
+        "criteria": ["Выбран единственный верный вариант."]
+      },
+      "author": "ЛУЧ — демонстрационный контент",
+      "license": "CC0-1.0",
+      "review": {
+        "status": "demo"
+      }
+    },
+    {
+      "id": "english-05-practice-text",
+      "version": 1,
+      "lessonId": "english-05",
+      "skillId": "en-family",
+      "language": "en",
+      "level": "A1",
+      "purpose": "practice",
+      "instruction": "Complete: “This is ___ family” («моя семья»).",
+      "blocks": [],
+      "response": {
+        "type": "short_text",
+        "maxLength": 120,
+        "placeholder": "Короткий ответ"
+      },
+      "solution": {
+        "type": "short_text",
+        "accepted": ["my"],
+        "normalization": {
+          "trim": true,
+          "collapseWhitespace": true,
+          "caseSensitive": false,
+          "unicode": "NFKC"
+        }
+      },
+      "explanation": "Перед family используйте my.",
+      "hints": [
+        "Чтобы сказать «мой», используйте my: «my brother». «Её» — her: «her sister». «Его» — his: «his father». Эти слова стоят перед названием члена семьи."
+      ],
+      "rubric": {
+        "id": "english-05-practice-text-rubric",
+        "version": 1,
+        "maxScore": 1,
+        "criteria": ["Ответ соответствует одному из допустимых вариантов с заданной нормализацией."]
+      },
+      "author": "ЛУЧ — демонстрационный контент",
+      "license": "CC0-1.0",
+      "review": {
+        "status": "demo"
+      }
+    },
+    {
+      "id": "english-05-control",
+      "version": 1,
+      "lessonId": "english-05",
+      "skillId": "en-family",
+      "language": "en",
+      "level": "A1",
+      "purpose": "control",
+      "instruction": "Complete: “___ father” means «его отец».",
+      "blocks": [],
+      "response": {
+        "type": "short_text",
+        "maxLength": 120,
+        "placeholder": "Короткий ответ"
+      },
+      "solution": {
+        "type": "short_text",
+        "accepted": ["his"],
+        "normalization": {
+          "trim": true,
+          "collapseWhitespace": true,
+          "caseSensitive": false,
+          "unicode": "NFKC"
+        }
+      },
+      "explanation": "«Его» перед существительным — his.",
+      "hints": [],
+      "rubric": {
+        "id": "english-05-control-rubric",
+        "version": 1,
+        "maxScore": 1,
+        "criteria": ["Ответ соответствует одному из допустимых вариантов с заданной нормализацией."]
+      },
+      "author": "ЛУЧ — демонстрационный контент",
+      "license": "CC0-1.0",
+      "review": {
+        "status": "demo"
+      }
+    },
+    {
+      "id": "english-06-diagnostic",
+      "version": 1,
+      "lessonId": "english-06",
+      "skillId": "en-plans",
+      "language": "en",
+      "level": "A1",
+      "purpose": "diagnostic",
+      "instruction": "Choose the English for «завтра».",
+      "blocks": [],
+      "response": {
+        "type": "choice",
+        "options": [
+          {
+            "id": "option-1",
+            "text": "tomorrow"
+          },
+          {
+            "id": "option-2",
+            "text": "today"
+          },
+          {
+            "id": "option-3",
+            "text": "yesterday"
+          }
+        ]
+      },
+      "solution": {
+        "type": "choice",
+        "correctOptionIds": ["option-1"]
+      },
+      "explanation": "«Завтра» по-английски — tomorrow.",
+      "hints": [],
+      "rubric": {
+        "id": "english-06-diagnostic-rubric",
+        "version": 1,
+        "maxScore": 1,
+        "criteria": ["Выбран единственный верный вариант."]
+      },
+      "author": "ЛУЧ — демонстрационный контент",
+      "license": "CC0-1.0",
+      "review": {
+        "status": "demo"
+      }
+    },
+    {
+      "id": "english-06-practice-choice",
+      "version": 1,
+      "lessonId": "english-06",
+      "skillId": "en-plans",
+      "language": "en",
+      "level": "A1",
+      "purpose": "practice",
+      "instruction": "Choose the sentence about the future.",
+      "blocks": [],
+      "response": {
+        "type": "choice",
+        "options": [
+          {
+            "id": "option-1",
+            "text": "I read yesterday."
+          },
+          {
+            "id": "option-2",
+            "text": "I am reading now."
+          },
+          {
+            "id": "option-3",
+            "text": "I will read tomorrow."
+          }
+        ]
+      },
+      "solution": {
+        "type": "choice",
+        "correctOptionIds": ["option-3"]
+      },
+      "explanation": "Will и tomorrow обозначают будущий план.",
+      "hints": [
+        "Для простого будущего можно использовать will: «I will read tomorrow». После will стоит начальная форма глагола. Today — сегодня, tomorrow — завтра."
+      ],
+      "rubric": {
+        "id": "english-06-practice-choice-rubric",
+        "version": 1,
+        "maxScore": 1,
+        "criteria": ["Выбран единственный верный вариант."]
+      },
+      "author": "ЛУЧ — демонстрационный контент",
+      "license": "CC0-1.0",
+      "review": {
+        "status": "demo"
+      }
+    },
+    {
+      "id": "english-06-practice-text",
+      "version": 1,
+      "lessonId": "english-06",
+      "skillId": "en-plans",
+      "language": "en",
+      "level": "A1",
+      "purpose": "practice",
+      "instruction": "Complete: “I ___ study tomorrow.”",
+      "blocks": [],
+      "response": {
+        "type": "short_text",
+        "maxLength": 120,
+        "placeholder": "Короткий ответ"
+      },
+      "solution": {
+        "type": "short_text",
+        "accepted": ["will"],
+        "normalization": {
+          "trim": true,
+          "collapseWhitespace": true,
+          "caseSensitive": false,
+          "unicode": "NFKC"
+        }
+      },
+      "explanation": "Для будущего действия используется will.",
+      "hints": [
+        "Для простого будущего можно использовать will: «I will read tomorrow». После will стоит начальная форма глагола. Today — сегодня, tomorrow — завтра."
+      ],
+      "rubric": {
+        "id": "english-06-practice-text-rubric",
+        "version": 1,
+        "maxScore": 1,
+        "criteria": ["Ответ соответствует одному из допустимых вариантов с заданной нормализацией."]
+      },
+      "author": "ЛУЧ — демонстрационный контент",
+      "license": "CC0-1.0",
+      "review": {
+        "status": "demo"
+      }
+    },
+    {
+      "id": "english-06-control",
+      "version": 1,
+      "lessonId": "english-06",
+      "skillId": "en-plans",
+      "language": "en",
+      "level": "A1",
+      "purpose": "control",
+      "instruction": "Complete: “I will ___ a book tomorrow.” Use the verb «читать».",
+      "blocks": [],
+      "response": {
+        "type": "short_text",
+        "maxLength": 120,
+        "placeholder": "Короткий ответ"
+      },
+      "solution": {
+        "type": "short_text",
+        "accepted": ["read"],
+        "normalization": {
+          "trim": true,
+          "collapseWhitespace": true,
+          "caseSensitive": false,
+          "unicode": "NFKC"
+        }
+      },
+      "explanation": "После will используется начальная форма read.",
+      "hints": [],
+      "rubric": {
+        "id": "english-06-control-rubric",
+        "version": 1,
+        "maxScore": 1,
+        "criteria": ["Ответ соответствует одному из допустимых вариантов с заданной нормализацией."]
+      },
+      "author": "ЛУЧ — демонстрационный контент",
+      "license": "CC0-1.0",
+      "review": {
+        "status": "demo"
+      }
+    }
+  ],
+  "sets": [
+    {
+      "id": "rki-diagnostic",
+      "routeId": "rki-a1",
+      "title": "Входная диагностика",
+      "purpose": "diagnostic",
+      "exerciseIds": [
+        "rki-01-diagnostic",
+        "rki-02-diagnostic",
+        "rki-03-diagnostic",
+        "rki-04-diagnostic",
+        "rki-05-diagnostic",
+        "rki-06-diagnostic"
+      ]
+    },
+    {
+      "id": "rki-practice",
+      "routeId": "rki-a1",
+      "title": "Тренировочный банк",
+      "purpose": "practice",
+      "exerciseIds": [
+        "rki-01-practice-choice",
+        "rki-01-practice-text",
+        "rki-02-practice-choice",
+        "rki-02-practice-text",
+        "rki-03-practice-choice",
+        "rki-03-practice-text",
+        "rki-04-practice-choice",
+        "rki-04-practice-text",
+        "rki-05-practice-choice",
+        "rki-05-practice-text",
+        "rki-06-practice-choice",
+        "rki-06-practice-text"
+      ]
+    },
+    {
+      "id": "rki-control",
+      "routeId": "rki-a1",
+      "title": "Контрольная проверка",
+      "purpose": "control",
+      "exerciseIds": [
+        "rki-01-control",
+        "rki-02-control",
+        "rki-03-control",
+        "rki-04-control",
+        "rki-05-control",
+        "rki-06-control"
+      ]
+    },
+    {
+      "id": "english-diagnostic",
+      "routeId": "english-a1",
+      "title": "Входная диагностика",
+      "purpose": "diagnostic",
+      "exerciseIds": [
+        "english-01-diagnostic",
+        "english-02-diagnostic",
+        "english-03-diagnostic",
+        "english-04-diagnostic",
+        "english-05-diagnostic",
+        "english-06-diagnostic"
+      ]
+    },
+    {
+      "id": "english-practice",
+      "routeId": "english-a1",
+      "title": "Тренировочный банк",
+      "purpose": "practice",
+      "exerciseIds": [
+        "english-01-practice-choice",
+        "english-01-practice-text",
+        "english-02-practice-choice",
+        "english-02-practice-text",
+        "english-03-practice-choice",
+        "english-03-practice-text",
+        "english-04-practice-choice",
+        "english-04-practice-text",
+        "english-05-practice-choice",
+        "english-05-practice-text",
+        "english-06-practice-choice",
+        "english-06-practice-text"
+      ]
+    },
+    {
+      "id": "english-control",
+      "routeId": "english-a1",
+      "title": "Контрольная проверка",
+      "purpose": "control",
+      "exerciseIds": [
+        "english-01-control",
+        "english-02-control",
+        "english-03-control",
+        "english-04-control",
+        "english-05-control",
+        "english-06-control"
+      ]
+    }
+  ]
+}

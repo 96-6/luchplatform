@@ -12,7 +12,11 @@
     "db:verify-smoke": "node --import tsx src/db/cli.ts verify-smoke",
     "db:seed-demo": "node --import tsx src/modules/accounts/cli.ts seed-demo",
     "admin:create": "node --import tsx src/modules/accounts/cli.ts create-admin",
-    "security:reset": "node --import tsx src/modules/accounts/cli.ts security-reset"
+    "security:reset": "node --import tsx src/modules/accounts/cli.ts security-reset",
+    "content:seed-demo": "node --import tsx src/modules/content/cli.ts seed-demo",
+    "content:validate": "node --import tsx src/modules/content/cli.ts validate",
+    "content:import": "node --import tsx src/modules/content/cli.ts import",
+    "content:export": "node --import tsx src/modules/content/cli.ts export"
   },
   "dependencies": {
     "@electric-sql/pglite": "0.5.9",

@@ -16,6 +16,12 @@ import {
 } from './pages/AuthPages';
 import { StudentPage, TeacherPage, TeacherStudentPage } from './pages/AccountPages';
 import { AdminPage } from './pages/AdminPage';
+import {
+  AdminContentPage,
+  CourseCatalogPage,
+  CourseRoutePage,
+  LessonPreviewPage,
+} from './pages/ContentPages';
 
 export function App() {
   const { state, refresh } = useResource('/system', systemSchema);
@@ -29,6 +35,38 @@ export function App() {
       ) : (
         <Routes>
           <Route path="/" element={<HomePage />} />
+          <Route
+            path="/courses"
+            element={
+              <Protected>
+                <CourseCatalogPage />
+              </Protected>
+            }
+          />
+          <Route
+            path="/courses/:packageId/:routeId"
+            element={
+              <Protected>
+                <CourseRoutePage />
+              </Protected>
+            }
+          />
+          <Route
+            path="/courses/:packageId/:routeId/lessons/:lessonId"
+            element={
+              <Protected>
+                <LessonPreviewPage />
+              </Protected>
+            }
+          />
+          <Route
+            path="/admin/content"
+            element={
+              <Protected role="superadmin">
+                <AdminContentPage />
+              </Protected>
+            }
+          />
           <Route path="/login" element={<LoginPage />} />
           <Route path="/register" element={<RegisterPage />} />
           <Route path="/verify-email" element={<VerifyEmailPage />} />

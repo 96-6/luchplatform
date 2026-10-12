@@ -5,7 +5,8 @@ import { parseSettings } from '../apps/api/dist/config.js';
 import { createDatabase } from '../apps/api/dist/db/database.js';
 import { migrate } from '../apps/api/dist/db/migrations.js';
 import { randomBytes } from 'node:crypto';
-import { seedDemo } from '../apps/api/dist/modules/accounts/bootstrap.js';
+import { bootstrapService, seedDemo } from '../apps/api/dist/modules/accounts/bootstrap.js';
+import { seedDemoContent } from '../apps/api/dist/modules/content/bootstrap.js';
 import { buildApp } from '../apps/api/dist/app.js';
 
 const directory = await mkdtemp(join(tmpdir(), 'luch-e2e-'));
@@ -22,6 +23,13 @@ const settings = parseSettings({
 const database = await createDatabase(settings);
 await migrate(database);
 await seedDemo(database, settings);
+await seedDemoContent(database);
+await bootstrapService(database, settings).provision(
+  'content-admin@example.test',
+  'Контент администратор',
+  'superadmin',
+  true,
+);
 const app = await buildApp(settings, database, { captchaGenerator: () => 'ABCDE' });
 for (const signal of ['SIGTERM', 'SIGINT']) {
   process.once(signal, () => {

@@ -675,3 +675,57 @@ textarea {
     align-items: flex-start;
   }
 }
+
+.course-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(min(100%, 300px), 1fr));
+  gap: 20px;
+}
+.lesson-list {
+  list-style: none;
+  padding: 0;
+}
+.lesson-blocks section {
+  margin-bottom: 24px;
+}
+.content-text {
+  white-space: pre-wrap;
+  overflow-wrap: anywhere;
+}
+.vocabulary-list > div {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 10px 24px;
+  padding: 10px 0;
+  border-bottom: 1px solid #e2e8e1;
+}
+.vocabulary-list dt {
+  flex: 1 1 200px;
+  font-weight: 600;
+}
+.vocabulary-list dd {
+  flex: 1 1 200px;
+  margin: 0;
+}
+.dialogue-list {
+  list-style: none;
+  padding: 0;
+}
+.dialogue-list li {
+  margin: 10px 0;
+  overflow-wrap: anywhere;
+}
+.lesson-image,
+.lesson-blocks video,
+.lesson-blocks audio {
+  max-width: 100%;
+}
+.lesson-blocks figure {
+  margin: 24px 0;
+}
+.lesson-blocks figcaption {
+  margin-top: 8px;
+}
+.exercise-preview li {
+  padding: 6px 0;
+}

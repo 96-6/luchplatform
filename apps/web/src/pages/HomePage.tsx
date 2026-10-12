@@ -21,8 +21,8 @@ export function HomePage() {
             : 'Ваш аккаунт — первый шаг к обучению.'}
         </strong>
         <p>
-          Подтвердите почту и подключите Authenticator. Учебные маршруты появятся в следующих
-          обновлениях.
+          Подтвердите почту и подключите Authenticator. В кабинете доступны демонстрационные
+          маршруты РКИ и английского с материалами мини-уроков.
         </p>
         <Link className="text-link" to={session.dashboardPath ?? '/register'}>
           {session.user ? 'Открыть кабинет →' : 'Создать аккаунт →'}
@@ -38,8 +38,8 @@ export function HomePage() {
             <br />в новой среде
           </h2>
           <p>Знакомство, повседневные ситуации и общение на русском.</p>
-          <Link className="text-link" to="/plan">
-            Открыть мой план <span aria-hidden="true">→</span>
+          <Link className="text-link" to="/courses">
+            Посмотреть маршруты <span aria-hidden="true">→</span>
           </Link>
         </article>
         <article className="route-card">
@@ -51,8 +51,8 @@ export function HomePage() {
             без лишних барьеров
           </h2>
           <p>Понятные шаги к языку для работы, поездок и жизни.</p>
-          <Link className="text-link" to="/plan">
-            Открыть мой план <span aria-hidden="true">→</span>
+          <Link className="text-link" to="/courses">
+            Посмотреть маршруты <span aria-hidden="true">→</span>
           </Link>
         </article>
       </div>

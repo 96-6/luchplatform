@@ -1,4 +1,4 @@
-name: Foundation checks
+name: Platform checks
 on:
   push:
     branches: [main]
@@ -43,12 +43,19 @@ jobs:
           node scripts/setup.mjs --compose
           docker compose --env-file .env.compose up --build -d --wait
           node scripts/compose-smoke.mjs
+          docker compose --env-file .env.compose exec -T app node apps/api/dist/modules/content/cli.js seed-demo
+          docker compose --env-file .env.compose exec -T app node apps/api/dist/modules/content/cli.js seed-demo
+          docker compose --env-file .env.compose exec -T app node apps/api/dist/modules/content/cli.js export --package luch-demo --file /tmp/luch-demo-export.json
+          docker compose --env-file .env.compose exec -T app node apps/api/dist/modules/content/cli.js validate --file /tmp/luch-demo-export.json
+          docker compose --env-file .env.compose exec -T app node apps/api/dist/modules/content/cli.js import --file /tmp/luch-demo-export.json
           docker compose --env-file .env.compose restart app
           for attempt in $(seq 1 30); do
             if curl --fail --silent http://localhost:3000/api/v1/health/ready > /dev/null; then break; fi
             sleep 1
           done
           node scripts/compose-smoke.mjs verify
+          docker compose --env-file .env.compose exec -T app node apps/api/dist/modules/content/cli.js export --package luch-demo --file /tmp/luch-demo-reopened.json
+          docker compose --env-file .env.compose exec -T app node --input-type=module -e 'import { readFile } from "node:fs/promises"; import assert from "node:assert/strict"; const a=JSON.parse(await readFile("/tmp/luch-demo-export.json","utf8")); const b=JSON.parse(await readFile("/tmp/luch-demo-reopened.json","utf8")); assert.deepEqual(a,b); assert.deepEqual([b.routes.length,b.lessons.length,b.exercises.length],[2,12,48]);'
       - name: Compose logs
         if: failure()
         run: docker compose --env-file .env.compose logs --no-color || true

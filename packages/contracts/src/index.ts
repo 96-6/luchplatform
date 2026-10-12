@@ -1,10 +1,11 @@
 import { z } from 'zod';
 export * from './accounts.js';
+export * from './content.js';
 
 export const API_PREFIX = '/api/v1';
 export const systemSchema = z.object({
   application: z.literal('ЛУЧ'),
-  stage: z.enum(['foundation', 'accounts']),
+  stage: z.enum(['foundation', 'accounts', 'content']),
   devToolsEnabled: z.boolean(),
 });
 export const healthSchema = z.object({ status: z.literal('ok') });

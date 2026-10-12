@@ -27,7 +27,12 @@
     "test:e2e": "playwright test",
     "format": "prettier --write .",
     "format:check": "prettier --check .",
-    "verify": "npm run format:check && npm run typecheck && npm test && npm run build && npm run test:e2e"
+    "verify": "npm run format:check && npm run typecheck && npm test && npm run build && npm run test:e2e",
+    "content:seed-demo": "npm run build -w @luch/contracts && npm run content:seed-demo -w @luch/api",
+    "content:validate": "npm run content:validate -w @luch/api --",
+    "content:import": "npm run content:import -w @luch/api --",
+    "content:export": "npm run content:export -w @luch/api --",
+    "content:schema": "npm run build -w @luch/contracts && node scripts/content-schema.mjs"
   },
   "devDependencies": {
     "@playwright/test": "1.64.0",

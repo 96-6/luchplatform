@@ -3,6 +3,7 @@ import { loadSettings } from '../../config.js';
 import { createDatabase } from '../../db/database.js';
 import { assertSchemaCurrent } from '../../db/migrations.js';
 import { bootstrapService, seedDemo } from './bootstrap.js';
+import { seedDemoContent } from '../content/bootstrap.js';
 
 async function run() {
   const settings = loadSettings();
@@ -16,6 +17,10 @@ async function run() {
       console.log('Network access restriction disabled.');
     } else if (process.argv[2] === 'seed-demo') {
       const users = await seedDemo(database, settings);
+      const content = await seedDemoContent(database);
+      console.log(
+        `Demo content: ${content.status}; package ${content.packageId} v${content.packageVersion}.`,
+      );
       console.log(
         `Demo accounts prepared: ${users.map((user) => user.email).join(', ')}. Confirm email and connect Authenticator in the local mailbox.`,
       );

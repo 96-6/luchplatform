@@ -161,7 +161,7 @@ test('email, Authenticator, three roles, shared assignments and security setting
 });
 
 test('unauthenticated users are redirected away from protected cabinets', async ({ page }) => {
-  for (const path of ['/student', '/teacher', '/admin', '/plan']) {
+  for (const path of ['/student', '/teacher', '/admin', '/plan', '/courses', '/admin/content']) {
     await page.goto(path);
     await expect(page.getByRole('heading', { name: 'Вход в аккаунт', exact: true })).toBeVisible();
     expect(new URL(page.url()).pathname).toBe('/login');

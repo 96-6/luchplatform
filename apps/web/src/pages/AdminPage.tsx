@@ -1,5 +1,5 @@
 import { useEffect, useState, type FormEvent } from 'react';
-import { useSearchParams } from 'react-router-dom';
+import { Link, useSearchParams } from 'react-router-dom';
 import {
   accountDetailSchema,
   auditSchema,
@@ -22,6 +22,9 @@ export function AdminPage() {
     <>
       <p className="eyebrow">Управление платформой</p>
       <h1>Кабинет суперадмина</h1>
+      <p>
+        <Link to="/admin/content">Учебный контент: импорт и экспорт →</Link>
+      </p>
       <div className="tabs" role="tablist" aria-label="Разделы суперадмина">
         {[
           ['accounts', 'Аккаунты пользователей'],
