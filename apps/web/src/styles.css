@@ -729,3 +729,57 @@ textarea {
 .exercise-preview li {
   padding: 6px 0;
 }
+
+.start-lesson {
+  margin: 20px 0;
+}
+.answer-option {
+  display: flex;
+  gap: 12px;
+  align-items: flex-start;
+  margin: 14px 0;
+  cursor: pointer;
+  overflow-wrap: anywhere;
+}
+.answer-option input {
+  flex: 0 0 18px;
+  width: 18px;
+  margin: 3px 0 0;
+}
+.exercise-instruction {
+  font-size: 19px;
+  font-weight: 600;
+  overflow-wrap: anywhere;
+}
+fieldset {
+  border: 0;
+  padding: 0;
+  margin: 18px 0;
+  min-width: 0;
+}
+fieldset legend {
+  font-weight: 600;
+  margin-bottom: 10px;
+}
+.feedback,
+.hint {
+  margin-top: 20px;
+  padding: 18px;
+  border-radius: 12px;
+  background: #eef5ed;
+}
+.attempt-item {
+  padding: 12px 0;
+  border-bottom: 1px solid #e2e8e1;
+}
+.attempt-item summary {
+  cursor: pointer;
+  overflow-wrap: anywhere;
+}
+.engine-debug {
+  max-height: 550px;
+  overflow: auto;
+  white-space: pre-wrap;
+  overflow-wrap: anywhere;
+  font-size: 12px;
+}

@@ -3,6 +3,7 @@ import { userSchema, usersSchema, type User } from '@luch/contracts';
 import { useAuth } from '../auth/AuthContext';
 import { useResource } from '../lib/useResource';
 import { LoadingState, ErrorState, EmptyState } from '../components/States';
+import { RunList } from './EnginePages';
 
 export function UserSummary({ user }: { user: User }) {
   return (
@@ -40,10 +41,7 @@ export function StudentPage() {
       <section className="panel">
         <UserSummary user={state.data} />
       </section>
-      <EmptyState
-        title="Можно готовиться к обучению"
-        description="Учебные маршруты и материалы уже доступны. Диагностика, прохождение упражнений и индивидуальный план появятся в следующих обновлениях."
-      />
+      <RunList userId={session.user!.id} />
       <div className="next-grid">
         <Link to="/courses">Учебные маршруты →</Link>
         <Link to="/plan">Мой план →</Link>
@@ -101,8 +99,9 @@ export function TeacherStudentPage() {
       <h1>Карточка ученика</h1>
       <section className="panel">
         <UserSummary user={state.data} />
-        <p>Учебные результаты появятся после начала обучения.</p>
+        <p>Ниже доступны сохранённые прохождения и ответы ученика.</p>
       </section>
+      <RunList userId={id} />
       <Link to="/teacher">← Мои ученики</Link>
     </>
   );

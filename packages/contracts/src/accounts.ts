@@ -113,11 +113,18 @@ export const assessmentSchema = z.object({
   observations: z.array(observationSchema),
   createdAt: z.iso.datetime(),
 });
+export const learningProgressSchema = z.object({
+  runs: z.number().int().nonnegative(),
+  completedRuns: z.number().int().nonnegative(),
+  attempts: z.number().int().nonnegative(),
+  correctAttempts: z.number().int().nonnegative(),
+  assistedAttempts: z.number().int().nonnegative(),
+});
 export const accountDetailSchema = z.object({
   user: userSchema,
   teachers: usersSchema,
   students: usersSchema,
-  progress: z.null(),
+  progress: learningProgressSchema,
   assessments: z.array(assessmentSchema),
 });
 export const mailSchema = z.array(

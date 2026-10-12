@@ -5,6 +5,7 @@ import { useAuth } from '../auth/AuthContext';
 const navigation = [
   { to: '/', label: 'Главная', icon: '⌂' },
   { to: '/courses', label: 'Маршруты', icon: '▤' },
+  { to: '/learning', label: 'Обучение', icon: '▶' },
   { to: '/plan', label: 'Мой план', icon: '≡' },
   { to: '/assistant', label: 'Помощник', icon: '◉' },
   { to: '/schedule', label: 'Расписание', icon: '▦' },

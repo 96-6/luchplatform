@@ -17,6 +17,7 @@ import { AuthService } from './modules/auth/service.js';
 import { registerAuthRoutes } from './modules/auth/routes.js';
 import { registerAccountRoutes } from './modules/accounts/routes.js';
 import { registerContentRoutes } from './modules/content/routes.js';
+import { registerEngineRoutes } from './modules/engine/routes.js';
 import { MailService } from './modules/mail/service.js';
 import { CaptchaService } from './modules/security/captcha.js';
 import { NetworkService, type IpInspector } from './modules/security/network.js';
@@ -171,7 +172,7 @@ export async function buildApp(
     });
   });
   app.get('/api/v1/system', async (request) => ({
-    data: { application: 'ЛУЧ', stage: 'content', devToolsEnabled: settings.ENABLE_DEV_TOOLS },
+    data: { application: 'ЛУЧ', stage: 'engine', devToolsEnabled: settings.ENABLE_DEV_TOOLS },
     requestId: request.id,
   }));
   app.get('/api/v1/health/live', async (request) => ({
@@ -194,6 +195,7 @@ export async function buildApp(
   await registerAuthRoutes(app, auth, captcha);
   await registerAccountRoutes(app, auth);
   await registerContentRoutes(app, auth);
+  await registerEngineRoutes(app, auth);
 
   const webRoot = resolve(projectRoot, 'apps/web/dist');
   if (settings.SERVE_WEB) {
@@ -217,6 +219,8 @@ export async function buildApp(
     '/admin',
     '/admin/content',
     '/courses',
+    '/learning',
+    '/admin/learning',
     '/demo-mail',
     '/network-check',
   ]);
@@ -227,7 +231,8 @@ export async function buildApp(
       request.method === 'GET' &&
       (webPaths.has(pathname) ||
         /^\/teacher\/students\/[0-9a-f-]{36}$/.test(pathname) ||
-        /^\/courses\/[a-z0-9-]+\/[a-z0-9-]+(?:\/lessons\/[a-z0-9-]+)?$/.test(pathname))
+        /^\/courses\/[a-z0-9-]+\/[a-z0-9-]+(?:\/lessons\/[a-z0-9-]+)?$/.test(pathname) ||
+        /^\/learning\/runs\/[0-9a-f-]{36}$/.test(pathname))
     ) {
       return reply.type('text/html').sendFile('index.html');
     }

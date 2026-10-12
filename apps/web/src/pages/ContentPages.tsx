@@ -16,6 +16,7 @@ import {
 import { useResource } from '../lib/useResource';
 import { api } from '../lib/api';
 import { EmptyState, ErrorState, LoadingState } from '../components/States';
+import { StartLessonButton } from './EnginePages';
 
 const purposeLabels: Record<ExercisePurpose, string> = {
   practice: 'Тренировка',
@@ -272,10 +273,7 @@ export function LessonPreviewPage() {
         </ul>
       </section>
       <h2>Задания урока</h2>
-      <p>
-        Сейчас доступен просмотр материалов и заданий. Прохождение и сохранение ответов появятся в
-        следующем обновлении.
-      </p>
+      <p>Начните прохождение: движок сохранит ответы и поможет продолжить урок после перерыва.</p>
       <div className="tabs" role="tablist" aria-label="Набор заданий">
         {(['practice', 'diagnostic', 'control'] as const).map((mode) => (
           <button
@@ -291,6 +289,14 @@ export function LessonPreviewPage() {
           </button>
         ))}
       </div>
+      {lesson.exercises.length > 0 && (
+        <StartLessonButton
+          packageId={lesson.packageId}
+          packageVersion={lesson.packageVersion}
+          lessonId={lesson.id}
+          purpose={purpose}
+        />
+      )}
       {lesson.exercises.length ? (
         lesson.exercises.map((exercise, index) => (
           <section className="panel exercise-preview" key={exercise.id}>

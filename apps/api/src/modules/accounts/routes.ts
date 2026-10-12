@@ -5,6 +5,7 @@ import type { AuthService, Actor } from '../auth/service.js';
 import { audit, publicUser, type UserRow } from './repository.js';
 import { getPolicy, ipAllowed, normalizeIp, validateRanges } from '../security/policy.js';
 import { AppError } from '../../errors.js';
+import { learningProgress } from '../engine/repository.js';
 
 export async function registerAccountRoutes(app: FastifyInstance, auth: AuthService) {
   const db = auth.database;
@@ -78,7 +79,7 @@ export async function registerAccountRoutes(app: FastifyInstance, auth: AuthServ
         user: publicUser(user),
         teachers: teachers.rows.map(publicUser),
         students: students.rows.map(publicUser),
-        progress: null,
+        progress: await learningProgress(db, id),
         assessments: assessments.rows.map((row) => ({
           id: row.id,
           ip: row.ip,

@@ -14,6 +14,7 @@ import { api } from '../lib/api';
 import { LoadingState, ErrorState } from '../components/States';
 import { useSecurity } from '../auth/SecurityGate';
 import { UserSummary } from './AccountPages';
+import { RunList, IntegrityControls } from './EnginePages';
 
 export function AdminPage() {
   const [params, setParams] = useSearchParams();
@@ -24,6 +25,9 @@ export function AdminPage() {
       <h1>Кабинет суперадмина</h1>
       <p>
         <Link to="/admin/content">Учебный контент: импорт и экспорт →</Link>
+      </p>
+      <p>
+        <Link to="/admin/learning">Все прохождения и результаты →</Link>
       </p>
       <div className="tabs" role="tablist" aria-label="Разделы суперадмина">
         {[
@@ -42,7 +46,16 @@ export function AdminPage() {
           </button>
         ))}
       </div>
-      {tab === 'security' ? <SecuritySettings /> : tab === 'audit' ? <AuditLog /> : <Accounts />}
+      {tab === 'security' ? (
+        <>
+          <SecuritySettings />
+          <IntegrityControls />
+        </>
+      ) : tab === 'audit' ? (
+        <AuditLog />
+      ) : (
+        <Accounts />
+      )}
     </>
   );
 }
@@ -183,9 +196,11 @@ function AccountDetail({
       <UserSummary user={state.data.user} />
       <p className="muted">Создан: {new Date(state.data.user.createdAt).toLocaleString('ru-RU')}</p>
       <p>
-        Учебных данных пока нет. Здесь будут доступны фактические результаты после подключения
-        обучения.
+        Прохождений: {state.data.progress.runs} · Завершено: {state.data.progress.completedRuns} ·
+        Попыток: {state.data.progress.attempts} · Верных: {state.data.progress.correctAttempts} · С
+        помощью: {state.data.progress.assistedAttempts}
       </p>
+      <RunList userId={id} />
       <p>
         Преподаватели: {state.data.teachers.map((user) => user.name).join(', ') || 'не назначены'}
       </p>

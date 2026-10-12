@@ -246,7 +246,13 @@ describe('accounts acceptance', () => {
     const detail = await app.inject({ url: `/api/v1/admin/accounts/${user.id}`, headers });
     expect(detail.statusCode).toBe(200);
     expect(detail.json().data.user.email).toBe(user.email);
-    expect(detail.json().data.progress).toBeNull();
+    expect(detail.json().data.progress).toEqual({
+      runs: 0,
+      completedRuns: 0,
+      attempts: 0,
+      correctAttempts: 0,
+      assistedAttempts: 0,
+    });
     expect(detail.body).not.toContain(user.secret);
     expect(
       (

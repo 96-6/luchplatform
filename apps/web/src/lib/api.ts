@@ -18,7 +18,7 @@ export class ApiError extends Error {
 export async function api<T extends z.ZodType>(
   path: string,
   schema: T,
-  options: { signal?: AbortSignal; body?: unknown } = {},
+  options: { signal?: AbortSignal; body?: unknown; keepalive?: boolean } = {},
 ): Promise<z.infer<T>> {
   const controller = new AbortController();
   const abort = () => controller.abort();
@@ -38,6 +38,7 @@ export async function api<T extends z.ZodType>(
       ...(options.body === undefined ? {} : { body: JSON.stringify(options.body) }),
       signal: controller.signal,
       credentials: 'same-origin',
+      keepalive: options.keepalive ?? false,
     });
     const payload: unknown = await response.json();
     if (!response.ok) {

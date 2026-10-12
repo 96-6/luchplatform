@@ -72,7 +72,9 @@ test('email, Authenticator, three roles, shared assignments and security setting
     await student.getByLabel('Почта', { exact: true }).fill(email);
     await fillCaptcha(student);
     await student.getByRole('button', { name: 'Отправить письмо подтверждения' }).click();
-    await expect(student.getByRole('status')).toContainText('письмо подтверждения отправлено');
+    await expect(
+      student.getByRole('status').filter({ hasText: 'письмо подтверждения отправлено' }),
+    ).toBeVisible();
     const studentKey = await enroll(student, email);
     await expect(student.getByRole('heading', { name: 'Кабинет ученика' })).toBeVisible();
     const studentSession = await session(student);

@@ -16,6 +16,7 @@ import {
 } from './pages/AuthPages';
 import { StudentPage, TeacherPage, TeacherStudentPage } from './pages/AccountPages';
 import { AdminPage } from './pages/AdminPage';
+import { EngineHistoryPage, ExerciseRunPage } from './pages/EnginePages';
 import {
   AdminContentPage,
   CourseCatalogPage,
@@ -35,6 +36,30 @@ export function App() {
       ) : (
         <Routes>
           <Route path="/" element={<HomePage />} />
+          <Route
+            path="/learning"
+            element={
+              <Protected>
+                <EngineHistoryPage />
+              </Protected>
+            }
+          />
+          <Route
+            path="/learning/runs/:id"
+            element={
+              <Protected>
+                <ExerciseRunPage />
+              </Protected>
+            }
+          />
+          <Route
+            path="/admin/learning"
+            element={
+              <Protected role="superadmin">
+                <EngineHistoryPage />
+              </Protected>
+            }
+          />
           <Route
             path="/courses"
             element={
@@ -128,7 +153,7 @@ export function App() {
               <Protected>
                 <PlaceholderPage
                   title="Прогресс"
-                  description="Ваши результаты, повторения и комментарии преподавателя появятся после начала обучения."
+                  description="Сохранённые ответы доступны в разделе «Обучение». Отчёт по навыкам, повторения и комментарии преподавателя появятся на следующих этапах."
                 />
               </Protected>
             }
