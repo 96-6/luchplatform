@@ -151,7 +151,16 @@ const solutionSchema = z.discriminatedUnion('type', [
   }),
   z.strictObject({
     type: z.literal('short_text'),
-    accepted: z.array(text).min(1).max(30),
+    accepted: z
+      .array(
+        z
+          .string()
+          .min(1)
+          .max(1000)
+          .refine((answer) => answer.trim().length > 0, 'Answer cannot be blank.'),
+      )
+      .min(1)
+      .max(30),
     normalization: z.strictObject({
       trim: z.boolean(),
       collapseWhitespace: z.boolean(),

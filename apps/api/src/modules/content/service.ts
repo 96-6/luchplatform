@@ -18,6 +18,7 @@ export function canonicalJson(value: unknown): string {
   if (Array.isArray(value)) return `[${value.map(canonicalJson).join(',')}]`;
   if (value !== null && typeof value === 'object') {
     return `{${Object.entries(value)
+      .filter(([, item]) => item !== undefined)
       .sort(([a], [b]) => a.localeCompare(b, 'en'))
       .map(([key, item]) => `${JSON.stringify(key)}:${canonicalJson(item)}`)
       .join(',')}}`;

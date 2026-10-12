@@ -210,6 +210,24 @@ describe('learning content acceptance', () => {
         .length,
     ).toBeGreaterThan(0);
   });
+  it('round-trips literal answer variants without applying future evaluation rules', async () => {
+    const literal = copy();
+    const solution = literal.exercises.find(
+      (exercise) => exercise.response.type === 'short_text',
+    )!.solution;
+    if (solution.type !== 'short_text') throw new Error('Short-text fixture required.');
+    solution.accepted = ['  is  ', 'IS'];
+    solution.normalization.trim = false;
+    solution.normalization.collapseWhitespace = false;
+    solution.normalization.caseSensitive = true;
+    literal.assets[0]!.sha256 = undefined;
+    await service.import(literal);
+    const exported = await service.export('luch-demo');
+    expect(
+      exported.exercises.find((exercise) => exercise.response.type === 'short_text')!.solution,
+    ).toEqual(solution);
+    expect((await service.import(JSON.parse(JSON.stringify(exported)))).status).toBe('unchanged');
+  });
   it('preserves revisions and never rolls back a newer package through demo seeding', async () => {
     await service.import(demo);
     const edited = copy();
