@@ -1,5 +1,6 @@
 import { useEffect, useState, type ReactNode } from 'react';
 import { NavLink, useLocation } from 'react-router-dom';
+import { useAuth } from '../auth/AuthContext';
 
 const navigation = [
   { to: '/', label: 'Главная', icon: '⌂' },
@@ -11,6 +12,16 @@ const navigation = [
 ];
 export function Layout({ children, devTools }: { children: ReactNode; devTools: boolean }) {
   const [open, setOpen] = useState(false);
+  const auth = useAuth();
+  const [logoutError, setLogoutError] = useState('');
+  const user = auth.session.user;
+  const visibleNavigation = user
+    ? navigation.filter((item) => item.to !== '/teacher' || user.role === 'teacher')
+    : [
+        { to: '/', label: 'Главная', icon: '⌂' },
+        { to: '/login', label: 'Войти', icon: '→' },
+        { to: '/register', label: 'Регистрация', icon: '+' },
+      ];
   const location = useLocation();
   useEffect(() => {
     setOpen(false);
@@ -53,12 +64,22 @@ export function Layout({ children, devTools }: { children: ReactNode; devTools: 
           className={open ? 'navigation open' : 'navigation'}
           aria-label="Основная навигация"
         >
-          {navigation.map((item) => (
+          {visibleNavigation.map((item) => (
             <NavLink key={item.to} to={item.to} end={item.to === '/'}>
               <span aria-hidden="true">{item.icon}</span>
               {item.label}
             </NavLink>
           ))}
+          {user && (
+            <NavLink to={auth.session.dashboardPath ?? '/student'}>
+              <span aria-hidden="true">◇</span>
+              {user.role === 'superadmin'
+                ? 'Суперадмин'
+                : user.role === 'teacher'
+                  ? 'Мои ученики'
+                  : 'Мой кабинет'}
+            </NavLink>
+          )}
           {devTools && (
             <NavLink to="/system">
               <span aria-hidden="true">⚙</span>Проверка системы
@@ -74,9 +95,30 @@ export function Layout({ children, devTools }: { children: ReactNode; devTools: 
       <div className="workspace">
         <header className="topbar">
           <span>Языковая платформа</span>
-          <span className="pill">РКИ и английский</span>
+          <div className="topbar-account">
+            {user ? (
+              <>
+                <span>{user.name}</span>
+                <button
+                  className="secondary"
+                  onClick={() => {
+                    void auth.logout().catch((error: Error) => setLogoutError(error.message));
+                  }}
+                >
+                  Выйти
+                </button>
+              </>
+            ) : (
+              <span className="pill">РКИ и английский</span>
+            )}
+          </div>
         </header>
         <main id="content" tabIndex={-1}>
+          {logoutError && (
+            <p role="alert" className="error inline-message">
+              {logoutError}
+            </p>
+          )}
           {children}
         </main>
         <footer>ЛУЧ · Персональное обучение</footer>

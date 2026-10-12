@@ -9,23 +9,34 @@
     "typecheck": "tsc -p tsconfig.json --noEmit",
     "db:migrate": "node --import tsx src/db/cli.ts migrate",
     "db:smoke": "node --import tsx src/db/cli.ts smoke",
-    "db:verify-smoke": "node --import tsx src/db/cli.ts verify-smoke"
+    "db:verify-smoke": "node --import tsx src/db/cli.ts verify-smoke",
+    "db:seed-demo": "node --import tsx src/modules/accounts/cli.ts seed-demo",
+    "admin:create": "node --import tsx src/modules/accounts/cli.ts create-admin",
+    "security:reset": "node --import tsx src/modules/accounts/cli.ts security-reset"
   },
   "dependencies": {
     "@electric-sql/pglite": "0.5.9",
+    "@fastify/cookie": "11.1.3",
     "@fastify/cors": "11.3.1",
     "@fastify/helmet": "13.1.2",
     "@fastify/static": "10.1.6",
     "@luch/contracts": "0.1.0",
+    "@napi-rs/canvas": "1.0.11",
     "dotenv": "^17.0.0",
     "fastify": "5.12.5",
+    "ipaddr.js": "2.5.0",
+    "nodemailer": "10.1.0",
+    "otpauth": "9.5.2",
     "pg": "8.23.1",
     "proper-lockfile": "4.1.2",
+    "qrcode": "1.5.4",
     "zod": "4.6.7"
   },
   "devDependencies": {
+    "@types/nodemailer": "8.0.2",
     "@types/pg": "^8.15.0",
     "@types/proper-lockfile": "4.1.4",
+    "@types/qrcode": "1.5.6",
     "tsx": "^4.20.0"
   }
 }

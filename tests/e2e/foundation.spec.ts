@@ -74,11 +74,9 @@ test('opens all sections and preserves a nested URL after refresh', async ({ pag
   await expect(page.getByRole('heading', { name: /Больше уверенности/ })).toBeVisible();
   await page.screenshot({ path: 'test-results/home.png', fullPage: true });
   for (const [path, title] of [
-    ['/plan', 'Мой план'],
-    ['/assistant', 'Помощник'],
-    ['/schedule', 'Расписание'],
-    ['/progress', 'Прогресс'],
-    ['/teacher', 'Кабинет преподавателя'],
+    ['/login', 'Вход в аккаунт'],
+    ['/register', 'Создать аккаунт'],
+    ['/demo-mail', 'Демо-почта'],
   ]) {
     await page.goto(path!);
     await expect(page.getByRole('heading', { name: title, exact: true })).toBeVisible();
@@ -92,8 +90,8 @@ test('offers usable mobile navigation without horizontal overflow', async ({ pag
   await page.setViewportSize({ width: 375, height: 812 });
   await page.goto('/');
   await page.getByRole('button', { name: 'Открыть меню' }).click();
-  await page.getByRole('navigation').getByRole('link', { name: 'Мой план' }).click();
-  await expect(page.getByRole('heading', { name: 'Мой план', exact: true })).toBeVisible();
+  await page.getByRole('navigation').getByRole('link', { name: 'Регистрация' }).click();
+  await expect(page.getByRole('heading', { name: 'Создать аккаунт', exact: true })).toBeVisible();
   await expect(page.getByRole('button', { name: 'Открыть меню' })).toHaveAttribute(
     'aria-expanded',
     'false',

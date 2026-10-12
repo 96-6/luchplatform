@@ -523,3 +523,155 @@ input {
     animation: none;
   }
 }
+
+.access-screen {
+  max-width: 700px;
+  margin: 10vh auto;
+}
+.auth-card {
+  max-width: 570px;
+  margin: 0 auto;
+}
+.auth-card h1 {
+  font-size: 32px;
+}
+.auth-card input,
+select,
+textarea {
+  display: block;
+  width: 100%;
+  margin-bottom: 18px;
+}
+.auth-card label {
+  margin-top: 16px;
+}
+select,
+textarea {
+  font: inherit;
+  border: 1px solid #c6d5c8;
+  border-radius: 9px;
+  padding: 11px 13px;
+  color: #213a36;
+  background: #fcfdfb;
+}
+.auth-links {
+  margin: 24px 0;
+  font-size: 14px;
+}
+.auth-qr {
+  display: block;
+  max-width: 100%;
+  height: auto;
+  margin: 15px auto;
+}
+.manual-key {
+  display: block;
+  overflow-wrap: anywhere;
+  padding: 12px 0;
+}
+.captcha-field {
+  margin: 20px 0;
+}
+.captcha-image {
+  display: flex;
+  gap: 12px;
+  align-items: center;
+  flex-wrap: wrap;
+  margin-bottom: 10px;
+}
+.captcha-image img {
+  max-width: 100%;
+  height: auto;
+  border-radius: 8px;
+}
+.demo-choices,
+.tabs,
+.form-actions,
+.profile-badges,
+.topbar-account {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 10px;
+  align-items: center;
+}
+.demo-choices button {
+  font-size: 12px;
+  overflow-wrap: anywhere;
+}
+.tabs {
+  margin-bottom: 24px;
+}
+.tabs button {
+  font-size: 13px;
+}
+.checkbox {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  margin: 16px 0;
+}
+.checkbox input {
+  width: 18px;
+  height: 18px;
+  flex: 0 0 18px;
+  margin: 0;
+}
+.account-list {
+  list-style: none;
+  padding: 0;
+  margin: 0 0 18px;
+}
+.account-list li {
+  display: flex;
+  gap: 14px;
+  align-items: center;
+  flex-wrap: wrap;
+  padding: 16px 0;
+  border-bottom: 1px solid #e2e8e1;
+}
+.account-list strong,
+.account-list span,
+.profile-summary p {
+  overflow-wrap: anywhere;
+}
+.account-list strong {
+  flex: 1 1 170px;
+}
+.account-list time {
+  color: #74847d;
+  font-size: 12px;
+}
+.profile-summary {
+  padding: 10px 0 20px;
+}
+.mail-item {
+  padding: 15px 0;
+  border-bottom: 1px solid #e2e8e1;
+  margin-bottom: 20px;
+}
+.mail-item time {
+  font-size: 12px;
+  color: #74847d;
+}
+.mail-item p {
+  margin-top: 14px;
+}
+@media (max-width: 740px) {
+  .auth-card {
+    padding: 20px;
+  }
+  .topbar-account {
+    justify-content: flex-end;
+    gap: 6px;
+  }
+  .topbar-account button {
+    padding: 7px 10px;
+    font-size: 11px;
+  }
+  .tabs button {
+    flex: 1 1 150px;
+  }
+  .account-list li {
+    align-items: flex-start;
+  }
+}

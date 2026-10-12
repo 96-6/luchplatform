@@ -40,7 +40,7 @@ jobs:
       - run: npm run test:e2e
       - name: Docker Compose startup and persisted write
         run: |
-          cp .env.compose.example .env.compose
+          node scripts/setup.mjs --compose
           docker compose --env-file .env.compose up --build -d --wait
           node scripts/compose-smoke.mjs
           docker compose --env-file .env.compose restart app

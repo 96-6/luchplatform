@@ -1,5 +1,7 @@
 import { Link } from 'react-router-dom';
+import { useAuth } from '../auth/AuthContext';
 export function HomePage() {
+  const { session } = useAuth();
   return (
     <>
       <p className="eyebrow">Начните с вашей цели</p>
@@ -13,11 +15,18 @@ export function HomePage() {
         преподавателя — в одном месте.
       </p>
       <div className="notice">
-        <strong>Мы готовим пространство для обучения.</strong>
+        <strong>
+          {session.user
+            ? `С возвращением, ${session.user.name}.`
+            : 'Ваш аккаунт — первый шаг к обучению.'}
+        </strong>
         <p>
-          Аккаунты и учебные материалы появятся в следующих обновлениях. Сейчас можно познакомиться
-          с разделами платформы.
+          Подтвердите почту и подключите Authenticator. Учебные маршруты появятся в следующих
+          обновлениях.
         </p>
+        <Link className="text-link" to={session.dashboardPath ?? '/register'}>
+          {session.user ? 'Открыть кабинет →' : 'Создать аккаунт →'}
+        </Link>
       </div>
       <h2 className="section-title">Два направления</h2>
       <div className="route-grid">

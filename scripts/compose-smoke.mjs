@@ -6,6 +6,8 @@ const input = {
 };
 assert.equal((await fetch(`${base}/api/v1/health/ready`)).status, 200);
 assert.equal((await fetch(`${base}/plan`)).status, 200);
+const captcha = await (await fetch(`${base}/api/v1/auth/captcha?purpose=login`)).json();
+assert.ok(captcha.data.imageDataUrl.startsWith('data:image/png;base64,'));
 if (process.argv[2] !== 'verify') {
   const response = await fetch(`${base}/api/v1/dev/records`, {
     method: 'POST',

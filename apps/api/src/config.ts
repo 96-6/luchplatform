@@ -16,6 +16,19 @@ const settingsSchema = z
     ENABLE_DEV_TOOLS: flag.default(false),
     SERVE_WEB: flag.default(false),
     LOG_LEVEL: z.enum(['debug', 'info', 'warn', 'error', 'silent']).default('info'),
+    AUTH_ENCRYPTION_KEY: z.string().default(''),
+    MAIL_MODE: z.enum(['local', 'smtp']).default('local'),
+    SMTP_HOST: z.string().default(''),
+    SMTP_PORT: z.coerce.number().int().min(1).max(65535).default(587),
+    SMTP_SECURE: flag.default(false),
+    SMTP_USER: z.string().default(''),
+    SMTP_PASSWORD: z.string().default(''),
+    SMTP_FROM: z.string().default('ЛУЧ <no-reply@localhost>'),
+    TRUST_PROXY_CIDRS: z.string().default(''),
+    IP_INTEL_URL: optionalUrl,
+    IP_INTEL_KEY: z.string().default(''),
+    NETWORK_PROBE_URLS: z.string().default(''),
+    NETWORK_STUN_URLS: z.string().default(''),
     AI_API_URL: optionalUrl,
     AI_API_KEY: z.string().default(''),
     SPEECH_API_URL: optionalUrl,
@@ -25,6 +38,20 @@ const settingsSchema = z
   })
   .superRefine((settings, context) => {
     const url = new URL(settings.APP_URL);
+    if (
+      settings.AUTH_ENCRYPTION_KEY &&
+      Buffer.from(settings.AUTH_ENCRYPTION_KEY, 'base64').length !== 32
+    ) {
+      context.addIssue({
+        code: 'custom',
+        path: ['AUTH_ENCRYPTION_KEY'],
+        message: 'A 32-byte base64 key is required.',
+      });
+    }
+    if (settings.IP_INTEL_URL && new URL(settings.IP_INTEL_URL).protocol !== 'https:')
+      context.addIssue({ code: 'custom', path: ['IP_INTEL_URL'], message: 'HTTPS is required.' });
+    if (settings.MAIL_MODE === 'smtp' && !settings.SMTP_HOST)
+      context.addIssue({ code: 'custom', path: ['SMTP_HOST'], message: 'SMTP host is required.' });
     if (
       !['http:', 'https:'].includes(url.protocol) ||
       url.pathname !== '/' ||
@@ -71,6 +98,18 @@ const settingsSchema = z
       }
     }
     if (settings.APP_ENV === 'production') {
+      if (!settings.AUTH_ENCRYPTION_KEY)
+        context.addIssue({
+          code: 'custom',
+          path: ['AUTH_ENCRYPTION_KEY'],
+          message: 'Run environment setup or supply the account key.',
+        });
+      if (settings.MAIL_MODE !== 'smtp')
+        context.addIssue({
+          code: 'custom',
+          path: ['MAIL_MODE'],
+          message: 'Production requires SMTP.',
+        });
       if (embedded)
         context.addIssue({
           code: 'custom',

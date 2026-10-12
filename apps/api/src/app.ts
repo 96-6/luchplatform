@@ -5,20 +5,49 @@ import Fastify from 'fastify';
 import cors from '@fastify/cors';
 import helmet from '@fastify/helmet';
 import staticFiles from '@fastify/static';
+import cookies from '@fastify/cookie';
 import { ZodError } from 'zod';
 import { projectRoot, type Settings } from './config.js';
 import type { Database } from './db/database.js';
 import { assertSchemaCurrent } from './db/migrations.js';
 import { AppError } from './errors.js';
 import { registerProbeRoutes } from './modules/probes/routes.js';
+import { AccountCrypto } from './modules/auth/crypto.js';
+import { AuthService } from './modules/auth/service.js';
+import { registerAuthRoutes } from './modules/auth/routes.js';
+import { registerAccountRoutes } from './modules/accounts/routes.js';
+import { MailService } from './modules/mail/service.js';
+import { CaptchaService } from './modules/security/captcha.js';
+import { NetworkService, type IpInspector } from './modules/security/network.js';
+import { ipAllowed, validateRanges } from './modules/security/policy.js';
 
-export async function buildApp(settings: Settings, database: Database) {
+export async function buildApp(
+  settings: Settings,
+  database: Database,
+  options: { captchaGenerator?: () => string; ipInspector?: IpInspector } = {},
+) {
+  const crypto = new AccountCrypto(settings.AUTH_ENCRYPTION_KEY);
+  const network = new NetworkService(database, settings, crypto, options.ipInspector);
+  const mail = new MailService(database, settings, crypto);
+  const auth = new AuthService(database, settings, crypto, mail, network);
+  const captcha = new CaptchaService(database, crypto, options.captchaGenerator);
+  const proxyRanges = validateRanges(
+    settings.TRUST_PROXY_CIDRS.split(',')
+      .map((value) => value.trim())
+      .filter(Boolean),
+  );
+  if (proxyRanges.some((range) => range.endsWith('/0')))
+    throw new Error('Trusted proxy ranges must be specific.');
   const app = Fastify({
+    trustProxy: proxyRanges.length ? (address) => ipAllowed(address, proxyRanges) : false,
     logger:
       settings.LOG_LEVEL === 'silent'
         ? false
         : {
             level: settings.LOG_LEVEL,
+            serializers: {
+              req: (request) => ({ method: request.method, url: request.url.split('?')[0] ?? '/' }),
+            },
             redact: [
               'req.headers.authorization',
               'req.headers.cookie',
@@ -36,6 +65,7 @@ export async function buildApp(settings: Settings, database: Database) {
     methods: ['GET', 'POST', 'OPTIONS'],
     credentials: false,
   });
+  await app.register(cookies);
   await app.register(helmet, {
     contentSecurityPolicy: {
       directives: {
@@ -44,6 +74,15 @@ export async function buildApp(settings: Settings, database: Database) {
         styleSrc: ["'self'"],
         imgSrc: ["'self'", 'data:'],
         connectSrc: ["'self'"],
+        ...(network.probeTargets().length
+          ? {
+              imgSrc: [
+                "'self'",
+                'data:',
+                ...network.probeTargets().map((target) => new URL(target.url).origin),
+              ],
+            }
+          : {}),
         upgradeInsecureRequests: settings.APP_ENV === 'production' ? [] : null,
       },
     },
@@ -58,6 +97,18 @@ export async function buildApp(settings: Settings, database: Database) {
     ) {
       throw new AppError(403, 'ORIGIN_REJECTED', 'Запрос с этого адреса не разрешён.');
     }
+  });
+  app.addHook('onRequest', async (request) => {
+    const path = request.url.split('?')[0] ?? '';
+    if (
+      path.startsWith('/api/v1/health/') ||
+      path.startsWith('/api/v1/security/') ||
+      path.startsWith('/assets/') ||
+      path === '/api/v1/auth/logout' ||
+      path === '/network-check'
+    )
+      return;
+    await network.check(request, undefined, false);
   });
   app.addHook('onClose', async () => {
     await database.close();
@@ -79,6 +130,14 @@ export async function buildApp(settings: Settings, database: Database) {
       });
     }
     if (error instanceof AppError) {
+      if (error.code === 'VPN_ACCESS_DENIED' && !request.url.startsWith('/api/')) {
+        return reply
+          .code(403)
+          .type('text/html; charset=utf-8')
+          .send(
+            '<!doctype html><html lang="ru"><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1"><title>Сервис недоступен</title><body><main><h1>вы используете VPN - сервис недоступен</h1><a href="/network-check">Проверить соединение ещё раз</a></main></body></html>',
+          );
+      }
       return reply
         .code(error.statusCode)
         .send({ error: { code: error.code, message: error.message, requestId: request.id } });
@@ -109,7 +168,7 @@ export async function buildApp(settings: Settings, database: Database) {
     });
   });
   app.get('/api/v1/system', async (request) => ({
-    data: { application: 'ЛУЧ', stage: 'foundation', devToolsEnabled: settings.ENABLE_DEV_TOOLS },
+    data: { application: 'ЛУЧ', stage: 'accounts', devToolsEnabled: settings.ENABLE_DEV_TOOLS },
     requestId: request.id,
   }));
   app.get('/api/v1/health/live', async (request) => ({
@@ -129,6 +188,8 @@ export async function buildApp(settings: Settings, database: Database) {
     return { data: { status: 'ok' }, requestId: request.id };
   });
   if (settings.ENABLE_DEV_TOOLS) await registerProbeRoutes(app, database);
+  await registerAuthRoutes(app, auth, captcha);
+  await registerAccountRoutes(app, auth);
 
   const webRoot = resolve(projectRoot, 'apps/web/dist');
   if (settings.SERVE_WEB) {
@@ -144,10 +205,22 @@ export async function buildApp(settings: Settings, database: Database) {
     '/progress',
     '/teacher',
     '/system',
+    '/student',
+    '/login',
+    '/register',
+    '/verify-email',
+    '/authenticator',
+    '/admin',
+    '/demo-mail',
+    '/network-check',
   ]);
   app.setNotFoundHandler((request, reply) => {
     const pathname = request.url.split('?')[0] ?? '';
-    if (settings.SERVE_WEB && request.method === 'GET' && webPaths.has(pathname)) {
+    if (
+      settings.SERVE_WEB &&
+      request.method === 'GET' &&
+      (webPaths.has(pathname) || /^\/teacher\/students\/[0-9a-f-]{36}$/.test(pathname))
+    ) {
       return reply.type('text/html').sendFile('index.html');
     }
     return reply.code(404).send({

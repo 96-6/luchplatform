@@ -1,9 +1,10 @@
 import { z } from 'zod';
+export * from './accounts.js';
 
 export const API_PREFIX = '/api/v1';
 export const systemSchema = z.object({
   application: z.literal('ЛУЧ'),
-  stage: z.literal('foundation'),
+  stage: z.enum(['foundation', 'accounts']),
   devToolsEnabled: z.boolean(),
 });
 export const healthSchema = z.object({ status: z.literal('ok') });

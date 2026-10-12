@@ -1,10 +1,16 @@
 import { API_PREFIX, envelopeSchema, errorSchema } from '@luch/contracts';
 import { z } from 'zod';
+let csrfToken: string | null = null;
+export function setCsrfToken(value: string | null) {
+  csrfToken = value;
+}
 
 export class ApiError extends Error {
   constructor(
     message: string,
     public readonly requestId?: string,
+    public readonly code?: string,
+    public readonly status?: number,
   ) {
     super(message);
   }
@@ -22,7 +28,13 @@ export async function api<T extends z.ZodType>(
   try {
     const response = await fetch(`${API_PREFIX}${path}`, {
       method: options.body === undefined ? 'GET' : 'POST',
-      headers: options.body === undefined ? {} : { 'content-type': 'application/json' },
+      headers:
+        options.body === undefined
+          ? {}
+          : {
+              'content-type': 'application/json',
+              ...(csrfToken ? { 'x-csrf-token': csrfToken } : {}),
+            },
       ...(options.body === undefined ? {} : { body: JSON.stringify(options.body) }),
       signal: controller.signal,
       credentials: 'same-origin',
@@ -31,7 +43,12 @@ export async function api<T extends z.ZodType>(
     if (!response.ok) {
       const parsed = errorSchema.safeParse(payload);
       throw parsed.success
-        ? new ApiError(parsed.data.error.message, parsed.data.error.requestId)
+        ? new ApiError(
+            parsed.data.error.message,
+            parsed.data.error.requestId,
+            parsed.data.error.code,
+            response.status,
+          )
         : new ApiError('Сервис временно недоступен. Повторите попытку.');
     }
     const result = envelopeSchema(z.unknown()).safeParse(payload);

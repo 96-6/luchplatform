@@ -11,6 +11,7 @@ import { assertSchemaCurrent, migrate } from '../src/db/migrations.js';
 
 const settings = parseSettings({
   APP_ENV: 'test',
+  AUTH_ENCRYPTION_KEY: Buffer.alloc(32, 7).toString('base64'),
   DATABASE_URL: process.env.TEST_DATABASE_URL ?? 'pglite:memory',
   ENABLE_DEV_TOOLS: 'true',
   LOG_LEVEL: 'silent',
@@ -35,7 +36,7 @@ describe('foundation API and database', () => {
     const result = await database.query<{ count: string }>(
       'SELECT count(*)::text AS count FROM schema_migrations',
     );
-    expect(result.rows[0]?.count).toBe('1');
+    expect(result.rows[0]?.count).toBe('2');
   });
   it('reports live and ready states with a request identifier', async () => {
     for (const endpoint of ['live', 'ready']) {
@@ -145,7 +146,12 @@ describe('foundation API and database', () => {
   });
   it('does not register development routes when tools are disabled', async () => {
     const disabled = await buildApp(
-      parseSettings({ APP_ENV: 'test', DATABASE_URL: 'pglite:memory', LOG_LEVEL: 'silent' }),
+      parseSettings({
+        APP_ENV: 'test',
+        AUTH_ENCRYPTION_KEY: Buffer.alloc(32, 7).toString('base64'),
+        DATABASE_URL: 'pglite:memory',
+        LOG_LEVEL: 'silent',
+      }),
       { ...database, close: async () => {} },
     );
     try {
@@ -203,6 +209,7 @@ describe('foundation API and database', () => {
     const directory = await mkdtemp(join(tmpdir(), 'luch-persistence-'));
     const fileSettings = parseSettings({
       APP_ENV: 'test',
+      AUTH_ENCRYPTION_KEY: Buffer.alloc(32, 7).toString('base64'),
       DATABASE_URL: `pglite:${directory}/database`,
       ENABLE_DEV_TOOLS: 'true',
       LOG_LEVEL: 'silent',

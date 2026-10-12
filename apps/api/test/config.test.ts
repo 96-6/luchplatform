@@ -25,6 +25,9 @@ describe('environment validation', () => {
         APP_ENV: 'production',
         APP_URL: 'https://luch.example',
         DATABASE_URL: 'postgresql://user:password@db:5432/luch',
+        AUTH_ENCRYPTION_KEY: Buffer.alloc(32, 7).toString('base64'),
+        MAIL_MODE: 'smtp',
+        SMTP_HOST: 'smtp.example.test',
       }).ENABLE_DEV_TOOLS,
     ).toBe(false);
   });
