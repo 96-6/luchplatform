@@ -1,0 +1,31 @@
+{
+  "name": "@luch/api",
+  "version": "0.1.0",
+  "private": true,
+  "type": "module",
+  "scripts": {
+    "dev": "node --watch --import tsx src/server.ts",
+    "build": "tsc -p tsconfig.json",
+    "typecheck": "tsc -p tsconfig.json --noEmit",
+    "db:migrate": "node --import tsx src/db/cli.ts migrate",
+    "db:smoke": "node --import tsx src/db/cli.ts smoke",
+    "db:verify-smoke": "node --import tsx src/db/cli.ts verify-smoke"
+  },
+  "dependencies": {
+    "@electric-sql/pglite": "0.5.9",
+    "@fastify/cors": "11.3.1",
+    "@fastify/helmet": "13.1.2",
+    "@fastify/static": "10.1.6",
+    "@luch/contracts": "0.1.0",
+    "dotenv": "^17.0.0",
+    "fastify": "5.12.5",
+    "pg": "8.23.1",
+    "proper-lockfile": "4.1.2",
+    "zod": "4.6.7"
+  },
+  "devDependencies": {
+    "@types/pg": "^8.15.0",
+    "@types/proper-lockfile": "4.1.4",
+    "tsx": "^4.20.0"
+  }
+}

@@ -1,0 +1,37 @@
+{
+  "name": "luchplatform",
+  "version": "0.1.0",
+  "private": true,
+  "type": "module",
+  "engines": {
+    "node": ">=24 <25",
+    "npm": ">=11"
+  },
+  "workspaces": [
+    "apps/*",
+    "packages/*"
+  ],
+  "scripts": {
+    "setup": "node scripts/setup.mjs && npm run db:migrate",
+    "dev": "npm run build -w @luch/contracts && concurrently --kill-others -n api,web \"npm run dev -w @luch/api\" \"npm run dev -w @luch/web\"",
+    "build": "npm run build -w @luch/contracts && npm run build -w @luch/api && npm run build -w @luch/web",
+    "start": "node apps/api/dist/server.js",
+    "typecheck": "npm run build -w @luch/contracts && npm run typecheck --workspaces --if-present",
+    "db:migrate": "npm run build -w @luch/contracts && npm run db:migrate -w @luch/api",
+    "db:smoke": "npm run build -w @luch/contracts && npm run db:smoke -w @luch/api",
+    "db:verify-smoke": "npm run build -w @luch/contracts && npm run db:verify-smoke -w @luch/api",
+    "test": "npm run build -w @luch/contracts && vitest run",
+    "test:e2e": "playwright test",
+    "format": "prettier --write .",
+    "format:check": "prettier --check .",
+    "verify": "npm run format:check && npm run typecheck && npm test && npm run build && npm run test:e2e"
+  },
+  "devDependencies": {
+    "@playwright/test": "1.64.0",
+    "@types/node": "^24.0.0",
+    "concurrently": "^9.2.0",
+    "prettier": "^3.6.0",
+    "typescript": "^5.9.0",
+    "vitest": "5.0.4"
+  }
+}

@@ -1,0 +1,67 @@
+name: luchplatform
+x-app-environment: &app-environment
+  APP_ENV: ${APP_ENV:-development}
+  APP_URL: ${APP_URL:-http://localhost:3000}
+  API_HOST: 0.0.0.0
+  API_PORT: '3000'
+  DATABASE_URL: postgresql://luch:${POSTGRES_PASSWORD:?Set POSTGRES_PASSWORD in .env.compose}@db:5432/luch
+  DATABASE_SSL: 'false'
+  ENABLE_DEV_TOOLS: ${ENABLE_DEV_TOOLS:-false}
+  SERVE_WEB: 'true'
+  LOG_LEVEL: ${LOG_LEVEL:-info}
+  AI_API_URL: ${AI_API_URL:-}
+  AI_API_KEY: ${AI_API_KEY:-}
+  SPEECH_API_URL: ${SPEECH_API_URL:-}
+  SPEECH_API_KEY: ${SPEECH_API_KEY:-}
+  VIDEO_SERVICE_URL: ${VIDEO_SERVICE_URL:-}
+  VIDEO_API_KEY: ${VIDEO_API_KEY:-}
+services:
+  db:
+    image: postgres:17-alpine
+    restart: unless-stopped
+    environment:
+      POSTGRES_DB: luch
+      POSTGRES_USER: luch
+      POSTGRES_PASSWORD: ${POSTGRES_PASSWORD:?Set POSTGRES_PASSWORD in .env.compose}
+    volumes:
+      - db_data:/var/lib/postgresql/data
+    healthcheck:
+      test: ['CMD-SHELL', 'pg_isready -U luch -d luch']
+      interval: 5s
+      timeout: 3s
+      retries: 12
+  migrate:
+    build: .
+    image: luchplatform:local
+    environment: *app-environment
+    command: ['node', 'apps/api/dist/db/cli.js', 'migrate']
+    depends_on:
+      db:
+        condition: service_healthy
+    restart: 'no'
+  app:
+    build: .
+    image: luchplatform:local
+    init: true
+    restart: unless-stopped
+    environment: *app-environment
+    ports:
+      - '127.0.0.1:${APP_PORT:-3000}:3000'
+    depends_on:
+      db:
+        condition: service_healthy
+      migrate:
+        condition: service_completed_successfully
+    healthcheck:
+      test:
+        [
+          'CMD',
+          'node',
+          '-e',
+          "fetch('http://127.0.0.1:3000/api/v1/health/ready').then(r=>process.exit(r.ok?0:1)).catch(()=>process.exit(1))",
+        ]
+      interval: 10s
+      timeout: 5s
+      retries: 6
+volumes:
+  db_data:
