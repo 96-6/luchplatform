@@ -1,15 +1,45 @@
 import type { FastifyInstance } from 'fastify';
 import { z } from 'zod';
-import { accountUpdateSchema, securityPolicySchema, teacherLinkSchema } from '@luch/contracts';
+import {
+  accountUpdateSchema,
+  securityPolicySchema,
+  teacherLinkSchema,
+  adminAccountCreateSchema,
+  adminAuthenticatorResetSchema,
+} from '@luch/contracts';
 import type { AuthService, Actor } from '../auth/service.js';
 import { audit, publicUser, type UserRow } from './repository.js';
 import { getPolicy, ipAllowed, normalizeIp, validateRanges } from '../security/policy.js';
 import { AppError } from '../../errors.js';
 import { learningProgress } from '../engine/repository.js';
+import { AccountCredentials } from './credentials.js';
 
 export async function registerAccountRoutes(app: FastifyInstance, auth: AuthService) {
   const db = auth.database;
+  const credentials = new AccountCredentials(db, auth.crypto);
   const idOf = (value: unknown) => z.object({ id: z.uuid() }).parse(value).id;
+  app.post('/api/v1/admin/accounts', async (request) => {
+    const actor = await auth.requireActor(request, 'superadmin', true);
+    return {
+      data: await credentials.create(actor, adminAccountCreateSchema.parse(request.body)),
+      requestId: request.id,
+    };
+  });
+  app.get('/api/v1/admin/accounts/:id/authenticator', async (request) => {
+    const actor = await auth.requireActor(request, 'superadmin');
+    return { data: await credentials.read(actor, idOf(request.params)), requestId: request.id };
+  });
+  app.post('/api/v1/admin/accounts/:id/authenticator/reset', async (request) => {
+    const actor = await auth.requireActor(request, 'superadmin', true);
+    return {
+      data: await credentials.reset(
+        actor,
+        idOf(request.params),
+        adminAuthenticatorResetSchema.parse(request.body).operationId,
+      ),
+      requestId: request.id,
+    };
+  });
   async function readUser(actor: Actor, id: string) {
     const related =
       actor.user.id === id ||

@@ -4,6 +4,7 @@ import { useAuth } from '../auth/AuthContext';
 import { useResource } from '../lib/useResource';
 import { LoadingState, ErrorState, EmptyState } from '../components/States';
 import { RunList } from './EnginePages';
+import { ProfileOverview, DiagnosticHistory } from './DiagnosticPages';
 
 export function UserSummary({ user }: { user: User }) {
   return (
@@ -42,6 +43,8 @@ export function StudentPage() {
         <UserSummary user={state.data} />
       </section>
       <RunList userId={session.user!.id} />
+      <ProfileOverview userId={session.user!.id} />
+      <DiagnosticHistory userId={session.user!.id} />
       <div className="next-grid">
         <Link to="/courses">Учебные маршруты →</Link>
         <Link to="/plan">Мой план →</Link>
@@ -102,6 +105,8 @@ export function TeacherStudentPage() {
         <p>Ниже доступны сохранённые прохождения и ответы ученика.</p>
       </section>
       <RunList userId={id} />
+      <ProfileOverview userId={id!} />
+      <DiagnosticHistory userId={id!} />
       <Link to="/teacher">← Мои ученики</Link>
     </>
   );

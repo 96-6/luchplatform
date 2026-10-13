@@ -17,6 +17,7 @@ import {
 import { StudentPage, TeacherPage, TeacherStudentPage } from './pages/AccountPages';
 import { AdminPage } from './pages/AdminPage';
 import { EngineHistoryPage, ExerciseRunPage } from './pages/EnginePages';
+import { OnboardingPage, DiagnosticResultPage } from './pages/DiagnosticPages';
 import {
   AdminContentPage,
   CourseCatalogPage,
@@ -36,6 +37,22 @@ export function App() {
       ) : (
         <Routes>
           <Route path="/" element={<HomePage />} />
+          <Route
+            path="/onboarding"
+            element={
+              <Protected>
+                <OnboardingPage />
+              </Protected>
+            }
+          />
+          <Route
+            path="/diagnostics/:id"
+            element={
+              <Protected>
+                <DiagnosticResultPage />
+              </Protected>
+            }
+          />
           <Route
             path="/learning"
             element={
@@ -120,7 +137,7 @@ export function App() {
               <Protected>
                 <PlaceholderPage
                   title="Мой план"
-                  description="Ваш индивидуальный план появится после анкеты и входной диагностики."
+                  description="Анкета и входная диагностика уже доступны. Формирование индивидуального плана будет добавлено на следующем этапе."
                 />
               </Protected>
             }

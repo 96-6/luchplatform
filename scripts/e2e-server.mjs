@@ -12,6 +12,7 @@ import { AccountCrypto, createTotp } from '../apps/api/dist/modules/auth/crypto.
 import { randomUUID } from 'node:crypto';
 
 const directory = await mkdtemp(join(tmpdir(), 'luch-e2e-'));
+const localAdminAlias = randomBytes(18).toString('base64url');
 const settings = parseSettings({
   APP_ENV: 'test',
   AUTH_ENCRYPTION_KEY: randomBytes(32).toString('base64'),
@@ -19,6 +20,8 @@ const settings = parseSettings({
   API_PORT: '3200',
   DATABASE_URL: `pglite:${directory}/database`,
   ENABLE_DEV_TOOLS: 'true',
+  LOCAL_DEBUG_LOGIN: 'true',
+  LOCAL_DEBUG_ADMIN_ALIAS: localAdminAlias,
   SERVE_WEB: 'true',
   LOG_LEVEL: 'warn',
 });
@@ -35,7 +38,7 @@ await bootstrapService(database, settings).provision(
 const app = await buildApp(settings, database, { captchaGenerator: () => 'ABCDE' });
 // Isolated test fixtures avoid turning curriculum scenarios into repeated account-enrollment load.
 const fixtureCrypto = new AccountCrypto(settings.AUTH_ENCRYPTION_KEY);
-const fixtureKeys = {};
+const fixtureKeys = { localAdminAlias };
 const fixturePath = new URL('../data/e2e-accounts.json', import.meta.url);
 for (const prefix of [
   'engine-retry',

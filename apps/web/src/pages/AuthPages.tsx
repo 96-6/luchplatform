@@ -28,9 +28,9 @@ export function LoginPage() {
     setBusy(true);
     setError(null);
     try {
-      const check = captcha.submission();
+      const check = captcha.image && captcha.answer.trim() ? captcha.submission() : undefined;
       const session = await api('/auth/login', sessionSchema, {
-        body: { email: email.trim().toLowerCase(), code, ...(check ? { captcha: check } : {}) },
+        body: { email: email.trim(), code, ...(check ? { captcha: check } : {}) },
       });
       auth.accept(session);
       navigate(session.dashboardPath ?? '/student', { replace: true });
@@ -47,6 +47,7 @@ export function LoginPage() {
       <h1>Вход в аккаунт</h1>
       <p>Введите почту и текущий код из вашего приложения Authenticator.</p>
       <form
+        noValidate
         onSubmit={(event) => {
           void submit(event);
         }}
@@ -54,7 +55,8 @@ export function LoginPage() {
         <label htmlFor="login-email">Почта</label>
         <input
           id="login-email"
-          type="email"
+          type="text"
+          inputMode="email"
           autoComplete="email"
           value={email}
           onChange={(event) => setEmail(event.target.value)}

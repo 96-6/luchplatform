@@ -189,6 +189,10 @@ function RunSession({ id }: { id: string }) {
   };
   async function restart() {
     if (!view) return;
+    if (view.run.diagnosticId) {
+      navigate(`/onboarding?userId=${view.run.user.id}`);
+      return;
+    }
     setBusy(true);
     setError(null);
     try {
@@ -244,12 +248,19 @@ function RunSession({ id }: { id: string }) {
       {error && <ErrorState error={error} retry={() => void load()} />}
       {view.run.status === 'completed' ? (
         <section className="panel" role="status">
-          <h2>Урок завершён</h2>
+          <h2>{view.run.diagnosticId ? 'Диагностика завершена' : 'Урок завершён'}</h2>
           <p>
             Результаты сохранены. Верных ответов:{' '}
             {view.attempts.filter((attempt) => attempt.evaluation?.correct).length} из{' '}
             {view.attempts.length} попыток.
           </p>
+          {view.run.diagnosticId && (
+            <p>
+              <Link to={`/diagnostics/${view.run.diagnosticId}`}>
+                Результат входной диагностики по навыкам →
+              </Link>
+            </p>
+          )}
           {view.writable && (
             <button disabled={busy} onClick={() => void restart()}>
               Пройти ещё раз
@@ -286,7 +297,9 @@ function RunSession({ id }: { id: string }) {
               <div className="form-actions">
                 <button disabled={busy} onClick={() => void action('next', view.current!.turn.id)}>
                   {view.current.position + 1 === view.run.totalSteps
-                    ? 'Завершить урок'
+                    ? view.run.diagnosticId
+                      ? 'Завершить диагностику'
+                      : 'Завершить урок'
                     : 'Следующее задание'}
                 </button>
                 {view.run.purpose === 'practice' && (

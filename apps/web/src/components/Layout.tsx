@@ -6,6 +6,7 @@ const navigation = [
   { to: '/', label: 'Главная', icon: '⌂' },
   { to: '/courses', label: 'Маршруты', icon: '▤' },
   { to: '/learning', label: 'Обучение', icon: '▶' },
+  { to: '/onboarding', label: 'Анкета и диагностика', icon: '✓' },
   { to: '/plan', label: 'Мой план', icon: '≡' },
   { to: '/assistant', label: 'Помощник', icon: '◉' },
   { to: '/schedule', label: 'Расписание', icon: '▦' },
@@ -18,7 +19,11 @@ export function Layout({ children, devTools }: { children: ReactNode; devTools: 
   const [logoutError, setLogoutError] = useState('');
   const user = auth.session.user;
   const visibleNavigation = user
-    ? navigation.filter((item) => item.to !== '/teacher' || user.role === 'teacher')
+    ? navigation.filter(
+        (item) =>
+          (item.to !== '/teacher' || user.role === 'teacher') &&
+          (item.to !== '/onboarding' || user.role === 'student'),
+      )
     : [
         { to: '/', label: 'Главная', icon: '⌂' },
         { to: '/login', label: 'Войти', icon: '→' },

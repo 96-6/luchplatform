@@ -18,6 +18,7 @@ import { ContentRepository } from '../content/repository.js';
 import { canonicalJson } from '../content/service.js';
 import { evaluate, validateAnswer } from './evaluator.js';
 import { recordIntegrity } from './integrity.js';
+import { persistDiagnosticResult } from '../diagnostics/result.js';
 import {
   EngineRepository,
   activeTime,
@@ -47,10 +48,14 @@ export class LuchEngine {
     this.content = new ContentRepository(db);
   }
   async start(actor: Actor, input: StartRun) {
+    const id = await this.db.transaction((tx) => this.startInTransaction(tx, actor, input));
+    return this.repository.view(actor, id);
+  }
+  async startInTransaction(tx: QueryExecutor, actor: Actor, input: StartRun) {
     const userId = input.userId ?? actor.user.id;
     if (userId !== actor.user.id && actor.user.role !== 'superadmin')
       throw new AppError(403, 'ACCESS_DENIED', 'Начните собственное прохождение.');
-    const revision = await this.content.revision(input.packageId, input.packageVersion);
+    const revision = await this.content.revision(input.packageId, input.packageVersion, tx);
     const manifest = revision.manifest,
       source = input.source;
     const lesson =
@@ -68,62 +73,59 @@ export class LuchEngine {
         : set!.exerciseIds.map((id) => manifest.exercises.find((item) => item.id === id)!);
     if (!exercises.length)
       throw new AppError(409, 'NO_EXERCISES', 'В этом наборе пока нет заданий.');
-    const id = await this.db.transaction(async (tx) => {
-      if (!(await tx.query('SELECT id FROM users WHERE id=$1', [userId])).rows.length)
-        throw new AppError(404, 'USER_NOT_FOUND', 'Аккаунт не найден.');
-      if (this.db.kind === 'postgres')
-        await tx.query('SELECT pg_advisory_xact_lock(hashtextextended($1,0))', [
-          `${userId}:${input.packageId}:${revision.packageVersion}:${source.type}:${source.id}:${purpose}`,
-        ]);
-      const existing = (
-        await tx.query<RunRow>(
-          `${runSelect} WHERE r.user_id=$1 AND r.package_id=$2 AND r.package_version=$3 AND r.source_type=$4 AND r.source_id=$5 AND r.purpose=$6 ORDER BY r.cycle DESC LIMIT 1 FOR UPDATE OF r`,
-          [userId, input.packageId, revision.packageVersion, source.type, source.id, purpose],
-        )
-      ).rows[0];
-      if (existing && (existing.status === 'active' || !input.restart)) return existing.id;
-      const runId = randomUUID(),
-        date = new Date(this.now());
+    if (!(await tx.query('SELECT id FROM users WHERE id=$1', [userId])).rows.length)
+      throw new AppError(404, 'USER_NOT_FOUND', 'Аккаунт не найден.');
+    if (this.db.kind === 'postgres')
+      await tx.query('SELECT pg_advisory_xact_lock(hashtextextended($1,0))', [
+        `${userId}:${input.packageId}:${revision.packageVersion}:${source.type}:${source.id}:${purpose}`,
+      ]);
+    const existing = (
+      await tx.query<RunRow>(
+        `${runSelect} WHERE r.user_id=$1 AND r.package_id=$2 AND r.package_version=$3 AND r.source_type=$4 AND r.source_id=$5 AND r.purpose=$6 ORDER BY r.cycle DESC LIMIT 1 FOR UPDATE OF r`,
+        [userId, input.packageId, revision.packageVersion, source.type, source.id, purpose],
+      )
+    ).rows[0];
+    if (existing && (existing.status === 'active' || !input.restart)) return existing.id;
+    const runId = randomUUID(),
+      date = new Date(this.now());
+    await tx.query(
+      'INSERT INTO engine_runs (id,user_id,package_id,package_version,route_id,source_type,source_id,lesson_id,set_id,purpose,title,is_demo,total_steps,cycle,created_at,updated_at) VALUES ($1,$2,$3,$4,$5,$6,$7,$8,$9,$10,$11,$12,$13,$14,$15,$15)',
+      [
+        runId,
+        userId,
+        input.packageId,
+        revision.packageVersion,
+        (lesson ?? set)!.routeId,
+        source.type,
+        source.id,
+        lesson?.id ?? null,
+        set?.id ?? null,
+        purpose,
+        (lesson ?? set)!.title,
+        revision.isDemo,
+        exercises.length,
+        (existing?.cycle ?? 0) + 1,
+        date,
+      ],
+    );
+    for (const [position, exercise] of exercises.entries())
       await tx.query(
-        'INSERT INTO engine_runs (id,user_id,package_id,package_version,route_id,source_type,source_id,lesson_id,set_id,purpose,title,is_demo,total_steps,cycle,created_at,updated_at) VALUES ($1,$2,$3,$4,$5,$6,$7,$8,$9,$10,$11,$12,$13,$14,$15,$15)',
+        'INSERT INTO engine_steps (id,run_id,package_id,package_version,exercise_id,exercise_version,position) VALUES ($1,$2,$3,$4,$5,$6,$7)',
         [
+          randomUUID(),
           runId,
-          userId,
           input.packageId,
           revision.packageVersion,
-          (lesson ?? set)!.routeId,
-          source.type,
-          source.id,
-          lesson?.id ?? null,
-          set?.id ?? null,
-          purpose,
-          (lesson ?? set)!.title,
-          revision.isDemo,
-          exercises.length,
-          (existing?.cycle ?? 0) + 1,
-          date,
+          exercise.id,
+          exercise.version,
+          position,
         ],
       );
-      for (const [position, exercise] of exercises.entries())
-        await tx.query(
-          'INSERT INTO engine_steps (id,run_id,package_id,package_version,exercise_id,exercise_version,position) VALUES ($1,$2,$3,$4,$5,$6,$7)',
-          [
-            randomUUID(),
-            runId,
-            input.packageId,
-            revision.packageVersion,
-            exercise.id,
-            exercise.version,
-            position,
-          ],
-        );
-      const step = (await stepsOf(tx, runId))[0]!;
-      await this.openTurn(tx, step, actor, userId);
-      if (actor.user.role === 'superadmin')
-        await audit(tx, actor.user.id, 'learning.started', userId);
-      return runId;
-    });
-    return this.repository.view(actor, id);
+    const step = (await stepsOf(tx, runId))[0]!;
+    await this.openTurn(tx, step, actor, userId);
+    if (actor.user.role === 'superadmin')
+      await audit(tx, actor.user.id, 'learning.started', userId);
+    return runId;
   }
   private async openTurn(tx: QueryExecutor, step: StepRow, actor: Actor, userId: string) {
     const number =
@@ -373,12 +375,13 @@ export class LuchEngine {
         throw new AppError(409, 'ANSWER_REQUIRED', 'Сначала ответьте на текущее задание.');
       await tx.query("UPDATE engine_steps SET state='completed' WHERE id=$1", [step.id]);
       const position = run.current_position + 1;
-      if (position === run.total_steps)
+      if (position === run.total_steps) {
         await tx.query(
           "UPDATE engine_runs SET current_position=$2,status='completed',completed_at=$3,updated_at=$3 WHERE id=$1",
           [id, position, new Date(this.now())],
         );
-      else {
+        await persistDiagnosticResult(tx, id, this.now());
+      } else {
         await tx.query('UPDATE engine_runs SET current_position=$2 WHERE id=$1', [id, position]);
         const following = (await stepsOf(tx, id)).find((item) => item.position === position)!;
         await this.openTurn(tx, following, actor, run.user_id);

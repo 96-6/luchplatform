@@ -6,11 +6,13 @@ import {
   verificationSchema,
   enrollmentConfirmSchema,
   networkEvidenceSchema,
+  captchaInputSchema,
 } from '@luch/contracts';
 import type { AuthService } from './service.js';
 import type { CaptchaService } from '../security/captcha.js';
 import { limitAttempts } from '../security/rate.js';
 import { getPolicy } from '../security/policy.js';
+import { AppError } from '../../errors.js';
 
 export async function registerAuthRoutes(
   app: FastifyInstance,
@@ -79,8 +81,22 @@ export async function registerAuthRoutes(
     };
   });
   app.post('/api/v1/auth/login', async (request, reply) => {
-    const input = loginSchema.parse(request.body);
     await limitAttempts(auth.database, auth.crypto, `login-ip:${request.ip}`, 40);
+    const raw = z
+      .strictObject({
+        email: z.string().trim().max(254),
+        code: z.string().max(20).default(''),
+        captcha: captchaInputSchema.optional(),
+      })
+      .safeParse(request.body);
+    if (!raw.success)
+      throw new AppError(401, 'INVALID_CREDENTIALS', 'Неверная почта или код Authenticator.');
+    const local = await auth.localLogin(request, reply, raw.data.email, raw.data.code);
+    if (local) return { data: local, requestId: request.id };
+    const parsed = loginSchema.safeParse(raw.data);
+    if (!parsed.success)
+      throw new AppError(401, 'INVALID_CREDENTIALS', 'Неверная почта или код Authenticator.');
+    const input = parsed.data;
     await limitAttempts(auth.database, auth.crypto, `login-email:${input.email}`, 5);
     await captcha.check(request.ip, 'login', input.captcha);
     return {

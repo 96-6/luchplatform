@@ -11,6 +11,7 @@ import type { MailService } from '../mail/service.js';
 import type { NetworkService } from '../security/network.js';
 import { getPolicy } from '../security/policy.js';
 import { AccountCrypto, createTotp, hashToken, token } from './crypto.js';
+import { localDebugRequest } from './local.js';
 
 export const anonymousSession: Session = { user: null, csrfToken: null, dashboardPath: null };
 export type Actor = { user: User; tokenHash: string; sessionId: string };
@@ -187,7 +188,12 @@ export class AuthService {
       );
     return updated.rows[0];
   }
-  private async newSession(tx: QueryExecutor, user: User, request: FastifyRequest) {
+  private async newSession(
+    tx: QueryExecutor,
+    user: User,
+    request: FastifyRequest,
+    localDebug = false,
+  ) {
     const previous = request.cookies[this.sessionCookie];
     if (previous)
       await tx.query('UPDATE auth_sessions SET revoked_at=now() WHERE token_hash=$1', [
@@ -197,10 +203,16 @@ export class AuthService {
     const value = token();
     const hashed = hashToken(value);
     await tx.query(
-      'INSERT INTO auth_sessions (id,token_hash,user_id,expires_at) VALUES ($1,$2,$3,$4)',
-      [randomUUID(), hashed, user.id, new Date(Date.now() + policy.sessionHours * 3600000)],
+      'INSERT INTO auth_sessions (id,token_hash,user_id,expires_at,local_debug) VALUES ($1,$2,$3,$4,$5)',
+      [
+        randomUUID(),
+        hashed,
+        user.id,
+        new Date(Date.now() + policy.sessionHours * 3600000),
+        localDebug,
+      ],
     );
-    await audit(tx, user.id, 'session.started', user.id);
+    await audit(tx, user.id, localDebug ? 'session.local_started' : 'session.started', user.id);
     return {
       value,
       hours: policy.sessionHours,
@@ -266,14 +278,59 @@ export class AuthService {
     await this.network.linkUser(request, created.session.user!.id);
     return created.session;
   }
+  async localLogin(request: FastifyRequest, reply: FastifyReply, alias: string, code: string) {
+    if (code !== '' || !localDebugRequest(this.settings, request)) return null;
+    const isAdmin = this.crypto.matches(alias, this.settings.LOCAL_DEBUG_ADMIN_ALIAS);
+    if (!isAdmin && !['testuser1', 'testuser2', 'testuser3'].includes(alias)) return null;
+    await this.network.check(request);
+    const email = isAdmin ? 'local-admin@example.test' : `${alias}@example.test`;
+    const role = isAdmin ? 'superadmin' : 'student';
+    const created = await this.database.transaction(async (tx) => {
+      const secret = createTotp(email).secret.base32;
+      await tx.query(
+        'INSERT INTO users (id,email,full_name,role,is_demo,email_verified_at,totp_enabled_at,totp_secret_ciphertext,access_verified) VALUES ($1,$2,$3,$4,true,now(),now(),$5,true) ON CONFLICT (email) DO NOTHING',
+        [
+          randomUUID(),
+          email,
+          isAdmin ? 'Локальный суперадмин' : `Тестовый ученик ${alias.slice(-1)}`,
+          role,
+          this.crypto.encrypt(secret),
+        ],
+      );
+      const user = (
+        await tx.query<UserRow>('SELECT * FROM users WHERE email=$1 FOR UPDATE', [email])
+      ).rows[0]!;
+      if (
+        !user.is_demo ||
+        user.role !== role ||
+        user.is_blocked ||
+        !user.email_verified_at ||
+        !user.totp_enabled_at
+      )
+        throw new AppError(401, 'INVALID_CREDENTIALS', 'Неверная почта или код Authenticator.');
+      if ((await getPolicy(tx)).vpnCheckEnabled && !user.access_verified)
+        throw new AppError(
+          403,
+          'ACCESS_REVIEW_REQUIRED',
+          'Доступ ожидает проверки администратором.',
+        );
+      return this.newSession(tx, publicUser(user), request, true);
+    });
+    reply.setCookie(this.sessionCookie, created.value, this.cookieOptions(created.hours * 3600));
+    await this.network.linkUser(request, created.session.user!.id);
+    return created.session;
+  }
   async actor(request: FastifyRequest): Promise<Actor | null> {
     const value = request.cookies[this.sessionCookie];
     if (!value) return null;
-    const result = await this.database.query<UserRow & { session_id: string; token_hash: string }>(
-      `SELECT u.*,s.id AS session_id,s.token_hash FROM auth_sessions s JOIN users u ON u.id=s.user_id WHERE s.token_hash=$1 AND s.revoked_at IS NULL AND s.expires_at>now() AND u.is_blocked=false AND u.email_verified_at IS NOT NULL AND u.totp_enabled_at IS NOT NULL`,
+    const result = await this.database.query<
+      UserRow & { session_id: string; token_hash: string; local_debug: boolean }
+    >(
+      `SELECT u.*,s.id AS session_id,s.token_hash,s.local_debug FROM auth_sessions s JOIN users u ON u.id=s.user_id WHERE s.token_hash=$1 AND s.revoked_at IS NULL AND s.expires_at>now() AND u.is_blocked=false AND u.email_verified_at IS NOT NULL AND u.totp_enabled_at IS NOT NULL`,
       [hashToken(value)],
     );
     const row = result.rows[0];
+    if (row?.local_debug && !localDebugRequest(this.settings, request)) return null;
     return row
       ? { user: publicUser(row), sessionId: row.session_id, tokenHash: row.token_hash }
       : null;

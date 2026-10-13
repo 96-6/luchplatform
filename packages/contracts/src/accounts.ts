@@ -99,6 +99,22 @@ export const accountUpdateSchema = z.strictObject({
   isBlocked: z.boolean(),
   accessVerified: z.boolean(),
 });
+export const adminAccountCreateSchema = z.strictObject({
+  email: z
+    .email()
+    .max(254)
+    .transform((value) => value.toLowerCase()),
+  name: z.string().trim().min(2).max(100),
+  role: roleSchema,
+  operationId: z.uuid(),
+});
+export const adminAuthenticatorResetSchema = z.strictObject({ operationId: z.uuid() });
+export const accountAuthenticatorSchema = z.object({
+  user: userSchema,
+  manualKey: z.string(),
+  qrDataUrl: z.string().startsWith('data:image/png;base64,'),
+  activatedAt: z.iso.datetime().nullable(),
+});
 export const teacherLinkSchema = z.strictObject({ teacherId: z.uuid(), studentId: z.uuid() });
 export const observationSchema = z.object({
   label: z.string(),

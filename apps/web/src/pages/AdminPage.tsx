@@ -15,6 +15,8 @@ import { LoadingState, ErrorState } from '../components/States';
 import { useSecurity } from '../auth/SecurityGate';
 import { UserSummary } from './AccountPages';
 import { RunList, IntegrityControls } from './EnginePages';
+import { ProfileOverview, DiagnosticHistory } from './DiagnosticPages';
+import { AdminCreateAccount, AdminAuthenticator } from './AdminCredentials';
 
 export function AdminPage() {
   const [params, setParams] = useSearchParams();
@@ -75,6 +77,12 @@ function Accounts() {
   };
   return (
     <>
+      <AdminCreateAccount
+        created={(user) => {
+          setSelected(user.id);
+          saved();
+        }}
+      />
       <form
         className="panel form-row"
         onSubmit={(event) => {
@@ -125,7 +133,9 @@ function Accounts() {
             </ul>
             {!state.data.length && <p>Аккаунты не найдены.</p>}
           </section>
-          {selected && <AccountDetail id={selected} version={detailVersion} onSaved={saved} />}
+          {selected && (
+            <AccountDetail key={selected} id={selected} version={detailVersion} onSaved={saved} />
+          )}
           <AssignTeacher users={state.data} onSaved={saved} />
         </>
       )}
@@ -194,6 +204,7 @@ function AccountDetail({
     <section className="panel">
       <h2>Карточка аккаунта для отладки</h2>
       <UserSummary user={state.data.user} />
+      <AdminAuthenticator userId={id} changed={onSaved} />
       <p className="muted">Создан: {new Date(state.data.user.createdAt).toLocaleString('ru-RU')}</p>
       <p>
         Прохождений: {state.data.progress.runs} · Завершено: {state.data.progress.completedRuns} ·
@@ -201,6 +212,12 @@ function AccountDetail({
         помощью: {state.data.progress.assistedAttempts}
       </p>
       <RunList userId={id} />
+      {state.data.user.role === 'student' && (
+        <>
+          <ProfileOverview userId={id} />
+          <DiagnosticHistory userId={id} />
+        </>
+      )}
       <p>
         Преподаватели: {state.data.teachers.map((user) => user.name).join(', ') || 'не назначены'}
       </p>

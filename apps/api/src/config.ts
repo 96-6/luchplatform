@@ -14,6 +14,8 @@ const settingsSchema = z
     DATABASE_URL: z.string().min(1).default('pglite:./data/luch'),
     DATABASE_SSL: flag.default(false),
     ENABLE_DEV_TOOLS: flag.default(false),
+    LOCAL_DEBUG_LOGIN: flag.default(false),
+    LOCAL_DEBUG_ADMIN_ALIAS: z.string().max(254).default(''),
     SERVE_WEB: flag.default(false),
     LOG_LEVEL: z.enum(['debug', 'info', 'warn', 'error', 'silent']).default('info'),
     AUTH_ENCRYPTION_KEY: z.string().default(''),
@@ -38,6 +40,23 @@ const settingsSchema = z
   })
   .superRefine((settings, context) => {
     const url = new URL(settings.APP_URL);
+    if (
+      settings.LOCAL_DEBUG_LOGIN &&
+      (settings.APP_ENV === 'production' ||
+        !settings.ENABLE_DEV_TOOLS ||
+        !['localhost', '127.0.0.1', '[::1]'].includes(url.hostname) ||
+        !['localhost', '127.0.0.1', '::1'].includes(settings.API_HOST) ||
+        settings.TRUST_PROXY_CIDRS.trim() ||
+        settings.LOCAL_DEBUG_ADMIN_ALIAS.length < 8 ||
+        ['testuser1', 'testuser2', 'testuser3'].includes(settings.LOCAL_DEBUG_ADMIN_ALIAS))
+    ) {
+      context.addIssue({
+        code: 'custom',
+        path: ['LOCAL_DEBUG_LOGIN'],
+        message:
+          'Local debug access requires an isolated loopback development environment and a configured alias.',
+      });
+    }
     if (
       settings.AUTH_ENCRYPTION_KEY &&
       Buffer.from(settings.AUTH_ENCRYPTION_KEY, 'base64').length !== 32

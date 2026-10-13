@@ -18,6 +18,7 @@ import { registerAuthRoutes } from './modules/auth/routes.js';
 import { registerAccountRoutes } from './modules/accounts/routes.js';
 import { registerContentRoutes } from './modules/content/routes.js';
 import { registerEngineRoutes } from './modules/engine/routes.js';
+import { registerDiagnosticRoutes } from './modules/diagnostics/routes.js';
 import { MailService } from './modules/mail/service.js';
 import { CaptchaService } from './modules/security/captcha.js';
 import { NetworkService, type IpInspector } from './modules/security/network.js';
@@ -172,7 +173,7 @@ export async function buildApp(
     });
   });
   app.get('/api/v1/system', async (request) => ({
-    data: { application: 'ЛУЧ', stage: 'engine', devToolsEnabled: settings.ENABLE_DEV_TOOLS },
+    data: { application: 'ЛУЧ', stage: 'diagnostics', devToolsEnabled: settings.ENABLE_DEV_TOOLS },
     requestId: request.id,
   }));
   app.get('/api/v1/health/live', async (request) => ({
@@ -196,6 +197,7 @@ export async function buildApp(
   await registerAccountRoutes(app, auth);
   await registerContentRoutes(app, auth);
   await registerEngineRoutes(app, auth);
+  await registerDiagnosticRoutes(app, auth);
 
   const webRoot = resolve(projectRoot, 'apps/web/dist');
   if (settings.SERVE_WEB) {
@@ -220,6 +222,7 @@ export async function buildApp(
     '/admin/content',
     '/courses',
     '/learning',
+    '/onboarding',
     '/admin/learning',
     '/demo-mail',
     '/network-check',
@@ -232,7 +235,8 @@ export async function buildApp(
       (webPaths.has(pathname) ||
         /^\/teacher\/students\/[0-9a-f-]{36}$/.test(pathname) ||
         /^\/courses\/[a-z0-9-]+\/[a-z0-9-]+(?:\/lessons\/[a-z0-9-]+)?$/.test(pathname) ||
-        /^\/learning\/runs\/[0-9a-f-]{36}$/.test(pathname))
+        /^\/learning\/runs\/[0-9a-f-]{36}$/.test(pathname) ||
+        /^\/diagnostics\/[0-9a-f-]{36}$/.test(pathname))
     ) {
       return reply.type('text/html').sendFile('index.html');
     }

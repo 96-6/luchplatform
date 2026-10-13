@@ -130,7 +130,7 @@ test('luch engine saves both languages, resumes after login and shares all evide
     await expect(
       admin.getByRole('heading', { name: 'Все прохождения', exact: true }),
     ).toBeVisible();
-    await admin.getByRole('link', { name: 'Продолжить урок →', exact: true }).click();
+    await admin.locator(`a[href="/learning/runs/${runId}"]`).click();
     await expect(admin.getByLabel('Короткий ответ', { exact: true })).toHaveValue('  ЗОВУТ  ');
     await expect(admin.getByLabel('Короткий ответ', { exact: true })).toBeDisabled();
     await expect(

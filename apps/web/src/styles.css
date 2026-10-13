@@ -783,3 +783,13 @@ fieldset legend {
   overflow-wrap: anywhere;
   font-size: 12px;
 }
+.diagnostic-columns,
+.skill-results {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(min(100%, 280px), 1fr));
+  gap: 20px;
+}
+.skill-results progress {
+  width: 100%;
+  accent-color: var(--primary, #164f47);
+}
