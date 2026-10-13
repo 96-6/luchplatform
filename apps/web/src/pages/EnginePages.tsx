@@ -16,6 +16,7 @@ import { LoadingState, ErrorState, EmptyState } from '../components/States';
 import { ContentBlocks } from './ContentPages';
 import { monitorIntegrity } from '../lib/integrity';
 import { useResource } from '../lib/useResource';
+import { AssistantChat } from '../components/AssistantChat';
 import { ListeningPlayer } from '../components/ListeningPlayer';
 
 const labels = { practice: 'Тренировка', diagnostic: 'Диагностика', control: 'Контроль' };
@@ -290,6 +291,11 @@ function RunSession({ id }: { id: string }) {
             <h2>
               Задание {view.current.position + 1} из {view.run.totalSteps}
             </h2>
+            {view.run.cachedContent && (
+              <p className="notice">
+                Продолжаем по сохранённому материалу, который вы ещё не просматривали.
+              </p>
+            )}
             {view.current.generatedExerciseId && (
               <p className="notice">
                 Сгенерированный демонстрационный вариант задания. Результат предварительный.
@@ -340,6 +346,7 @@ function RunSession({ id }: { id: string }) {
           </>
         )
       )}
+      <AssistantChat key={view.run.id} view={view} editable={editable} refresh={load} />
       <AttemptHistory attempts={view.attempts} showActor={session.user?.role === 'superadmin'} />
       {view.debug && (
         <details className="panel">

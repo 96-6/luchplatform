@@ -47,7 +47,8 @@ export async function learningFixture(providerFetch?: ProviderFetch) {
     await db.exec(`TRUNCATE users,content_packages,auth_rate_limits CASCADE;
       INSERT INTO security_policy (id,captcha_enabled) VALUES (1,false);
       INSERT INTO ai_configuration (id) VALUES (1);
-      INSERT INTO external_providers (id,model) VALUES ('openai','gpt-4.1-mini'),('neuroapi','gpt-4.1-mini'),('elevenlabs','eleven_multilingual_v2');
+      INSERT INTO external_providers (id,model) VALUES ('openai','gpt-4.1-mini'),('neuroapi','gpt-4.1-mini'),('elevenlabs','eleven_multilingual_v2'),('heygen','avatar_iv');
+      INSERT INTO avatar_configuration (id) VALUES (1) ON CONFLICT (id) DO UPDATE SET revision=1,bindings=DEFAULT;
       UPDATE adaptive_policy SET installed_at=now(),review_delay_hours=48 WHERE id=1;`);
     await seedDemoContent(db);
   };

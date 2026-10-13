@@ -1,5 +1,5 @@
 import { z } from 'zod';
-export const providerIdSchema = z.enum(['openai', 'neuroapi', 'elevenlabs']);
+export const providerIdSchema = z.enum(['openai', 'neuroapi', 'elevenlabs', 'heygen']);
 const money = z.number().int().min(0).max(1_000_000_000_000);
 const accountedMoney = z.number().int().min(0).max(Number.MAX_SAFE_INTEGER);
 const rate = money.refine((v) => v > 0, 'Цена должна быть положительной.');
@@ -10,6 +10,8 @@ export const aiCeilingsSchema = z.strictObject({
   perUserDailyMicros: money.default(0),
   requestsPerUserDay: z.number().int().min(0).max(1000).default(0),
   maxOutputTokens: z.number().int().min(128).max(4096).default(1024),
+  maxVideoSeconds: z.number().int().min(0).max(300).default(0),
+  maxVideoCharacters: z.number().int().min(0).max(1200).default(0),
   maxTtsCharacters: z.number().int().min(0).max(3000).default(0),
   maxConcurrent: z.number().int().min(1).max(10).default(2),
   pricingValidityHours: z.number().int().min(1).max(168).default(24),
@@ -17,6 +19,7 @@ export const aiCeilingsSchema = z.strictObject({
 export const aiControlsSchema = z.strictObject({
   enabled: z.boolean().default(false),
   listeningEnabled: z.boolean().default(false),
+  videoEnabled: z.boolean().default(false),
   strategy: z.enum(['cheapest', 'openai', 'neuroapi']).default('cheapest'),
   withListening: z.boolean().default(false),
   dailyMicros: money.default(0),
@@ -24,6 +27,8 @@ export const aiControlsSchema = z.strictObject({
   perUserDailyMicros: money.default(0),
   requestsPerUserDay: z.number().int().min(0).max(1000).default(0),
   maxOutputTokens: z.number().int().min(128).max(4096).default(1024),
+  maxVideoSeconds: z.number().int().min(0).max(300).default(0),
+  maxVideoCharacters: z.number().int().min(0).max(1200).default(0),
   maxTtsCharacters: z.number().int().min(0).max(3000).default(0),
   maxConcurrent: z.number().int().min(1).max(10).default(2),
   reviewDelayHours: z.number().int().min(24).max(336).default(48),
@@ -38,6 +43,7 @@ export const providerViewSchema = z.object({
   inputRate: money.nullable(),
   outputRate: money.nullable(),
   characterRate: money.nullable(),
+  minuteRate: money.nullable().default(null),
   pricingConfirmedAt: z.iso.datetime().nullable(),
   keyConfigured: z.boolean(),
   keySource: z.enum(['database', 'environment', 'none']),
@@ -79,6 +85,7 @@ export const updateProviderSchema = z
     inputRate: rate.nullable(),
     outputRate: rate.nullable(),
     characterRate: rate.nullable(),
+    minuteRate: rate.nullable().default(null),
     confirmPricing: z.boolean(),
     apiKey: z
       .string()
@@ -90,7 +97,7 @@ export const updateProviderSchema = z
   .refine((d) => !(d.apiKey && d.clearKey), 'Выберите замену или удаление ключа.');
 export const providerRequestSchema = z.object({
   id: z.uuid(),
-  kind: z.enum(['adaptive_exercise', 'listening']),
+  kind: z.enum(['adaptive_exercise', 'listening', 'avatar_video']),
   provider: providerIdSchema,
   model: z.string(),
   status: z.enum(['reserved', 'success', 'failed', 'unknown', 'overrun']),

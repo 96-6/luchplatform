@@ -7,6 +7,7 @@ import {
   type AiControls,
 } from '@luch/contracts';
 import type { z } from 'zod';
+import { AvatarBindings } from '../components/AvatarBindings';
 import { useAuth } from '../auth/AuthContext';
 import { api } from '../lib/api';
 import { useResource } from '../lib/useResource';
@@ -25,6 +26,8 @@ const numberLabels = {
   requestsPerUserDay: 'Запросов на ученика в день',
   maxOutputTokens: 'Максимум токенов ответа',
   maxTtsCharacters: 'Максимум символов озвучивания',
+  maxVideoSeconds: 'Максимум секунд видео HeyGen',
+  maxVideoCharacters: 'Максимум символов реплики HeyGen',
   maxConcurrent: 'Одновременных запросов',
   pricingValidityHours: 'Срок подтверждения цены, часы',
 };
@@ -75,8 +78,8 @@ export function ProviderPage() {
     <>
       <h1>AI, озвучивание и расходы</h1>
       <p>
-        Генеративные варианты — OpenAI или NeuroAPI. Listening — ElevenLabs. При недоступности
-        генерации задания продолжаются из учебного банка.
+        Генеративные варианты — OpenAI или NeuroAPI. Listening — ElevenLabs. Видеоаватары — HeyGen.
+        При недоступности генерации задания продолжаются из учебного банка.
       </p>
       <section className="notice">
         <p>
@@ -113,6 +116,7 @@ export function ProviderPage() {
       {view.canManageSecrets && (
         <CeilingsForm key={`ceilings-${view.revision}`} view={view} busy={busy} save={save} />
       )}
+      {view.canManageSecrets && <AvatarBindings changed={resource.refresh} />}
       <h2>Подключения и цены</h2>
       {!view.canManageSecrets && (
         <p>Ключи, модели, цены и верхние ограничения меняет суперадмин.</p>
@@ -138,11 +142,13 @@ function NumericFields({
   set,
   ceilings,
   idPrefix,
+  canManageVideo = true,
 }: {
   data: AiCeilings | AiControls;
   set: (key: string, value: number) => void;
   ceilings?: AiCeilings;
   idPrefix: string;
+  canManageVideo?: boolean;
 }) {
   return (
     <>
@@ -188,6 +194,9 @@ function NumericFields({
                 ceilings && key in ceilings
                   ? (ceilings[key as keyof AiCeilings] as number)
                   : undefined
+              }
+              disabled={
+                !canManageVideo && (key === 'maxVideoSeconds' || key === 'maxVideoCharacters')
               }
               value={data[key as keyof typeof data] as number}
               onChange={(e) => set(key, Number(e.target.value))}
@@ -240,6 +249,15 @@ function ControlsForm({ view, busy, save }: { view: View; busy: boolean; save: S
             />
             Добавлять listening-варианты при генерации
           </label>
+          <label className="checkbox">
+            <input
+              type="checkbox"
+              checked={data.videoEnabled}
+              disabled={!view.canManageSecrets}
+              onChange={(e) => setData({ ...data, videoEnabled: e.target.checked })}
+            />
+            Разрешить генерацию видео HeyGen
+          </label>
           <label htmlFor="ai-strategy">Выбор текстового провайдера</label>
           <select
             id="ai-strategy"
@@ -264,7 +282,13 @@ function ControlsForm({ view, busy, save }: { view: View; busy: boolean; save: S
             onChange={(e) => setData({ ...data, reviewDelayHours: Number(e.target.value) })}
           />
           <div className="settings-grid">
-            <NumericFields data={data} set={set} ceilings={view.ceilings} idPrefix="controls" />
+            <NumericFields
+              data={data}
+              set={set}
+              ceilings={view.ceilings}
+              idPrefix="controls"
+              canManageVideo={view.canManageSecrets}
+            />
           </div>
           <p className="muted">
             При выключенном AI адаптация работает по правилам. Нулевой денежный лимит запрещает
@@ -320,8 +344,18 @@ function ProviderForm({
     [key, setKey] = useState(''),
     [clearKey, setClearKey] = useState(false),
     [confirmPricing, setConfirmPricing] = useState(false);
-  const name = p.id === 'openai' ? 'OpenAI' : p.id === 'neuroapi' ? 'NeuroAPI' : 'ElevenLabs';
-  const rate = (field: 'inputRate' | 'outputRate' | 'characterRate', label: string) => (
+  const name =
+    p.id === 'openai'
+      ? 'OpenAI'
+      : p.id === 'neuroapi'
+        ? 'NeuroAPI'
+        : p.id === 'elevenlabs'
+          ? 'ElevenLabs'
+          : 'HeyGen';
+  const rate = (
+    field: 'inputRate' | 'outputRate' | 'characterRate' | 'minuteRate',
+    label: string,
+  ) => (
     <>
       <label htmlFor={`${p.id}-${field}`}>{label}</label>
       <input
@@ -364,6 +398,7 @@ function ProviderForm({
             inputRate: data.inputRate,
             outputRate: data.outputRate,
             characterRate: data.characterRate,
+            minuteRate: data.minuteRate,
             confirmPricing,
             clearKey,
             ...(key ? { apiKey: key } : {}),
@@ -387,7 +422,14 @@ function ProviderForm({
             value={data.model}
             onChange={(e) => setData({ ...data, model: e.target.value })}
           />
-          {p.id === 'elevenlabs' ? (
+          {p.id === 'heygen' ? (
+            <>
+              {rate('minuteRate', 'Верхняя цена HeyGen, USD за минуту видео')}
+              <p>
+                Движки: avatar_iv, avatar_v или avatar_iii. Голоса и аватары настраиваются выше.
+              </p>
+            </>
+          ) : p.id === 'elevenlabs' ? (
             <>
               {rate('characterRate', 'Верхняя цена USD за 1000 символов')}
               <label htmlFor="voice-ru">Голос ElevenLabs для РКИ</label>

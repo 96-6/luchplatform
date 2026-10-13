@@ -7,6 +7,7 @@ export * from './diagnostics.js';
 export * from './plans.js';
 export * from './adaptation.js';
 export * from './providers.js';
+export * from './assistant.js';
 
 export const API_PREFIX = '/api/v1';
 export const systemSchema = z.object({
@@ -19,6 +20,7 @@ export const systemSchema = z.object({
     'diagnostics',
     'plans',
     'adaptation',
+    'assistant',
   ]),
   devToolsEnabled: z.boolean(),
 });

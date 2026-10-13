@@ -1,3 +1,4 @@
+import { testVideo } from '../tests/e2e/test-video.mjs';
 import { testTone } from '../tests/e2e/test-tone.mjs';
 import { mkdir, mkdtemp, rm, writeFile } from 'node:fs/promises';
 import { tmpdir } from 'node:os';
@@ -39,6 +40,18 @@ await bootstrapService(database, settings).provision(
 const app = await buildApp(settings, database, {
   captchaGenerator: () => 'ABCDE',
   providerFetch: async (url, options) => {
+    if (String(url) === 'https://api.heygen.com/v3/videos')
+      return Response.json({ data: { video_id: 'e2e-avatar-video' } });
+    if (String(url).startsWith('https://api.heygen.com/v3/videos/'))
+      return Response.json({
+        data: {
+          status: 'completed',
+          video_url: 'https://resource.heygen.ai/test-fixture.mp4',
+          duration: 1,
+        },
+      });
+    if (String(url) === 'https://resource.heygen.ai/test-fixture.mp4')
+      return new Response(testVideo, { headers: { 'content-type': 'video/mp4' } });
     if (String(url).startsWith('https://api.elevenlabs.io/'))
       return new Response(testTone, { headers: { 'content-type': 'audio/mpeg' } });
     const body = JSON.parse(String(options.body));
@@ -97,6 +110,11 @@ for (const prefix of [
   'adapt-admin',
   'adapt-providers-admin',
   'adapt-listening',
+  'assistant-ru',
+  'assistant-en',
+  'assistant-control',
+  'assistant-error',
+  'assistant-admin',
 ])
   for (const retry of [0, 1]) {
     const email = `${prefix}-${retry}@example.test`;
@@ -111,7 +129,8 @@ for (const prefix of [
         prefix === 'engine-integrity-admin' ||
         prefix === 'plan-admin' ||
         prefix === 'adapt-admin' ||
-        prefix === 'adapt-providers-admin'
+        prefix === 'adapt-providers-admin' ||
+        prefix === 'assistant-admin'
           ? 'superadmin'
           : prefix === 'plan-teacher'
             ? 'teacher'

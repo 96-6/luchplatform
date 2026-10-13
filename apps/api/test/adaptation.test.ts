@@ -213,7 +213,8 @@ describe('adaptive learning and spaced checks', () => {
     const correction = (await f.plan(s, p.plan.id)).assignments.find(
       (a) => a.kind === 'correction',
     )!;
-    let run = await f.start(s, p.plan.id, correction.id);
+    // This recovery test deliberately replays the pinned bank item via the domain service.
+    let run = await new PlansService(f.db).startAssignment(s.actor, p.plan.id, correction.id);
     run = await f.answer(s, run, false);
     expect(run.run.status).toBe('active');
     expect(
@@ -240,7 +241,7 @@ describe('adaptive learning and spaced checks', () => {
     let plan = await f.plan(s, p.plan.id);
     expect(plan.assignments.filter((a) => a.kind === 'correction')).toHaveLength(1);
     const correction = plan.assignments.find((a) => a.kind === 'correction')!;
-    const run = await f.start(s, p.plan.id, correction.id);
+    const run = await new PlansService(f.db).startAssignment(s.actor, p.plan.id, correction.id);
     expect(run.run.totalSteps).toBe(1);
     expect(run.run.sourceType).toBe('assignment');
     await f.finish(s, run.run.id, [false]);

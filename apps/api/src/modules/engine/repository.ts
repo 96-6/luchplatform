@@ -24,6 +24,7 @@ export type RunRow = {
   diagnostic_id: string | null;
   plan_ids: string[];
   user_id: string;
+  cache_fallback: boolean;
   package_id: string;
   package_version: number;
   route_id: string;
@@ -68,6 +69,7 @@ export type TurnRow = {
   used_hints: unknown;
   prior_feedback: boolean;
   admin_assistance: boolean;
+  assistant_help: boolean;
   active_ms: string | number;
   resumed: boolean;
   started_at: Date | string;
@@ -89,6 +91,7 @@ export type AttemptRow = {
   used_hints: unknown;
   prior_feedback: boolean;
   admin_assistance: boolean;
+  assistant_help: boolean;
   active_ms: string | number;
   elapsed_ms: string | number;
   started_at: Date | string;
@@ -97,7 +100,7 @@ export type AttemptRow = {
   definition: unknown;
   generated_exercise_id: string | null;
 };
-export const runSelect = `SELECT r.*,d.id AS diagnostic_id,u.full_name AS user_name,u.email AS user_email,u.role AS user_role,
+export const runSelect = `SELECT r.*,EXISTS(SELECT 1 FROM plan_assignments ca WHERE ca.run_id=r.id AND ca.cache_fallback) AS cache_fallback,d.id AS diagnostic_id,u.full_name AS user_name,u.email AS user_email,u.role AS user_role,
     ARRAY(SELECT a.plan_id FROM plan_assignments a JOIN learning_plans p ON p.id=a.plan_id WHERE a.run_id=r.id ORDER BY p.created_at DESC,p.id DESC) AS plan_ids
     FROM engine_runs r JOIN users u ON u.id=r.user_id LEFT JOIN diagnostic_sessions d ON d.run_id=r.id`;
 export const attemptSelect = `SELECT a.*,t.number,s.generated_exercise_id,COALESCE(g.definition,e.definition) AS definition FROM engine_attempts a JOIN engine_turns t ON t.id=a.turn_id JOIN engine_steps s ON s.id=a.step_id JOIN learning_exercises e ON e.package_id=s.package_id AND e.package_version=s.package_version AND e.id=s.exercise_id LEFT JOIN generated_exercises g ON g.id=s.generated_exercise_id`;
@@ -119,6 +122,7 @@ export function turnView(turn: TurnRow, now: number) {
     draftAnswer: turn.draft_answer,
     draftRevision: Number(turn.draft_revision),
     adminAssistance: turn.admin_assistance,
+    assistantHelp: turn.assistant_help,
     hadPriorFeedback: turn.prior_feedback,
     usedHints: turn.used_hints,
     paused:
@@ -144,6 +148,7 @@ export function summary(row: RunRow) {
     title: row.title,
     purpose: row.purpose,
     isDemo: row.is_demo,
+    cachedContent: row.cache_fallback ?? false,
     status: row.status,
     cycle: row.cycle,
     currentPosition: row.current_position,
@@ -171,6 +176,7 @@ export function attemptView(row: AttemptRow, reveal: boolean): EngineAttempt {
     submittedBy: row.submitted_by,
     submittedFor: row.user_id,
     adminAssistance: row.admin_assistance,
+    assistantHelp: row.assistant_help,
     answer: draftAnswerSchema.unwrap().parse(row.answer),
     evaluation: reveal ? evaluationSchema.parse(row.evaluation) : null,
     usedHints: z.array(usedHintSchema).parse(row.used_hints),

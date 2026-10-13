@@ -1,3 +1,4 @@
+import { CachedContentService } from './cache.js';
 import { randomUUID } from 'node:crypto';
 import { exerciseSchema, type Exercise } from '@luch/contracts';
 import { AppError } from '../../errors.js';
@@ -17,6 +18,10 @@ export class GenerationService {
     this.budget = new ProviderBudget(settings);
   }
   async prepare(actor: Actor, planId: string, assignmentId: string) {
+    await this.generate(actor, planId, assignmentId);
+    await new CachedContentService(this.settings.db).ensureAvailable(actor, planId, assignmentId);
+  }
+  private async generate(actor: Actor, planId: string, assignmentId: string) {
     let base: Exercise | undefined,
       context = '',
       reservation: Reservation | undefined;

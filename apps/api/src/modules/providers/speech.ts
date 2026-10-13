@@ -23,6 +23,18 @@ export class SpeechService {
     );
     return `/api/v1/engine/runs/${runId}/steps/${stepId}/listening/${key}`;
   }
+  async fallback(tx: QueryExecutor, text: string, language: 'ru' | 'en') {
+    return (
+      await tx.query<{ cache_key: string }>(
+        `SELECT c.cache_key FROM listening_audio_cache c JOIN run_listening_assets a ON a.cache_key=c.cache_key
+        JOIN engine_steps s ON s.id=a.step_id JOIN learning_exercises e ON e.package_id=s.package_id AND e.package_version=s.package_version AND e.id=s.exercise_id
+        LEFT JOIN generated_exercises g ON g.id=s.generated_exercise_id
+        WHERE COALESCE(g.definition,e.definition)->'listening'->>'text'=$1 AND COALESCE(g.definition,e.definition)->>'language'=$2
+        ORDER BY c.created_at,c.cache_key LIMIT 1`,
+        [text, language],
+      )
+    ).rows[0];
+  }
   async prepare(actor: Actor, runId: string, stepId: string, operationId: string) {
     let reservation: Reservation | undefined,
       text = '',
@@ -69,12 +81,35 @@ export class SpeechService {
           .length
       )
         return { url: await this.link(tx, runId, stepId, key), cached: true };
-      const result = await this.budget.reserve(tx, actor, run.user_id, {
-        resourceKey: `listening:${key}:${operationId}`,
-        cacheKey: key,
-        kind: 'listening',
-        inputBound: text.length,
-      });
+      let result: Awaited<ReturnType<ProviderBudget['reserve']>>;
+      try {
+        result = await this.budget.reserve(tx, actor, run.user_id, {
+          resourceKey: `listening:${key}:${operationId}`,
+          cacheKey: key,
+          kind: 'listening',
+          inputBound: text.length,
+        });
+      } catch (error) {
+        if (
+          error instanceof AppError &&
+          [
+            'PROVIDER_DISABLED',
+            'PROVIDER_UNAVAILABLE',
+            'PROVIDER_BUDGET_LIMIT',
+            'PROVIDER_INPUT_LIMIT',
+          ].includes(error.code)
+        ) {
+          const cached = await this.fallback(tx, text, language);
+          if (cached)
+            return { url: await this.link(tx, runId, stepId, cached.cache_key), cached: true };
+          throw new AppError(
+            503,
+            'CONTENT_GENERATION_UNAVAILABLE',
+            'Ошибка генерации контента: подходящего сохранённого аудио нет, а озвучивание сейчас недоступно.',
+          );
+        }
+        throw error;
+      }
       if ('existing' in result)
         throw new AppError(
           result.existing.status === 'reserved' ? 409 : 503,
@@ -97,13 +132,18 @@ export class SpeechService {
         return { url: await this.link(tx, runId, stepId, key), cached: false };
       });
     } catch {
-      await this.settings.db.transaction((tx) =>
-        this.budget.settle(tx, r, null, 'SPEECH_UNAVAILABLE'),
-      );
+      const fallback = await this.settings.db.transaction(async (tx) => {
+        await this.budget.settle(tx, r, null, 'SPEECH_UNAVAILABLE');
+        const cached = await this.fallback(tx, text, language);
+        return cached
+          ? { url: await this.link(tx, runId, stepId, cached.cache_key), cached: true }
+          : null;
+      });
+      if (fallback) return fallback;
       throw new AppError(
         503,
         'SPEECH_UNAVAILABLE',
-        'Не удалось подготовить аудио. Учебный ответ и оценка не изменены.',
+        'Ошибка генерации контента: не удалось подготовить аудио. Учебный ответ и оценка не изменены.',
       );
     }
   }

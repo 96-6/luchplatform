@@ -218,6 +218,16 @@ export class LuchEngine {
     return id;
   }
   private async openTurn(tx: QueryExecutor, step: StepRow, actor: Actor, userId: string) {
+    await tx.query(
+      'INSERT INTO learning_content_views (user_id,content_key,first_viewed_at) VALUES ($1,$2,$3) ON CONFLICT DO NOTHING',
+      [
+        userId,
+        step.generated_exercise_id
+          ? `generated:${step.generated_exercise_id}`
+          : `bank:${step.package_id}:${step.package_version}:${step.exercise_id}:${step.exercise_version}`,
+        new Date(this.now()),
+      ],
+    );
     const number =
       Number(
         (
@@ -408,9 +418,10 @@ export class LuchEngine {
       const active = activeTime(turn, this.now()),
         elapsed = Math.max(0, this.now() - new Date(turn.started_at).getTime());
       const adminAssistance = turn.admin_assistance || actor.user.id !== run.user_id;
-      const independent = hints.length === 0 && !turn.prior_feedback && !adminAssistance;
+      const independent =
+        hints.length === 0 && !turn.prior_feedback && !turn.assistant_help && !adminAssistance;
       await tx.query(
-        'INSERT INTO engine_attempts (id,run_id,step_id,turn_id,user_id,submitted_by,operation_id,answer,evaluation,is_correct,independent,used_hints,prior_feedback,active_ms,elapsed_ms,started_at,evaluated_at,admin_assistance) VALUES ($1,$2,$3,$4,$5,$6,$7,$8,$9,$10,$11,$12,$13,$14,$15,$16,$17,$18)',
+        'INSERT INTO engine_attempts (id,run_id,step_id,turn_id,user_id,submitted_by,operation_id,answer,evaluation,is_correct,independent,used_hints,prior_feedback,active_ms,elapsed_ms,started_at,evaluated_at,admin_assistance,assistant_help) VALUES ($1,$2,$3,$4,$5,$6,$7,$8,$9,$10,$11,$12,$13,$14,$15,$16,$17,$18,$19)',
         [
           attempt,
           id,
@@ -430,6 +441,7 @@ export class LuchEngine {
           turn.started_at,
           date,
           adminAssistance,
+          turn.assistant_help,
         ],
       );
       await tx.query(

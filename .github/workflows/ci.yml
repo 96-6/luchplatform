@@ -72,6 +72,13 @@ jobs:
             sleep 1
           done
           docker compose --env-file .env.compose exec -T app node scripts/adaptation-smoke.mjs verify
+          docker compose --env-file .env.compose exec -T app node scripts/assistant-smoke.mjs
+          docker compose --env-file .env.compose restart app
+          for attempt in $(seq 1 30); do
+            if curl --fail --silent http://localhost:3000/api/v1/health/ready > /dev/null; then break; fi
+            sleep 1
+          done
+          docker compose --env-file .env.compose exec -T app node scripts/assistant-smoke.mjs verify
           docker compose --env-file .env.compose exec -T app node apps/api/dist/modules/content/cli.js export --package luch-demo --file /tmp/luch-demo-reopened.json
           docker compose --env-file .env.compose exec -T app node --input-type=module -e 'import { readFile } from "node:fs/promises"; import assert from "node:assert/strict"; const a=JSON.parse(await readFile("/tmp/luch-demo-export.json","utf8")); const b=JSON.parse(await readFile("/tmp/luch-demo-reopened.json","utf8")); assert.deepEqual(a,b); assert.deepEqual([b.routes.length,b.lessons.length,b.exercises.length],[2,12,48]);'
       - name: Compose logs

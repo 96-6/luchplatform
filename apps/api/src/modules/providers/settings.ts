@@ -29,6 +29,7 @@ export type ProviderRow = {
   input_rate: string | null;
   output_rate: string | null;
   character_rate: string | null;
+  minute_rate: string | null;
   pricing_confirmed_at: Date | string | null;
 };
 export type Configuration = { revision: number; ceilings: AiCeilings; controls: AiControls };
@@ -57,6 +58,8 @@ const limited = [
   'requestsPerUserDay',
   'maxOutputTokens',
   'maxTtsCharacters',
+  'maxVideoSeconds',
+  'maxVideoCharacters',
   'maxConcurrent',
 ] as const;
 export function validateControls(ceilings: AiCeilings, controls: AiControls) {
@@ -100,7 +103,8 @@ export class ProviderSettingsService {
     readonly environment: Pick<
       Settings,
       'OPENAI_API_KEY' | 'NEUROAPI_API_KEY' | 'ELEVENLABS_API_KEY'
-    >,
+    > &
+      Partial<Pick<Settings, 'HEYGEN_API_KEY'>>,
     readonly now: () => number = Date.now,
   ) {}
   environmentKey(id: ProviderId) {
@@ -108,7 +112,9 @@ export class ProviderSettingsService {
       ? this.environment.OPENAI_API_KEY
       : id === 'neuroapi'
         ? this.environment.NEUROAPI_API_KEY
-        : this.environment.ELEVENLABS_API_KEY;
+        : id === 'elevenlabs'
+          ? this.environment.ELEVENLABS_API_KEY
+          : (this.environment.HEYGEN_API_KEY ?? '');
   }
   credential(row: ProviderRow) {
     return row.key_disabled
@@ -129,6 +135,7 @@ export class ProviderSettingsService {
       inputRate: row.input_rate ? Number(row.input_rate) : null,
       outputRate: row.output_rate ? Number(row.output_rate) : null,
       characterRate: row.character_rate ? Number(row.character_rate) : null,
+      minuteRate: row.minute_rate ? Number(row.minute_rate) : null,
       pricingConfirmedAt: row.pricing_confirmed_at
         ? new Date(row.pricing_confirmed_at).toISOString()
         : null,
@@ -160,6 +167,13 @@ export class ProviderSettingsService {
       const current = await configuration(tx, true);
       if (current.revision !== input.revision) throw settingChanged();
       validateControls(current.ceilings, input.controls);
+      if (
+        actor.user.role !== 'superadmin' &&
+        (input.controls.videoEnabled !== current.controls.videoEnabled ||
+          input.controls.maxVideoSeconds !== current.controls.maxVideoSeconds ||
+          input.controls.maxVideoCharacters !== current.controls.maxVideoCharacters)
+      )
+        throw new AppError(403, 'ACCESS_DENIED', 'Настройки HeyGen изменяет суперадмин.');
       await tx.query(
         'UPDATE ai_configuration SET controls=$2,revision=revision+1,updated_by=$3,updated_at=$4 WHERE id=1 AND revision=$1',
         [input.revision, JSON.stringify(input.controls), actor.user.id, new Date(this.now())],
@@ -182,7 +196,10 @@ export class ProviderSettingsService {
         controls.listeningEnabled = false;
         controls.withListening = false;
       }
+      if (!input.ceilings.maxVideoSeconds || !input.ceilings.maxVideoCharacters)
+        controls.videoEnabled = false;
       if (!input.ceilings.lifetimeMicros) {
+        controls.videoEnabled = false;
         controls.enabled = false;
         controls.listeningEnabled = false;
         controls.withListening = false;
@@ -221,7 +238,8 @@ export class ProviderSettingsService {
         row.voice_en !== input.voiceEn ||
         Number(row.input_rate) !== Number(input.inputRate) ||
         Number(row.output_rate) !== Number(input.outputRate) ||
-        Number(row.character_rate) !== Number(input.characterRate);
+        Number(row.character_rate) !== Number(input.characterRate) ||
+        Number(row.minute_rate) !== Number(input.minuteRate);
       const confirmed = input.confirmPricing
         ? new Date(this.now())
         : ratesChanged
@@ -230,14 +248,16 @@ export class ProviderSettingsService {
       if (
         input.enabled &&
         (!confirmed ||
-          (id === 'elevenlabs'
-            ? !input.characterRate || !input.voiceRu || !input.voiceEn
-            : !input.inputRate || !input.outputRate))
+          (id === 'heygen'
+            ? !input.minuteRate || !['avatar_iv', 'avatar_v', 'avatar_iii'].includes(input.model)
+            : id === 'elevenlabs'
+              ? !input.characterRate || !input.voiceRu || !input.voiceEn
+              : !input.inputRate || !input.outputRate))
       )
         throw new AppError(
           400,
           'PROVIDER_INCOMPLETE',
-          'Укажите и подтвердите цены; для ElevenLabs нужны голоса обоих языков.',
+          'Укажите и подтвердите цены; для ElevenLabs нужны голоса обоих языков, для HeyGen — цена минуты и поддерживаемый движок.',
         );
       if (
         input.enabled &&
@@ -245,7 +265,7 @@ export class ProviderSettingsService {
       )
         throw new AppError(400, 'PROVIDER_KEY_REQUIRED', 'Сначала задайте ключ провайдера.');
       await tx.query(
-        'UPDATE external_providers SET revision=revision+1,enabled=$2,model=$3,voice_ru=$4,voice_en=$5,input_rate=$6,output_rate=$7,character_rate=$8,pricing_confirmed_at=$9,credential_ciphertext=$10,key_disabled=$11,updated_by=$12,updated_at=$13 WHERE id=$1',
+        'UPDATE external_providers SET revision=revision+1,enabled=$2,model=$3,voice_ru=$4,voice_en=$5,input_rate=$6,output_rate=$7,character_rate=$8,pricing_confirmed_at=$9,credential_ciphertext=$10,key_disabled=$11,updated_by=$12,updated_at=$13,minute_rate=$14 WHERE id=$1',
         [
           id,
           input.enabled,
@@ -260,6 +280,7 @@ export class ProviderSettingsService {
           disabled,
           actor.user.id,
           new Date(this.now()),
+          input.minuteRate,
         ],
       );
       await audit(tx, actor.user.id, 'providers.connection_changed');

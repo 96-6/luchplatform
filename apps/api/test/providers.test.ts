@@ -145,7 +145,9 @@ async function configure(
 }
 async function correction(s: Login) {
   const p = await f.preparedPlan(s);
-  await f.finish(s, (await f.start(s, p.plan.id, p.assignments[0]!.id)).run.id, [false, false]);
+  // Leave an unseen bank exercise available for fallback scenarios.
+  const initial = await f.start(s, p.plan.id, p.assignments[0]!.id);
+  await f.answer(s, initial, false);
   return {
     planId: p.plan.id,
     assignment: (await f.plan(s, p.plan.id)).assignments.find((a) => a.kind === 'correction')!,
@@ -565,6 +567,59 @@ describe('provider controls, finance and listening', () => {
     });
     expect(retry.statusCode, retry.body).toBe(200);
     expect(calls).toHaveLength(2);
+  });
+  it('uses compatible saved listening audio after voices change and generation is disabled', async () => {
+    const root = await f.active('superadmin'),
+      first = await f.active(),
+      second = await f.active();
+    await configure(root, { speech: true });
+    handler = async () =>
+      new Response(Buffer.from('ID3-cache-fallback'), {
+        headers: { 'content-type': 'audio/mpeg' },
+      });
+    const a = await listening(first);
+    const original = await f.app.inject({
+      method: 'POST',
+      url: `/api/v1/engine/runs/${a.run.id}/steps/${a.current!.stepId}/listening`,
+      headers: first.headers,
+      payload: { operationId: randomUUID() },
+    });
+    expect(original.statusCode, original.body).toBe(200);
+    const current = await read(root),
+      p = current.providers.find((x) => x.id === 'elevenlabs')!;
+    const update = await f.app.inject({
+      method: 'POST',
+      url: '/api/v1/admin/providers/elevenlabs',
+      headers: root.headers,
+      payload: {
+        revision: p.revision,
+        enabled: false,
+        model: p.model,
+        voiceRu: 'newRuVoice',
+        voiceEn: 'newEnVoice',
+        inputRate: null,
+        outputRate: null,
+        characterRate: p.characterRate,
+        confirmPricing: false,
+      },
+    });
+    expect(update.statusCode, update.body).toBe(200);
+    await controls(root, { listeningEnabled: false });
+    const b = await listening(second),
+      cached = await f.app.inject({
+        method: 'POST',
+        url: `/api/v1/engine/runs/${b.run.id}/steps/${b.current!.stepId}/listening`,
+        headers: second.headers,
+        payload: { operationId: randomUUID() },
+      });
+    expect(cached.statusCode, cached.body).toBe(200);
+    expect(cached.json().data.cached).toBe(true);
+    expect(calls).toHaveLength(1);
+    expect(
+      (
+        await f.app.inject({ url: cached.json().data.url, headers: second.headers })
+      ).rawPayload.toString(),
+    ).toBe('ID3-cache-fallback');
   });
   it('requires price confirmation for new keys/voices and lets root remove secrets without returning them', async () => {
     const root = await f.active('superadmin');

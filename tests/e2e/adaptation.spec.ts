@@ -153,18 +153,12 @@ test('mistakes and independent success produce different next tasks and persiste
   await page.reload();
   await expect(page.locator('[data-kind="correction"]')).toHaveCount(1);
   await page.getByRole('button', { name: 'Начать дополнительную практику', exact: true }).click();
-  const corrective = await run(page);
-  expect(corrective.run.totalSteps).toBe(1);
-  expect(corrective.current!.exercise.skillId).toBe('ru-introduction');
-  await answer(page, true);
-  await page.getByRole('button', { name: 'Завершить урок', exact: true }).click();
-  await page
-    .getByRole('link', { name: 'Вернуться к индивидуальному плану →', exact: true })
-    .click();
-  await expect(page.locator('[data-kind="correction"]')).toHaveAttribute(
-    'data-status',
-    'completed',
-  );
+  // Both bank exercises were already viewed. New task-9 behavior reports exhaustion.
+  await expect(
+    page.getByRole('alert').filter({ hasText: 'Ошибка генерации контента' }),
+  ).toBeVisible();
+  const unchanged = await plan(page);
+  expect(unchanged.assignments.find((x) => x.id === next.id)!.status).toBe('pending');
   const other = await browser.newContext({
     baseURL: 'http://127.0.0.1:3200',
   });

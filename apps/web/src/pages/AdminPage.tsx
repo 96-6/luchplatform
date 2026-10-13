@@ -213,6 +213,9 @@ function AccountDetail({
         Попыток: {state.data.progress.attempts} · Верных: {state.data.progress.correctAttempts} · С
         помощью: {state.data.progress.assistedAttempts}
       </p>
+      <p>
+        <Link to={`/assistant?userId=${id}`}>Персонаж и переписка помощника →</Link>
+      </p>
       <RunList userId={id} />
       {state.data.user.role === 'student' && (
         <>

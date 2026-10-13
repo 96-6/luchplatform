@@ -29,6 +29,10 @@ import {
   ElevenLabsAdapter,
   type ProviderFetch,
 } from './modules/providers/adapters.js';
+import { AssistantService } from './modules/assistant/service.js';
+import { AvatarVideoService } from './modules/assistant/video.js';
+import { HeyGenAdapter } from './modules/providers/heygen.js';
+import { registerAssistantRoutes } from './modules/assistant/routes.js';
 import { registerProviderRoutes } from './modules/providers/routes.js';
 import { MailService } from './modules/mail/service.js';
 import { CaptchaService } from './modules/security/captcha.js';
@@ -194,7 +198,7 @@ export async function buildApp(
     });
   });
   app.get('/api/v1/system', async (request) => ({
-    data: { application: 'ЛУЧ', stage: 'adaptation', devToolsEnabled: settings.ENABLE_DEV_TOOLS },
+    data: { application: 'ЛУЧ', stage: 'assistant', devToolsEnabled: settings.ENABLE_DEV_TOOLS },
     requestId: request.id,
   }));
   app.get('/api/v1/health/live', async (request) => ({
@@ -224,6 +228,12 @@ export async function buildApp(
   );
   await registerAdaptationRoutes(app, auth);
   await registerProviderRoutes(app, auth, providerSettings, speech);
+  await registerAssistantRoutes(
+    app,
+    auth,
+    new AssistantService(database),
+    new AvatarVideoService(providerSettings, new HeyGenAdapter(options.providerFetch)),
+  );
 
   const webRoot = resolve(projectRoot, 'apps/web/dist');
   if (settings.SERVE_WEB) {

@@ -33,6 +33,8 @@ export const tokenCost = (input: number, output: number, provider: ProviderRow) 
   );
 const characterCost = (characters: number, provider: ProviderRow) =>
   Math.max(1, Number((BigInt(characters) * BigInt(provider.character_rate ?? 0) + 999n) / 1000n));
+export const videoCost = (seconds: number, provider: ProviderRow) =>
+  Math.max(1, Number((BigInt(seconds) * BigInt(provider.minute_rate ?? 0) + 59n) / 60n));
 export class ProviderBudget {
   constructor(readonly settings: ProviderSettingsService) {}
   async reserve(
@@ -41,7 +43,7 @@ export class ProviderBudget {
     userId: string,
     request: {
       resourceKey: string;
-      kind: 'adaptive_exercise' | 'listening';
+      kind: 'adaptive_exercise' | 'listening' | 'avatar_video';
       assignmentId?: string;
       cacheKey?: string;
       inputBound: number;
@@ -50,7 +52,7 @@ export class ProviderBudget {
     const config = await configuration(tx, true),
       now = this.settings.now();
     await tx.query(
-      "UPDATE provider_requests SET status='unknown',error_code='INTERRUPTED',completed_at=$1 WHERE status='reserved' AND created_at<$2",
+      "UPDATE provider_requests SET status='unknown',error_code='INTERRUPTED',completed_at=$1 WHERE status='reserved' AND kind<>'avatar_video' AND created_at<$2",
       [new Date(now), new Date(now - 30_000)],
     );
     const existing = (
@@ -64,7 +66,11 @@ export class ProviderBudget {
       return { existing };
     }
     const enabled =
-      request.kind === 'listening' ? config.controls.listeningEnabled : config.controls.enabled;
+      request.kind === 'avatar_video'
+        ? config.controls.videoEnabled
+        : request.kind === 'listening'
+          ? config.controls.listeningEnabled
+          : config.controls.enabled;
     if (!enabled) throw new AppError(409, 'PROVIDER_DISABLED', 'Внешняя генерация выключена.');
     if (
       request.kind === 'listening' &&
@@ -76,6 +82,16 @@ export class ProviderBudget {
         'PROVIDER_INPUT_LIMIT',
         'Текст превышает разрешённый объём озвучивания.',
       );
+    if (
+      request.kind === 'avatar_video' &&
+      request.inputBound >
+        Math.min(config.controls.maxVideoSeconds, config.ceilings.maxVideoSeconds)
+    )
+      throw new AppError(
+        409,
+        'PROVIDER_INPUT_LIMIT',
+        'Видео превышает установленную продолжительность.',
+      );
     const rows = (await tx.query<ProviderRow>('SELECT * FROM external_providers ORDER BY id')).rows;
     const valid = rows.filter(
       (p) =>
@@ -85,21 +101,25 @@ export class ProviderBudget {
         new Date(p.pricing_confirmed_at).getTime() +
           config.ceilings.pricingValidityHours * 3_600_000 >=
           now &&
-        (request.kind === 'listening'
-          ? p.id === 'elevenlabs' && p.character_rate
-          : p.id !== 'elevenlabs' && p.input_rate && p.output_rate) &&
-        (request.kind === 'listening' ||
+        (request.kind === 'avatar_video'
+          ? p.id === 'heygen' && p.minute_rate
+          : request.kind === 'listening'
+            ? p.id === 'elevenlabs' && p.character_rate
+            : ['openai', 'neuroapi'].includes(p.id) && p.input_rate && p.output_rate) &&
+        (request.kind !== 'adaptive_exercise' ||
           config.controls.strategy === 'cheapest' ||
           p.id === config.controls.strategy),
     );
     const outputBound =
-      request.kind === 'listening'
+      request.kind !== 'adaptive_exercise'
         ? 0
         : Math.min(config.controls.maxOutputTokens, config.ceilings.maxOutputTokens);
     const costOf = (p: ProviderRow) =>
-      request.kind === 'listening'
-        ? characterCost(request.inputBound, p)
-        : tokenCost(request.inputBound, outputBound, p);
+      request.kind === 'avatar_video'
+        ? videoCost(request.inputBound, p)
+        : request.kind === 'listening'
+          ? characterCost(request.inputBound, p)
+          : tokenCost(request.inputBound, outputBound, p);
     const provider = valid.sort((a, b) => costOf(a) - costOf(b) || a.id.localeCompare(b.id))[0];
     if (!provider)
       throw new AppError(
@@ -153,6 +173,7 @@ export class ProviderBudget {
           input: provider.input_rate,
           output: provider.output_rate,
           character: provider.character_rate,
+          minute: provider.minute_rate,
         }),
         cost,
         request.inputBound,
@@ -194,9 +215,11 @@ export class ProviderBudget {
     errorCode?: string,
   ) {
     const cost = actual
-      ? r.provider.id === 'elevenlabs'
-        ? characterCost(actual.input, r.provider)
-        : tokenCost(actual.input, actual.output, r.provider)
+      ? r.provider.id === 'heygen'
+        ? videoCost(actual.input, r.provider)
+        : r.provider.id === 'elevenlabs'
+          ? characterCost(actual.input, r.provider)
+          : tokenCost(actual.input, actual.output, r.provider)
       : r.cost;
     const overrun =
       cost > r.cost || (actual && (actual.input > r.inputBound || actual.output > r.outputBound));
@@ -216,6 +239,9 @@ export class ProviderBudget {
     if (overrun) {
       await tx.query(
         "UPDATE ai_configuration SET controls=jsonb_set(jsonb_set(jsonb_set(controls,'{enabled}','false'),'{listeningEnabled}','false'),'{withListening}','false'),revision=revision+1 WHERE id=1",
+      );
+      await tx.query(
+        "UPDATE ai_configuration SET controls=jsonb_set(controls,'{videoEnabled}','false') WHERE id=1",
       );
       await tx.query(
         'UPDATE external_providers SET enabled=false,revision=revision+1 WHERE id=$1',

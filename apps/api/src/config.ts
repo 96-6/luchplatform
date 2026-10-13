@@ -36,6 +36,7 @@ const settingsSchema = z
     OPENAI_API_KEY: z.string().default(''),
     NEUROAPI_API_KEY: z.string().default(''),
     ELEVENLABS_API_KEY: z.string().default(''),
+    HEYGEN_API_KEY: z.string().default(''),
     SPEECH_API_URL: optionalUrl,
     SPEECH_API_KEY: z.string().default(''),
     VIDEO_SERVICE_URL: optionalUrl,

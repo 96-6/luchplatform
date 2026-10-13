@@ -1,6 +1,6 @@
 # LUCH development rules
 
-Follow the user's numbered tasks in `docs/ROADMAP.md` from top to bottom. Complete subtasks in order, verify the stated acceptance result, and record evidence before starting the next task. This repository currently implements tasks 1–7.
+Follow the user's numbered tasks in `docs/ROADMAP.md` from top to bottom. Complete subtasks in order, verify the stated acceptance result, and record evidence before starting the next task. This repository currently implements tasks 1–7 and 9. Task 8 remains pending by the user’s explicit task selection.
 
 - Read `README.md`, `docs/ARCHITECTURE.md`, and the current task's acceptance record before changes.
 - Keep the React client, Fastify API, and shared validation contracts integrated. Only the server reads database credentials or provider keys.
@@ -16,6 +16,7 @@ Follow the user's numbered tasks in `docs/ROADMAP.md` from top to bottom. Comple
 - Initial plans pin a completed diagnostic and its questionnaire/content snapshot. One plan per diagnostic; assignments start the shared engine and derive progress from linked runs. Never regenerate reasons or mark a lesson complete from a client flag. Adaptation consumes persisted engine evidence transactionally, with one observation per attempt and dated plan changes. Unfinished control, diagnostic and adaptive assignment runs defer processing until completion; recovery must skip them.
 - Generated variants preserve the original bank and pin their own immutable ID. They are demo material, use the shared server evaluator, and never grant authoritative proficiency. Paid calls reserve their upper cost before dispatch; unknown outcomes retain the reservation. Defaults are disabled with zero funds. Only superadmins manage secrets and hard ceilings; admins operate within those ceilings. ElevenLabs listening audio is cached and served through run authorization; technical faults do not create learning attempts.
 - Local account tooling is opt-in, confined to loopback development, and forbidden in production. Its environment values stay outside Git. Administrative account creation and 2FA management require a superadmin session, CSRF for changes, and actor audit; repeat operations must be safe.
+- Assistant context is assembled server-side from pinned content. Persist avatar preferences, exchanges and actor attribution; mark pre-answer help in the engine. Block educational hints/dialogue in diagnostic/control runs. Video jobs reserve shared spend before creation, persist provider IDs and download protected media. Unseen-cache exhaustion is a technical content-generation error, never a learning mistake.
 - Leave assistant, speech, LMS and video providers behind server adapters. Do not treat a technical failure as a learning mistake.
 - Update task status, run instructions, API documentation and acceptance evidence as the code changes. Do not mark an unrun check as passed.
 - Relevant checks: `npm run format:check`, `npm run typecheck`, `npm test`, `npm run build`, `npm run test:e2e`; native PostgreSQL and Compose checks run in GitHub Actions.

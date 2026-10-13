@@ -1,4 +1,5 @@
 import { Route, Routes, Link, Navigate } from 'react-router-dom';
+import { AssistantPage } from './pages/AssistantPage';
 import { systemSchema } from '@luch/contracts';
 import { Layout } from './components/Layout';
 import { LoadingState, ErrorState } from './components/States';
@@ -169,10 +170,7 @@ export function App() {
             path="/assistant"
             element={
               <Protected>
-                <PlaceholderPage
-                  title="Помощник"
-                  description="Здесь можно будет выбрать персонажа, получить объяснение и потренироваться в диалоге."
-                />
+                <AssistantPage />
               </Protected>
             }
           />

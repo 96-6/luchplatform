@@ -173,7 +173,12 @@ try {
     successPlan = await plans.read(good, successPlan.plan.id);
     paidPlan = await plans.read(paid, paidPlan.plan.id);
     const correction = errorPlan.assignments.find((a) => a.kind === 'correction');
-    let unfinished = await plans.startAssignment(poor, errorPlan.plan.id, correction.id);
+    // Domain recovery reopens a pinned bank task; content exhaustion is checked in assistant-smoke.
+    let unfinished = await new PlansService(db).startAssignment(
+      poor,
+      errorPlan.plan.id,
+      correction.id,
+    );
     if (!unfinished.current.attempt)
       unfinished = (
         await plans.engine.answer(poor, unfinished.run.id, {

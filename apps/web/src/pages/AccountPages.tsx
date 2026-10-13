@@ -110,6 +110,9 @@ export function TeacherStudentPage() {
         <UserSummary user={state.data} />
         <p>Ниже доступны сохранённые прохождения и ответы ученика.</p>
       </section>
+      <p>
+        <Link to={`/assistant?userId=${id}`}>Персонаж и переписка помощника →</Link>
+      </p>
       <RunList userId={id} />
       <PlanOverview userId={id!} />
       <ProfileOverview userId={id!} />
