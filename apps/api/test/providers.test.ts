@@ -566,27 +566,52 @@ describe('provider controls, finance and listening', () => {
     expect(retry.statusCode, retry.body).toBe(200);
     expect(calls).toHaveLength(2);
   });
-  it('lets root replace/remove keys without returning them', async () => {
+  it('requires price confirmation for new keys/voices and lets root remove secrets without returning them', async () => {
     const root = await f.active('superadmin');
-    let current = await configure(root);
+    let current = await configure(root, { speech: true });
     const provider = current.providers.find((p) => p.id === 'openai')!,
       key = randomBytes(20).toString('hex');
+    const payload = updateProviderSchema.parse({
+      revision: provider.revision,
+      enabled: true,
+      model: provider.model,
+      inputRate: provider.inputRate,
+      outputRate: provider.outputRate,
+      characterRate: null,
+      confirmPricing: false,
+      apiKey: key,
+    });
+    const rejected = await f.app.inject({
+      method: 'POST',
+      url: '/api/v1/admin/providers/openai',
+      headers: root.headers,
+      payload,
+    });
+    expect(rejected.statusCode).toBe(400);
+    expect(rejected.json().error.code).toBe('PROVIDER_INCOMPLETE');
+    const voice = current.providers.find((p) => p.id === 'elevenlabs')!;
+    const changedVoice = await f.app.inject({
+      method: 'POST',
+      url: '/api/v1/admin/providers/elevenlabs',
+      headers: root.headers,
+      payload: {
+        revision: voice.revision,
+        enabled: true,
+        model: voice.model,
+        voiceRu: 'anotherVoice',
+        voiceEn: voice.voiceEn,
+        inputRate: null,
+        outputRate: null,
+        characterRate: voice.characterRate,
+        confirmPricing: false,
+      },
+    });
+    expect(changedVoice.statusCode).toBe(400);
     const change = await f.app.inject({
       method: 'POST',
       url: '/api/v1/admin/providers/openai',
       headers: root.headers,
-      payload: {
-        ...updateProviderSchema.parse({
-          revision: provider.revision,
-          enabled: true,
-          model: provider.model,
-          inputRate: provider.inputRate,
-          outputRate: provider.outputRate,
-          characterRate: null,
-          confirmPricing: false,
-          apiKey: key,
-        }),
-      },
+      payload: { ...payload, confirmPricing: true },
     });
     expect(change.statusCode, change.body).toBe(200);
     expect(change.body).not.toContain(key);

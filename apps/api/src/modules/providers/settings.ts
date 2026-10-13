@@ -215,7 +215,10 @@ export class ProviderSettingsService {
           : row.credential_ciphertext;
       const disabled = input.clearKey ? true : input.apiKey ? false : row.key_disabled;
       const ratesChanged =
+        Boolean(input.apiKey) ||
         row.model !== input.model ||
+        row.voice_ru !== input.voiceRu ||
+        row.voice_en !== input.voiceEn ||
         Number(row.input_rate) !== Number(input.inputRate) ||
         Number(row.output_rate) !== Number(input.outputRate) ||
         Number(row.character_rate) !== Number(input.characterRate);
