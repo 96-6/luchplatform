@@ -82,6 +82,7 @@ try {
     assert.equal(report.result.preliminary, true);
     assert.equal(report.result.strengthIds.length, 3);
     assert.equal(report.result.difficultyIds.length, 3);
+    assert.ok(report.planId);
     console.log('Diagnostic resumed after restart; six skill results persisted.');
   }
 } finally {

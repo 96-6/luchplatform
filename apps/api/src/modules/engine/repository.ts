@@ -22,6 +22,7 @@ import { exerciseView } from '../content/repository.js';
 export type RunRow = {
   id: string;
   diagnostic_id: string | null;
+  plan_ids: string[];
   user_id: string;
   package_id: string;
   package_version: number;
@@ -94,8 +95,9 @@ export type AttemptRow = {
   number: number;
   definition: unknown;
 };
-export const runSelect =
-  'SELECT r.*,d.id AS diagnostic_id,u.full_name AS user_name,u.email AS user_email,u.role AS user_role FROM engine_runs r JOIN users u ON u.id=r.user_id LEFT JOIN diagnostic_sessions d ON d.run_id=r.id';
+export const runSelect = `SELECT r.*,d.id AS diagnostic_id,u.full_name AS user_name,u.email AS user_email,u.role AS user_role,
+    ARRAY(SELECT a.plan_id FROM plan_assignments a JOIN learning_plans p ON p.id=a.plan_id WHERE a.run_id=r.id ORDER BY p.created_at DESC,p.id DESC) AS plan_ids
+    FROM engine_runs r JOIN users u ON u.id=r.user_id LEFT JOIN diagnostic_sessions d ON d.run_id=r.id`;
 export const attemptSelect =
   'SELECT a.*,t.number,e.definition FROM engine_attempts a JOIN engine_turns t ON t.id=a.turn_id JOIN engine_steps s ON s.id=a.step_id JOIN learning_exercises e ON e.package_id=s.package_id AND e.package_version=s.package_version AND e.id=s.exercise_id';
 export const iso = (value: Date | string) => new Date(value).toISOString();
@@ -131,6 +133,7 @@ export function summary(row: RunRow) {
   return {
     id: row.id,
     diagnosticId: row.diagnostic_id ?? null,
+    planIds: row.plan_ids ?? [],
     user: { id: row.user_id, name: row.user_name, email: row.user_email, role: row.user_role },
     packageId: row.package_id,
     packageVersion: row.package_version,

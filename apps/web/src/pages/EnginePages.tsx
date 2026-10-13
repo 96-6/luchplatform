@@ -222,6 +222,11 @@ function RunSession({ id }: { id: string }) {
   return (
     <>
       <Link to="/learning">← Сохранённые уроки</Link>
+      {view.run.planIds.map((planId) => (
+        <p key={planId}>
+          <Link to={`/plan/${planId}`}>Вернуться к индивидуальному плану →</Link>
+        </p>
+      ))}
       <p className="eyebrow">
         {labels[view.run.purpose]} ·{' '}
         {view.run.isDemo ? 'Демонстрационный контент' : 'Учебный контент'}

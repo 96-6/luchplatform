@@ -105,6 +105,7 @@ export const attemptSchema = z.object({
 export const runSummarySchema = z.object({
   id: z.uuid(),
   diagnosticId: z.uuid().nullable(),
+  planIds: z.array(z.uuid()),
   user: userSchema.pick({ id: true, name: true, email: true, role: true }),
   packageId: contentIdSchema,
   packageVersion: z.number().int().positive(),

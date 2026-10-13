@@ -4,11 +4,12 @@ export * from './content.js';
 export * from './engine.js';
 export * from './integrity.js';
 export * from './diagnostics.js';
+export * from './plans.js';
 
 export const API_PREFIX = '/api/v1';
 export const systemSchema = z.object({
   application: z.literal('ЛУЧ'),
-  stage: z.enum(['foundation', 'accounts', 'content', 'engine', 'diagnostics']),
+  stage: z.enum(['foundation', 'accounts', 'content', 'engine', 'diagnostics', 'plans']),
   devToolsEnabled: z.boolean(),
 });
 export const healthSchema = z.object({ status: z.literal('ok') });

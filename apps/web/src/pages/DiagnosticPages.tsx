@@ -11,27 +11,14 @@ import { useAuth } from '../auth/AuthContext';
 import { api } from '../lib/api';
 import { useResource } from '../lib/useResource';
 import { LoadingState, ErrorState } from '../components/States';
+import {
+  QuestionnaireSummary,
+  languageLabels,
+  goalLabels,
+  experienceLabels,
+} from '../components/QuestionnaireSummary';
+import { DiagnosticPlanLink } from './PlanPages';
 
-const languageLabels = { ru: 'Русский как иностранный', en: 'Английский' };
-const goalLabels = {
-  daily_life: 'Повседневное общение',
-  travel: 'Путешествия',
-  work: 'Работа',
-  study: 'Учёба',
-};
-const experienceLabels = {
-  none: 'Начинаю с нуля',
-  some: 'Уже немного изучал(а)',
-  regular: 'Изучаю или использую регулярно',
-};
-export function QuestionnaireSummary({ data }: { data: Questionnaire }) {
-  return (
-    <p>
-      {languageLabels[data.language]} · {goalLabels[data.goal]} ·{' '}
-      {experienceLabels[data.experience]} · {data.minutesPerDay} мин. в день
-    </p>
-  );
-}
 export function ProfileOverview({ userId }: { userId: string }) {
   const { state, refresh } = useResource(`/learning/profile?userId=${userId}`, profileViewSchema);
   if (state.status === 'loading') return <LoadingState />;
@@ -315,7 +302,7 @@ export function DiagnosticResultPage() {
   const { state, refresh } = useResource(`/diagnostics/${id}`, diagnosticViewSchema);
   if (state.status === 'loading') return <LoadingState />;
   if (state.status === 'error') return <ErrorState error={state.error} retry={refresh} />;
-  const { diagnostic, result, writable } = state.data;
+  const { diagnostic, result, writable, planId } = state.data;
   return (
     <>
       <p className="eyebrow">
@@ -349,6 +336,7 @@ export function DiagnosticResultPage() {
               Верных ответов: {result.correct} из {result.questions} · {result.percent}%
             </p>
           </section>
+          <DiagnosticPlanLink diagnosticId={diagnostic.id} planId={planId} writable={writable} />
           <div className="diagnostic-columns">
             <section className="panel">
               <h2>Сильные стороны в этом наборе</h2>

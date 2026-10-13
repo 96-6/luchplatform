@@ -45,6 +45,12 @@ for (const prefix of [
   'engine-control',
   'engine-integrity',
   'engine-integrity-admin',
+  'plan-ru',
+  'plan-en',
+  'plan-review',
+  'plan-admin',
+  'plan-teacher',
+  'plan-other',
 ])
   for (const retry of [0, 1]) {
     const email = `${prefix}-${retry}@example.test`;
@@ -56,7 +62,11 @@ for (const prefix of [
         randomUUID(),
         email,
         'Проверка движка',
-        prefix === 'engine-integrity-admin' ? 'superadmin' : 'student',
+        prefix === 'engine-integrity-admin' || prefix === 'plan-admin'
+          ? 'superadmin'
+          : prefix === 'plan-teacher'
+            ? 'teacher'
+            : 'student',
         fixtureCrypto.encrypt(key),
       ],
     );

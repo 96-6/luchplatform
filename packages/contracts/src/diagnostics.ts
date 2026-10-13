@@ -77,6 +77,7 @@ export const diagnosticSummarySchema = z.object({
 });
 export const diagnosticViewSchema = z.object({
   diagnostic: diagnosticSummarySchema,
+  planId: z.uuid().nullable(),
   result: diagnosticResultSchema.nullable(),
   writable: z.boolean(),
 });

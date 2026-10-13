@@ -5,6 +5,7 @@ import { useResource } from '../lib/useResource';
 import { LoadingState, ErrorState, EmptyState } from '../components/States';
 import { RunList } from './EnginePages';
 import { ProfileOverview, DiagnosticHistory } from './DiagnosticPages';
+import { PlanOverview } from './PlanPages';
 
 export function UserSummary({ user }: { user: User }) {
   return (
@@ -43,6 +44,7 @@ export function StudentPage() {
         <UserSummary user={state.data} />
       </section>
       <RunList userId={session.user!.id} />
+      <PlanOverview userId={session.user!.id} />
       <ProfileOverview userId={session.user!.id} />
       <DiagnosticHistory userId={session.user!.id} />
       <div className="next-grid">
@@ -105,6 +107,7 @@ export function TeacherStudentPage() {
         <p>Ниже доступны сохранённые прохождения и ответы ученика.</p>
       </section>
       <RunList userId={id} />
+      <PlanOverview userId={id!} />
       <ProfileOverview userId={id!} />
       <DiagnosticHistory userId={id!} />
       <Link to="/teacher">← Мои ученики</Link>

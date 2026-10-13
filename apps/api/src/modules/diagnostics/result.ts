@@ -6,8 +6,14 @@ import {
 } from '@luch/contracts';
 import type { QueryExecutor } from '../../db/database.js';
 import { AppError } from '../../errors.js';
+import { persistInitialPlan } from '../plans/generator.js';
 
-export async function persistDiagnosticResult(tx: QueryExecutor, runId: string, now: number) {
+export async function persistDiagnosticResult(
+  tx: QueryExecutor,
+  runId: string,
+  now: number,
+  actorId: string,
+) {
   const diagnostic = (
     await tx.query<{
       id: string;
@@ -113,4 +119,5 @@ export async function persistDiagnosticResult(tx: QueryExecutor, runId: string, 
     JSON.stringify(result),
     new Date(now),
   ]);
+  await persistInitialPlan(tx, diagnostic.id, actorId, now, true);
 }

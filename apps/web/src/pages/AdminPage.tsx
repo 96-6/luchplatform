@@ -16,6 +16,7 @@ import { useSecurity } from '../auth/SecurityGate';
 import { UserSummary } from './AccountPages';
 import { RunList, IntegrityControls } from './EnginePages';
 import { ProfileOverview, DiagnosticHistory } from './DiagnosticPages';
+import { PlanOverview } from './PlanPages';
 import { AdminCreateAccount, AdminAuthenticator } from './AdminCredentials';
 
 export function AdminPage() {
@@ -215,6 +216,7 @@ function AccountDetail({
       {state.data.user.role === 'student' && (
         <>
           <ProfileOverview userId={id} />
+          <PlanOverview userId={id} />
           <DiagnosticHistory userId={id} />
         </>
       )}

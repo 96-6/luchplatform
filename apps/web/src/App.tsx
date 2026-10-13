@@ -18,6 +18,7 @@ import { StudentPage, TeacherPage, TeacherStudentPage } from './pages/AccountPag
 import { AdminPage } from './pages/AdminPage';
 import { EngineHistoryPage, ExerciseRunPage } from './pages/EnginePages';
 import { OnboardingPage, DiagnosticResultPage } from './pages/DiagnosticPages';
+import { PlansPage, PlanDetailPage } from './pages/PlanPages';
 import {
   AdminContentPage,
   CourseCatalogPage,
@@ -135,10 +136,15 @@ export function App() {
             path="/plan"
             element={
               <Protected>
-                <PlaceholderPage
-                  title="Мой план"
-                  description="Анкета и входная диагностика уже доступны. Формирование индивидуального плана будет добавлено на следующем этапе."
-                />
+                <PlansPage />
+              </Protected>
+            }
+          />
+          <Route
+            path="/plan/:id"
+            element={
+              <Protected>
+                <PlanDetailPage />
               </Protected>
             }
           />

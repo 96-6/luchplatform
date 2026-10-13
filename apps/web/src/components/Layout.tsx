@@ -22,7 +22,8 @@ export function Layout({ children, devTools }: { children: ReactNode; devTools: 
     ? navigation.filter(
         (item) =>
           (item.to !== '/teacher' || user.role === 'teacher') &&
-          (item.to !== '/onboarding' || user.role === 'student'),
+          (item.to !== '/onboarding' || user.role === 'student') &&
+          (item.to !== '/plan' || user.role === 'student'),
       )
     : [
         { to: '/', label: 'Главная', icon: '⌂' },

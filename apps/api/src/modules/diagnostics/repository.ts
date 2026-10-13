@@ -25,11 +25,13 @@ export type DiagnosticRow = {
   status: 'active' | 'completed';
   total_steps: number;
   answered: string;
+  plan_id: string | null;
 };
 export const diagnosticSelect = `SELECT d.*,r.title,r.is_demo,r.status,r.total_steps,
   u.email AS user_email,u.full_name AS user_name,
   (SELECT count(*) FROM engine_attempts a WHERE a.run_id=d.run_id)::text AS answered
-  FROM diagnostic_sessions d JOIN engine_runs r ON r.id=d.run_id JOIN users u ON u.id=d.user_id`;
+  ,p.id AS plan_id FROM diagnostic_sessions d JOIN engine_runs r ON r.id=d.run_id JOIN users u ON u.id=d.user_id
+  LEFT JOIN learning_plans p ON p.diagnostic_id=d.id`;
 export function diagnosticSummary(row: DiagnosticRow) {
   return {
     id: row.id,
@@ -58,6 +60,7 @@ export async function readDiagnostic(tx: QueryExecutor, actor: Actor, id: string
     await audit(tx, actor.user.id, 'diagnostic.debug_view', row.user_id);
   return {
     diagnostic: diagnosticSummary(row),
+    planId: row.plan_id ?? null,
     result: row.result ? diagnosticResultSchema.parse(row.result) : null,
     writable: actor.user.id === row.user_id || actor.user.role === 'superadmin',
   };

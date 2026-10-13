@@ -380,7 +380,7 @@ export class LuchEngine {
           "UPDATE engine_runs SET current_position=$2,status='completed',completed_at=$3,updated_at=$3 WHERE id=$1",
           [id, position, new Date(this.now())],
         );
-        await persistDiagnosticResult(tx, id, this.now());
+        await persistDiagnosticResult(tx, id, this.now(), actor.user.id);
       } else {
         await tx.query('UPDATE engine_runs SET current_position=$2 WHERE id=$1', [id, position]);
         const following = (await stepsOf(tx, id)).find((item) => item.position === position)!;
