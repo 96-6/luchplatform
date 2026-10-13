@@ -264,8 +264,16 @@ describe('avatars and contextual demo assistant', () => {
     expect(debug.context?.lastAttempt?.evaluation?.correct).toBe(false);
     const d = await send(user, answered, 'dialogue', randomUUID(), 'Здравствуйте');
     expect(d.statusCode, d.body).toBe(200);
-    expect(d.body).toContain('ru-introduction');
+    expect(d.body).toContain(run.run.title);
     expect((await f.view(user, run.run.id)).attempts[0]!.independent).toBe(true);
+    const next = await f.next(user, answered);
+    const newReply = await send(user, next);
+    expect(newReply.statusCode, newReply.body).toBe(200);
+    const moved = await chat(root, next);
+    expect(moved.context?.lastAttempt?.id).toBe(answered.attempts[0]!.id);
+    expect(moved.context?.lastAttempt?.exerciseId).toBe(run.current!.exercise.id);
+    expect(moved.context?.exercise.id).toBe(next.current!.exercise.id);
+    expect(moved.messages.at(-1)!.content).not.toContain('в ответе есть ошибка');
   });
   it.each(['control', 'diagnostic'] as const)(
     'blocks hints and dialogue for %s even through direct API calls',

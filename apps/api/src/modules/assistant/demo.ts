@@ -28,7 +28,7 @@ export class DemoAssistantAdapter {
         c.exercise.response.type === 'choice'
           ? 'Нужно выбрать один вариант.'
           : 'Нужно ввести короткую фразу.';
-      const last = c.lastAttempt?.evaluation;
+      const last = c.lastAttempt?.exerciseId === c.exercise.id ? c.lastAttempt.evaluation : null;
       const feedback = last
         ? `\nПоследняя попытка: ${last.correct ? 'ответ верный' : 'в ответе есть ошибка'}. ${last.explanation.slice(0, 1200)}`
         : '';
@@ -65,6 +65,6 @@ export class DemoAssistantAdapter {
       .slice(0, 3)
       .map((w) => w.term)
       .join(', ');
-    return `${lead} Тема — ${c.exercise.skillId}${c.goal ? ' · цель: ' + ({ work: 'работа', travel: 'путешествия', daily_life: 'повседневное общение', study: 'учёба' }[c.goal] ?? c.goal) : ''}.\n${question}${p.detail === 'detailed' && topic ? '\nМожно использовать слова урока: ' + topic : ''}\n${turn === 2 ? 'После этой реплики вернёмся к самостоятельному упражнению.' : formal ? 'Ответьте одной-двумя фразами.' : 'Ответь одной-двумя фразами.'}`;
+    return `${lead} Тема — ${c.topic}${c.goal ? ' · цель: ' + ({ work: 'работа', travel: 'путешествия', daily_life: 'повседневное общение', study: 'учёба' }[c.goal] ?? c.goal) : ''}.\n${question}${p.detail === 'detailed' && topic ? '\nМожно использовать слова урока: ' + topic : ''}\n${turn === 2 ? 'После этой реплики вернёмся к самостоятельному упражнению.' : formal ? 'Ответьте одной-двумя фразами.' : 'Ответь одной-двумя фразами.'}`;
   }
 }

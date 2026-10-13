@@ -102,8 +102,8 @@ export class AssistantService {
         : [];
     const previous = (
       await tx.query<AttemptRow>(
-        `${attemptSelect} WHERE a.run_id=$1 AND a.step_id=$2 ORDER BY a.evaluated_at DESC,a.id DESC LIMIT 1`,
-        [runId, step.id],
+        `${attemptSelect} WHERE a.run_id=$1 ORDER BY a.evaluated_at DESC,a.id DESC LIMIT 1`,
+        [runId],
       )
     ).rows[0];
     const attempt = previous
@@ -124,10 +124,16 @@ export class AssistantService {
       packageVersion: run.package_version,
       generatedExerciseId: step.generated_exercise_id,
       purpose: run.purpose,
+      topic: run.title,
       exercise: exerciseView(exercise),
       material,
       lastAttempt: attempt
-        ? { id: attempt.id, answer: attempt.answer, evaluation: attempt.evaluation }
+        ? {
+            id: attempt.id,
+            exerciseId: attempt.exerciseId,
+            answer: attempt.answer,
+            evaluation: attempt.evaluation,
+          }
         : null,
       goal,
     };

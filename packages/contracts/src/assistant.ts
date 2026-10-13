@@ -40,10 +40,16 @@ export const assistantContextSchema = z.object({
   packageVersion: z.number().int(),
   generatedExerciseId: z.uuid().nullable(),
   purpose: z.enum(['practice', 'diagnostic', 'control']),
+  topic: z.string().default('Практика языка'),
   exercise: exerciseViewSchema,
   material: z.array(contentBlockSchema),
   lastAttempt: z
-    .object({ id: z.uuid(), answer: answerSchema, evaluation: evaluationSchema.nullable() })
+    .object({
+      id: z.uuid(),
+      exerciseId: z.string().default(''),
+      answer: answerSchema,
+      evaluation: evaluationSchema.nullable(),
+    })
     .nullable(),
   goal: z.string().nullable(),
 });
