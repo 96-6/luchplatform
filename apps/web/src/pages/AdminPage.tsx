@@ -17,6 +17,7 @@ import { UserSummary } from './AccountPages';
 import { RunList, IntegrityControls } from './EnginePages';
 import { ProfileOverview, DiagnosticHistory } from './DiagnosticPages';
 import { PlanOverview } from './PlanPages';
+import { SkillStates } from './AdaptationViews';
 import { AdminCreateAccount, AdminAuthenticator } from './AdminCredentials';
 
 export function AdminPage() {
@@ -218,6 +219,7 @@ function AccountDetail({
           <ProfileOverview userId={id} />
           <PlanOverview userId={id} />
           <DiagnosticHistory userId={id} />
+          <SkillStates userId={id} />
         </>
       )}
       <p>

@@ -406,9 +406,12 @@ describe('initial individual plans', () => {
       expect(p.assignments[assignment.position]!.completedAt).toBe(r.run.completedAt);
       expect(p.plan.completedAssignments).toBe(assignment.position + 1);
     }
-    expect(p.plan.status).toBe('completed');
-    expect(p.nextAssignmentId).toBeNull();
-    expect(p.plan.completedAt).not.toBeNull();
+    expect(
+      p.assignments.filter((a) => a.kind === 'initial').every((a) => a.status === 'completed'),
+    ).toBe(true);
+    expect(p.plan.status).toBe('active');
+    expect(p.nextAssignmentId).not.toBeNull();
+    expect(p.plan.completedAt).toBeNull();
     expect(
       (
         await db.query(
@@ -592,7 +595,9 @@ describe('initial individual plans', () => {
     await profile(s);
     const d = await completedDiagnostic(s);
     const original = d.result;
-    await db.exec('TRUNCATE learning_plans CASCADE');
+    await db.exec(
+      'DELETE FROM plan_assignment_exercises; DELETE FROM plan_assignments; DELETE FROM learning_plans',
+    );
     const response = await app.inject({
       method: 'POST',
       url: '/api/v1/plans',

@@ -64,7 +64,7 @@ export function planSummary(row: PlanRow) {
     completedAt: row.total === row.completed ? iso(row.completed_at) : null,
   });
 }
-export async function readPlan(tx: QueryExecutor, actor: Actor, id: string) {
+export async function readPlan(tx: QueryExecutor, actor: Actor, id: string, now = Date.now()) {
   const row = (await tx.query<PlanRow>(`${planSelect} WHERE p.id=$1`, [id])).rows[0];
   if (!row) throw new AppError(404, 'PLAN_NOT_FOUND', 'Учебный план не найден.');
   await studentAccess(tx, actor, row.user_id);
@@ -84,10 +84,13 @@ export async function readPlan(tx: QueryExecutor, actor: Actor, id: string) {
       started_by: string | null;
       started_at: Date | string | null;
       completed_at: Date | string | null;
+      kind: 'initial' | 'correction' | 'supported_practice' | 'review';
+      purpose: 'practice' | 'control';
+      due_at: Date | string | null;
     }>(
       `SELECT a.*,l.definition->>'title' AS title,COALESCE(r.status,'pending') AS status,
     COALESCE(r.current_position,0) AS completed_steps,r.completed_at,
-    (SELECT jsonb_agg(jsonb_build_object('id',e.exercise_id,'version',e.exercise_version) ORDER BY e.position)
+    (SELECT jsonb_agg(jsonb_build_object('id',e.exercise_id,'version',e.exercise_version,'generatedExerciseId',e.generated_exercise_id) ORDER BY e.position)
       FROM plan_assignment_exercises e WHERE e.assignment_id=a.id) AS exercises
     FROM plan_assignments a JOIN learning_lessons l ON l.package_id=a.package_id AND l.package_version=a.package_version AND l.id=a.lesson_id
     LEFT JOIN engine_runs r ON r.id=a.run_id WHERE a.plan_id=$1 ORDER BY a.position`,
@@ -96,6 +99,14 @@ export async function readPlan(tx: QueryExecutor, actor: Actor, id: string) {
   ).rows.map((a) =>
     planAssignmentSchema.parse({
       id: a.id,
+      kind: a.kind,
+      purpose: a.purpose,
+      dueAt: iso(a.due_at),
+      canStart:
+        Boolean(a.run_id) ||
+        !a.due_at ||
+        new Date(a.due_at).getTime() <= now ||
+        actor.user.role === 'superadmin',
       position: a.position,
       recommendedDay: a.recommended_day,
       lessonId: a.lesson_id,
@@ -121,7 +132,17 @@ export async function readPlan(tx: QueryExecutor, actor: Actor, id: string) {
   return planViewSchema.parse({
     plan: planSummary(row),
     assignments,
-    nextAssignmentId: assignments.find((a) => a.status !== 'completed')?.id ?? null,
+    nextAssignmentId:
+      assignments.find((a) => a.status === 'active')?.id ??
+      [...assignments]
+        .filter((a) => a.status === 'pending' && a.canStart)
+        .sort(
+          (a, b) =>
+            ({ correction: 0, supported_practice: 1, review: 2, initial: 3 })[a.kind] -
+              { correction: 0, supported_practice: 1, review: 2, initial: 3 }[b.kind] ||
+            a.position - b.position,
+        )[0]?.id ??
+      null,
     writable: actor.user.id === row.user_id || actor.user.role === 'superadmin',
   });
 }

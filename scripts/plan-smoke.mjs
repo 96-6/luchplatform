@@ -25,7 +25,7 @@ try {
   assert.ok(diagnostic);
   const plan = await service.generate(actor, diagnostic.id);
   assert.equal(plan.plan.packageVersion, diagnostic.package_version);
-  assert.equal(plan.plan.totalAssignments, 6);
+  assert.equal(plan.assignments.filter((a) => a.kind === 'initial').length, 6);
   assert.equal(plan.assignments[0].reason.kind, 'diagnostic_gap');
   const assignment = plan.assignments[0];
   let view = await service.startAssignment(actor, plan.plan.id, assignment.id);

@@ -19,6 +19,7 @@ import { canonicalJson } from '../content/service.js';
 import { evaluate, validateAnswer } from './evaluator.js';
 import { recordIntegrity } from './integrity.js';
 import { persistDiagnosticResult } from '../diagnostics/result.js';
+import { processRunLearningEvents } from '../adaptation/processor.js';
 import {
   EngineRepository,
   activeTime,
@@ -127,6 +128,95 @@ export class LuchEngine {
       await audit(tx, actor.user.id, 'learning.started', userId);
     return runId;
   }
+  async startAssignedExerciseInTransaction(
+    tx: QueryExecutor,
+    actor: Actor,
+    assignment: {
+      id: string;
+      user_id: string;
+      package_id: string;
+      package_version: number;
+      route_id: string;
+      lesson_id: string;
+      purpose: 'practice' | 'control';
+      kind: string;
+      due_at: Date | string | null;
+    },
+  ) {
+    if (assignment.user_id !== actor.user.id && actor.user.role !== 'superadmin')
+      throw new AppError(403, 'ACCESS_DENIED', 'Начните собственное назначение.');
+    const existing = (
+      await tx.query<{ id: string }>('SELECT id FROM engine_runs WHERE assignment_id=$1', [
+        assignment.id,
+      ])
+    ).rows[0];
+    if (existing) return existing.id;
+    const exercise = (
+      await tx.query<{
+        exercise_id: string;
+        exercise_version: number;
+        generated_exercise_id: string | null;
+      }>('SELECT * FROM plan_assignment_exercises WHERE assignment_id=$1 ORDER BY position', [
+        assignment.id,
+      ])
+    ).rows;
+    if (exercise.length !== 1)
+      throw new AppError(
+        409,
+        'ASSIGNMENT_CONTENT_CHANGED',
+        'В дополнительном назначении должно быть одно задание.',
+      );
+    const lesson = (
+      await tx.query<{ title: string }>(
+        "SELECT definition->>'title' AS title FROM learning_lessons WHERE package_id=$1 AND package_version=$2 AND id=$3",
+        [assignment.package_id, assignment.package_version, assignment.lesson_id],
+      )
+    ).rows[0]!;
+    const selected = exercise[0]!,
+      revision = await this.content.revision(assignment.package_id, assignment.package_version, tx);
+    const id = randomUUID(),
+      date = new Date(this.now()),
+      title = `${assignment.kind === 'review' ? 'Повторение' : assignment.kind === 'correction' ? 'Дополнительная практика' : 'Самостоятельная практика'}: ${lesson.title}`;
+    await tx.query(
+      `INSERT INTO engine_runs (id,user_id,package_id,package_version,route_id,source_type,source_id,assignment_id,lesson_id,purpose,title,is_demo,total_steps,created_at,updated_at)
+      VALUES ($1,$2,$3,$4,$5,'assignment',$6::text,$6::uuid,$7,$8,$9,$10,1,$11,$11)`,
+      [
+        id,
+        assignment.user_id,
+        assignment.package_id,
+        assignment.package_version,
+        assignment.route_id,
+        assignment.id,
+        assignment.lesson_id,
+        assignment.purpose,
+        title,
+        revision.isDemo || Boolean(selected.generated_exercise_id),
+        date,
+      ],
+    );
+    await tx.query(
+      'INSERT INTO engine_steps (id,run_id,package_id,package_version,exercise_id,exercise_version,generated_exercise_id,position) VALUES ($1,$2,$3,$4,$5,$6,$7,0)',
+      [
+        randomUUID(),
+        id,
+        assignment.package_id,
+        assignment.package_version,
+        selected.exercise_id,
+        selected.exercise_version,
+        selected.generated_exercise_id,
+      ],
+    );
+    const step = (await stepsOf(tx, id))[0]!;
+    await this.openTurn(tx, step, actor, assignment.user_id);
+    if (assignment.due_at && new Date(assignment.due_at).getTime() > this.now())
+      await tx.query(
+        'UPDATE engine_turns SET admin_assistance=true WHERE id=(SELECT current_turn_id FROM engine_steps WHERE id=$1)',
+        [step.id],
+      );
+    if (actor.user.role === 'superadmin')
+      await audit(tx, actor.user.id, 'learning.assigned_started', assignment.user_id);
+    return id;
+  }
   private async openTurn(tx: QueryExecutor, step: StepRow, actor: Actor, userId: string) {
     const number =
       Number(
@@ -137,11 +227,28 @@ export class LuchEngine {
           )
         ).rows[0]!.count,
       ) + 1;
+    const context = (
+      await tx.query<{ kind: string | null; due_at: Date | string | null }>(
+        `SELECT p.kind,p.due_at FROM engine_runs r LEFT JOIN plan_assignments p ON p.id=r.assignment_id WHERE r.id=$1`,
+        [step.run_id],
+      )
+    ).rows[0];
+    const review =
+      context?.kind === 'review' &&
+      context.due_at &&
+      new Date(context.due_at).getTime() <= this.now();
     const prior =
       (
         await tx.query(
-          `SELECT 1 FROM engine_attempts a JOIN engine_runs r ON r.id=a.run_id JOIN engine_steps s ON s.id=a.step_id WHERE a.user_id=$1 AND s.package_id=$2 AND s.package_version=$3 AND s.exercise_id=$4 AND (r.purpose='practice' OR r.status='completed') LIMIT 1`,
-          [userId, step.package_id, step.package_version, step.exercise_id],
+          `SELECT 1 FROM engine_attempts a JOIN engine_runs r ON r.id=a.run_id JOIN engine_steps s ON s.id=a.step_id WHERE a.user_id=$1 AND s.package_id=$2 AND s.package_version=$3 AND s.exercise_id=$4 AND s.generated_exercise_id IS NOT DISTINCT FROM $5::uuid AND ($6::timestamptz IS NULL OR a.evaluated_at>$6) AND (r.purpose='practice' OR r.status='completed') LIMIT 1`,
+          [
+            userId,
+            step.package_id,
+            step.package_version,
+            step.exercise_id,
+            step.generated_exercise_id ?? null,
+            review ? new Date(this.now() - 24 * 3_600_000) : null,
+          ],
         )
       ).rows.length > 0;
     const id = randomUUID(),
@@ -355,6 +462,7 @@ export class LuchEngine {
         ],
       );
       await this.changed(tx, run, actor, 'answer_submitted');
+      await processRunLearningEvents(tx, id, this.now());
       return attempt;
     });
     const view = await this.repository.view(actor, id);
@@ -381,6 +489,11 @@ export class LuchEngine {
           [id, position, new Date(this.now())],
         );
         await persistDiagnosticResult(tx, id, this.now(), actor.user.id);
+        await tx.query(
+          'UPDATE plan_assignments SET closed_at=$2 WHERE run_id=$1 AND closed_at IS NULL',
+          [id, new Date(this.now())],
+        );
+        await processRunLearningEvents(tx, id, this.now());
       } else {
         await tx.query('UPDATE engine_runs SET current_position=$2 WHERE id=$1', [id, position]);
         const following = (await stepsOf(tx, id)).find((item) => item.position === position)!;

@@ -14,6 +14,7 @@ export class PlansService {
   constructor(
     readonly db: Database,
     readonly now: () => number = Date.now,
+    readonly prepare?: (actor: Actor, planId: string, assignmentId: string) => Promise<void>,
   ) {
     this.engine = new LuchEngine(db, now);
   }
@@ -31,7 +32,7 @@ export class PlansService {
     return this.read(actor, id!);
   }
   read(actor: Actor, id: string) {
-    return this.db.transaction((tx) => readPlan(tx, actor, id));
+    return this.db.transaction((tx) => readPlan(tx, actor, id, this.now()));
   }
   async list(actor: Actor, input: z.infer<typeof plansQuerySchema>) {
     return this.db.transaction(async (tx) => {
@@ -64,6 +65,7 @@ export class PlansService {
     });
   }
   async startAssignment(actor: Actor, planId: string, assignmentId: string) {
+    await this.prepare?.(actor, planId, assignmentId);
     const id = await this.db.transaction(async (tx) => {
       const a = (
         await tx.query<{
@@ -72,6 +74,11 @@ export class PlansService {
           package_version: number;
           lesson_id: string;
           run_id: string | null;
+          id: string;
+          route_id: string;
+          purpose: 'practice' | 'control';
+          kind: string;
+          due_at: Date | string | null;
         }>('SELECT * FROM plan_assignments WHERE id=$1 AND plan_id=$2 FOR UPDATE', [
           assignmentId,
           planId,
@@ -81,20 +88,29 @@ export class PlansService {
         throw new AppError(404, 'ASSIGNMENT_NOT_FOUND', 'Назначение не найдено в этом плане.');
       await studentAccess(tx, actor, a.user_id, true);
       if (a.run_id) return a.run_id;
-      const runId = await this.engine.startInTransaction(tx, actor, {
-        userId: a.user_id,
-        packageId: a.package_id,
-        packageVersion: a.package_version,
-        source: { type: 'lesson', id: a.lesson_id, purpose: 'practice' },
-        restart: true,
-      });
+      if (a.due_at && new Date(a.due_at).getTime() > this.now() && actor.user.role !== 'superadmin')
+        throw new AppError(
+          409,
+          'ASSIGNMENT_NOT_DUE',
+          'Время отсроченной проверки ещё не наступило.',
+        );
+      const runId =
+        a.kind !== 'initial'
+          ? await this.engine.startAssignedExerciseInTransaction(tx, actor, a)
+          : await this.engine.startInTransaction(tx, actor, {
+              userId: a.user_id,
+              packageId: a.package_id,
+              packageVersion: a.package_version,
+              source: { type: 'lesson', id: a.lesson_id, purpose: 'practice' },
+              restart: true,
+            });
       const mismatch = (
         await tx.query(
           `SELECT 1 FROM
         (SELECT * FROM engine_steps WHERE run_id=$1) s FULL JOIN
         (SELECT * FROM plan_assignment_exercises WHERE assignment_id=$2) e
         ON e.position=s.position AND e.exercise_id=s.exercise_id AND e.exercise_version=s.exercise_version
-        WHERE s.id IS NULL OR e.assignment_id IS NULL LIMIT 1`,
+        WHERE s.id IS NULL OR e.assignment_id IS NULL OR s.generated_exercise_id IS DISTINCT FROM e.generated_exercise_id LIMIT 1`,
           [runId, assignmentId],
         )
       ).rows;

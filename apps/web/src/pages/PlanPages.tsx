@@ -7,8 +7,15 @@ import { api } from '../lib/api';
 import { useResource } from '../lib/useResource';
 import { EmptyState, ErrorState, LoadingState } from '../components/States';
 import { QuestionnaireSummary, languageLabels } from '../components/QuestionnaireSummary';
+import { SkillStates, PlanChanges } from './AdaptationViews';
 
 const statusLabels = { pending: 'Не начато', active: 'В процессе', completed: 'Завершено' };
+const kindLabels = {
+  initial: 'Шаг маршрута',
+  correction: 'Дополнительная практика',
+  supported_practice: 'Практика самостоятельности',
+  review: 'Отсроченная проверка',
+};
 export function DiagnosticPlanLink({
   diagnosticId,
   planId,
@@ -72,7 +79,7 @@ export function PlanOverview({ userId }: { userId: string }) {
         <>
           <QuestionnaireSummary data={latest.questionnaire} />
           <p>
-            Завершено уроков: {latest.completedAssignments}/{latest.totalAssignments} ·{' '}
+            Завершено назначений: {latest.completedAssignments}/{latest.totalAssignments} ·{' '}
             {statusLabels[latest.status]}
           </p>
           <Link to={`/plan/${latest.id}`}>Открыть план и назначения →</Link>
@@ -167,7 +174,7 @@ function PlanHistory({ userId }: { userId: string }) {
                   <strong>{languageLabels[p.questionnaire.language]}</strong>
                   <QuestionnaireSummary data={p.questionnaire} />
                   <span>
-                    {p.completedAssignments}/{p.totalAssignments} уроков завершено ·{' '}
+                    {p.completedAssignments}/{p.totalAssignments} назначений завершено ·{' '}
                     {statusLabels[p.status]}
                   </span>
                   <span>{new Date(p.createdAt).toLocaleString('ru-RU')}</span>
@@ -223,7 +230,7 @@ function PlanDetail({ id }: { id: string }) {
     <>
       <Link to={`/plan?userId=${plan.user.id}`}>← Сохранённые планы</Link>
       <p className="eyebrow">
-        Первоначальный план{plan.isDemo ? ' · демонстрационный контент' : ''}
+        Индивидуальный план{plan.isDemo ? ' · демонстрационный контент' : ''}
       </p>
       <h1>Индивидуальный план</h1>
       <p>
@@ -236,12 +243,16 @@ function PlanDetail({ id }: { id: string }) {
           цели и остальные шаги маршрута.
         </p>
         <p>
+          Новые ответы добавляют практику и повторения. Подсказки и помощь учитываются отдельно от
+          самостоятельного успеха.
+        </p>
+        <p>
           Рекомендуемое распределение: {plan.recommendedDays} дн. При нехватке времени урок можно
           прервать и продолжить. Это ориентир без обязательных дат.
         </p>
       </section>
       <p>
-        Завершено уроков:{' '}
+        Завершено назначений:{' '}
         <strong>
           {plan.completedAssignments}/{plan.totalAssignments}
         </strong>{' '}
@@ -272,12 +283,22 @@ function PlanDetail({ id }: { id: string }) {
               ? 'Открываем урок…'
               : next.status === 'active'
                 ? 'Продолжить назначенный урок'
-                : 'Начать следующее назначение'}
+                : next.kind === 'correction'
+                  ? 'Начать дополнительную практику'
+                  : next.kind === 'review'
+                    ? 'Начать отсроченную проверку'
+                    : next.kind === 'supported_practice'
+                      ? 'Потренироваться самостоятельно'
+                      : 'Начать следующее назначение'}
           </button>
         </p>
       )}
       {!next && (
-        <p role="status">Все назначения этого плана завершены. Результаты доступны в уроках.</p>
+        <p role="status">
+          {plan.status === 'completed'
+            ? 'Все назначения этого плана завершены. Результаты доступны в уроках.'
+            : 'Готовых назначений сейчас нет. Повторения откроются в указанное время.'}
+        </p>
       )}
       {error && (
         <ErrorState
@@ -287,10 +308,18 @@ function PlanDetail({ id }: { id: string }) {
       )}
       <ol className="plan-list">
         {assignments.map((a) => (
-          <li key={a.id} className="panel" data-testid="plan-assignment" data-status={a.status}>
+          <li
+            key={a.id}
+            id={`assignment-${a.id}`}
+            className="panel"
+            data-testid="plan-assignment"
+            data-status={a.status}
+            data-kind={a.kind}
+          >
             <p className="eyebrow">
               Шаг {a.position + 1} · рекомендуемый день {a.recommendedDay}
             </p>
+            <p className="badge">{kindLabels[a.kind]}</p>
             <h2>{a.title}</h2>
             <p>
               <span className="badge">{statusLabels[a.status]}</span> · {a.estimatedMinutes} мин. ·{' '}
@@ -306,11 +335,28 @@ function PlanDetail({ id }: { id: string }) {
             {a.completedAt && (
               <p className="muted">Завершено: {new Date(a.completedAt).toLocaleString('ru-RU')}</p>
             )}
+            {a.dueAt && (
+              <p className="muted">
+                Время повторения:{' '}
+                <time dateTime={a.dueAt}>{new Date(a.dueAt).toLocaleString('ru-RU')}</time>
+                {!a.canStart ? ' · пока недоступно' : ''}
+              </p>
+            )}
             {a.status === 'completed' ? (
               <Link to={`/learning/runs/${a.runId}`}>Результаты урока →</Link>
             ) : editable ? (
-              <button className="secondary" disabled={busy} onClick={() => void start(a.id)}>
-                {a.status === 'active' ? 'Продолжить урок' : 'Начать урок'}
+              <button
+                className="secondary"
+                disabled={busy || !a.canStart}
+                onClick={() => void start(a.id)}
+              >
+                {a.status === 'active'
+                  ? 'Продолжить урок'
+                  : a.dueAt && new Date(a.dueAt).getTime() > Date.now() && !own
+                    ? 'Открыть досрочно (отладка)'
+                    : a.kind === 'initial'
+                      ? 'Начать урок'
+                      : 'Начать задание'}
               </button>
             ) : (
               a.runId && <Link to={`/learning/runs/${a.runId}`}>Посмотреть прохождение →</Link>
@@ -318,6 +364,8 @@ function PlanDetail({ id }: { id: string }) {
           </li>
         ))}
       </ol>
+      <PlanChanges id={plan.id} />
+      <SkillStates userId={plan.user.id} />
       <p>
         <Link to={`/diagnostics/${plan.diagnosticId}`}>Диагностика, на которой основан план →</Link>
       </p>

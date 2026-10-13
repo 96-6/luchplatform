@@ -5,10 +5,19 @@ import { diagnosticsQuerySchema, learningGoalSchema, questionnaireSchema } from 
 
 export const PLAN_RULES_VERSION = '1.0.0';
 export const assignmentReasonSchema = z.object({
-  kind: z.enum(['diagnostic_gap', 'guided_success', 'goal_priority', 'route_step']),
+  kind: z.enum([
+    'diagnostic_gap',
+    'guided_success',
+    'goal_priority',
+    'route_step',
+    'typical_error',
+    'guided_practice',
+    'delayed_check',
+  ]),
   text: z.string().min(1),
   goal: learningGoalSchema,
   goalMatched: z.boolean(),
+  sourceAttemptId: z.uuid().optional(),
   skills: z.array(
     z.object({
       skillId: contentIdSchema,
@@ -21,6 +30,10 @@ export const assignmentReasonSchema = z.object({
 });
 export const planAssignmentSchema = z.object({
   id: z.uuid(),
+  kind: z.enum(['initial', 'correction', 'supported_practice', 'review']),
+  purpose: z.enum(['practice', 'control']),
+  dueAt: z.iso.datetime().nullable(),
+  canStart: z.boolean(),
   position: z.number().int().nonnegative(),
   recommendedDay: z.number().int().positive(),
   lessonId: contentIdSchema,
@@ -28,7 +41,13 @@ export const planAssignmentSchema = z.object({
   estimatedMinutes: z.number().int().positive(),
   reason: assignmentReasonSchema,
   exercises: z
-    .array(z.object({ id: contentIdSchema, version: z.number().int().positive() }))
+    .array(
+      z.object({
+        id: contentIdSchema,
+        version: z.number().int().positive(),
+        generatedExerciseId: z.uuid().nullable(),
+      }),
+    )
     .min(1),
   status: z.enum(['pending', 'active', 'completed']),
   runId: z.uuid().nullable(),

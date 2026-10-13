@@ -16,7 +16,8 @@
     "content:seed-demo": "node --import tsx src/modules/content/cli.ts seed-demo",
     "content:validate": "node --import tsx src/modules/content/cli.ts validate",
     "content:import": "node --import tsx src/modules/content/cli.ts import",
-    "content:export": "node --import tsx src/modules/content/cli.ts export"
+    "content:export": "node --import tsx src/modules/content/cli.ts export",
+    "learning:recover": "node --import tsx src/modules/adaptation/cli.ts"
   },
   "dependencies": {
     "@electric-sql/pglite": "0.5.9",

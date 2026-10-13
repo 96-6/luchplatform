@@ -508,6 +508,18 @@
             "minLength": 1,
             "maxLength": 5000
           },
+          "listening": {
+            "type": "object",
+            "properties": {
+              "text": {
+                "type": "string",
+                "minLength": 1,
+                "maxLength": 3000
+              }
+            },
+            "required": ["text"],
+            "additionalProperties": false
+          },
           "blocks": {
             "maxItems": 100,
             "type": "array",

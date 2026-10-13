@@ -24,6 +24,7 @@ export function exerciseView(exercise: Exercise): ExerciseView {
     level: exercise.level,
     purpose: exercise.purpose,
     instruction: exercise.instruction,
+    hasListening: Boolean(exercise.listening),
     blocks: exercise.blocks,
     response: exercise.response,
     author: exercise.author,

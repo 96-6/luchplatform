@@ -6,6 +6,7 @@ import { LoadingState, ErrorState, EmptyState } from '../components/States';
 import { RunList } from './EnginePages';
 import { ProfileOverview, DiagnosticHistory } from './DiagnosticPages';
 import { PlanOverview } from './PlanPages';
+import { SkillStates } from './AdaptationViews';
 
 export function UserSummary({ user }: { user: User }) {
   return (
@@ -18,7 +19,9 @@ export function UserSummary({ user }: { user: User }) {
             ? 'Ученик'
             : user.role === 'teacher'
               ? 'Преподаватель'
-              : 'Суперадмин'}
+              : user.role === 'admin'
+                ? 'Администратор'
+                : 'Суперадмин'}
         </span>
         {user.isDemo && <span className="badge">Демо-аккаунт</span>}
         <span className="badge">
@@ -47,6 +50,7 @@ export function StudentPage() {
       <PlanOverview userId={session.user!.id} />
       <ProfileOverview userId={session.user!.id} />
       <DiagnosticHistory userId={session.user!.id} />
+      <SkillStates userId={session.user!.id} />
       <div className="next-grid">
         <Link to="/courses">Учебные маршруты →</Link>
         <Link to="/plan">Мой план →</Link>
@@ -110,6 +114,7 @@ export function TeacherStudentPage() {
       <PlanOverview userId={id!} />
       <ProfileOverview userId={id!} />
       <DiagnosticHistory userId={id!} />
+      <SkillStates userId={id!} />
       <Link to="/teacher">← Мои ученики</Link>
     </>
   );

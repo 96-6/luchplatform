@@ -19,6 +19,7 @@ import { AdminPage } from './pages/AdminPage';
 import { EngineHistoryPage, ExerciseRunPage } from './pages/EnginePages';
 import { OnboardingPage, DiagnosticResultPage } from './pages/DiagnosticPages';
 import { PlansPage, PlanDetailPage } from './pages/PlanPages';
+import { OperationsPage, ProviderPage } from './pages/ProviderPages';
 import {
   AdminContentPage,
   CourseCatalogPage,
@@ -111,6 +112,22 @@ export function App() {
             }
           />
           <Route path="/login" element={<LoginPage />} />
+          <Route
+            path="/operations"
+            element={
+              <Protected roles={['admin', 'superadmin']}>
+                <OperationsPage />
+              </Protected>
+            }
+          />
+          <Route
+            path="/admin/providers"
+            element={
+              <Protected roles={['admin', 'superadmin']}>
+                <ProviderPage />
+              </Protected>
+            }
+          />
           <Route path="/register" element={<RegisterPage />} />
           <Route path="/verify-email" element={<VerifyEmailPage />} />
           <Route path="/authenticator" element={<AuthenticatorPage />} />

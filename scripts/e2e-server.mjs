@@ -1,3 +1,4 @@
+import { testTone } from '../tests/e2e/test-tone.mjs';
 import { mkdir, mkdtemp, rm, writeFile } from 'node:fs/promises';
 import { tmpdir } from 'node:os';
 import { join } from 'node:path';
@@ -35,10 +36,50 @@ await bootstrapService(database, settings).provision(
   'superadmin',
   true,
 );
-const app = await buildApp(settings, database, { captchaGenerator: () => 'ABCDE' });
+const app = await buildApp(settings, database, {
+  captchaGenerator: () => 'ABCDE',
+  providerFetch: async (url, options) => {
+    if (String(url).startsWith('https://api.elevenlabs.io/'))
+      return new Response(testTone, { headers: { 'content-type': 'audio/mpeg' } });
+    const body = JSON.parse(String(options.body));
+    const prompt = JSON.parse(body.messages[1].content);
+    const context = JSON.parse(prompt.context);
+    const en = context.language === 'en';
+    const question = {
+      instruction: prompt.withListening
+        ? 'Прослушайте реплику и выберите имя.'
+        : 'Выберите вежливое приветствие.',
+      material: '',
+      options: [
+        { id: 'a', text: 'Игорь' },
+        { id: 'b', text: 'Анна' },
+        { id: 'c', text: 'Олег' },
+      ],
+      correctOptionId: 'b',
+      explanation: 'В реплике названо имя Анна.',
+      hint: 'Обратите внимание на фразу знакомства.',
+      listeningText: prompt.withListening
+        ? en
+          ? 'Hello. My name is Anna.'
+          : 'Здравствуйте. Меня зовут Анна.'
+        : null,
+    };
+    return Response.json({
+      choices: [{ message: { content: JSON.stringify(question) }, finish_reason: 'stop' }],
+      usage: { prompt_tokens: 200, completion_tokens: 100 },
+    });
+  },
+});
 // Isolated test fixtures avoid turning curriculum scenarios into repeated account-enrollment load.
 const fixtureCrypto = new AccountCrypto(settings.AUTH_ENCRYPTION_KEY);
-const fixtureKeys = { localAdminAlias };
+const testIsolationToken = randomBytes(24).toString('hex');
+const fixtureKeys = { localAdminAlias, testIsolationToken };
+// This route exists only in the isolated test harness, never in the application or runtime image.
+app.post('/__e2e/isolate', async (request, reply) => {
+  if (request.headers['x-e2e-fixture'] !== testIsolationToken) return reply.code(403).send();
+  await database.exec('TRUNCATE auth_rate_limits');
+  return reply.code(204).send();
+});
 const fixturePath = new URL('../data/e2e-accounts.json', import.meta.url);
 for (const prefix of [
   'engine-retry',
@@ -51,6 +92,11 @@ for (const prefix of [
   'plan-admin',
   'plan-teacher',
   'plan-other',
+  'adapt-error',
+  'adapt-success',
+  'adapt-admin',
+  'adapt-providers-admin',
+  'adapt-listening',
 ])
   for (const retry of [0, 1]) {
     const email = `${prefix}-${retry}@example.test`;
@@ -62,7 +108,10 @@ for (const prefix of [
         randomUUID(),
         email,
         'Проверка движка',
-        prefix === 'engine-integrity-admin' || prefix === 'plan-admin'
+        prefix === 'engine-integrity-admin' ||
+        prefix === 'plan-admin' ||
+        prefix === 'adapt-admin' ||
+        prefix === 'adapt-providers-admin'
           ? 'superadmin'
           : prefix === 'plan-teacher'
             ? 'teacher'

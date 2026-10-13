@@ -32,7 +32,8 @@
     "content:validate": "npm run content:validate -w @luch/api --",
     "content:import": "npm run content:import -w @luch/api --",
     "content:export": "npm run content:export -w @luch/api --",
-    "content:schema": "npm run build -w @luch/contracts && node scripts/content-schema.mjs"
+    "content:schema": "npm run build -w @luch/contracts && node scripts/content-schema.mjs",
+    "learning:recover": "npm run build -w @luch/contracts && npm run learning:recover -w @luch/api"
   },
   "devDependencies": {
     "@playwright/test": "1.64.0",

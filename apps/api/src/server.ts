@@ -1,12 +1,16 @@
 import { loadSettings } from './config.js';
 import { createDatabase } from './db/database.js';
 import { buildApp } from './app.js';
+import { assertSchemaCurrent } from './db/migrations.js';
+import { recoverLearningEvents } from './modules/adaptation/processor.js';
 
 try {
   const settings = loadSettings();
   const database = await createDatabase(settings);
   let app;
   try {
+    await assertSchemaCurrent(database);
+    await recoverLearningEvents(database);
     app = await buildApp(settings, database);
   } catch (error) {
     await database.close();

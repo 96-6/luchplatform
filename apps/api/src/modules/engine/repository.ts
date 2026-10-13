@@ -27,7 +27,7 @@ export type RunRow = {
   package_id: string;
   package_version: number;
   route_id: string;
-  source_type: 'lesson' | 'set';
+  source_type: 'lesson' | 'set' | 'assignment';
   source_id: string;
   lesson_id: string | null;
   set_id: string | null;
@@ -55,6 +55,7 @@ export type StepRow = {
   position: number;
   state: 'pending' | 'current' | 'completed';
   current_turn_id: string | null;
+  generated_exercise_id: string | null;
   definition: unknown;
 };
 export type TurnRow = {
@@ -94,12 +95,12 @@ export type AttemptRow = {
   evaluated_at: Date | string;
   number: number;
   definition: unknown;
+  generated_exercise_id: string | null;
 };
 export const runSelect = `SELECT r.*,d.id AS diagnostic_id,u.full_name AS user_name,u.email AS user_email,u.role AS user_role,
     ARRAY(SELECT a.plan_id FROM plan_assignments a JOIN learning_plans p ON p.id=a.plan_id WHERE a.run_id=r.id ORDER BY p.created_at DESC,p.id DESC) AS plan_ids
     FROM engine_runs r JOIN users u ON u.id=r.user_id LEFT JOIN diagnostic_sessions d ON d.run_id=r.id`;
-export const attemptSelect =
-  'SELECT a.*,t.number,e.definition FROM engine_attempts a JOIN engine_turns t ON t.id=a.turn_id JOIN engine_steps s ON s.id=a.step_id JOIN learning_exercises e ON e.package_id=s.package_id AND e.package_version=s.package_version AND e.id=s.exercise_id';
+export const attemptSelect = `SELECT a.*,t.number,s.generated_exercise_id,COALESCE(g.definition,e.definition) AS definition FROM engine_attempts a JOIN engine_turns t ON t.id=a.turn_id JOIN engine_steps s ON s.id=a.step_id JOIN learning_exercises e ON e.package_id=s.package_id AND e.package_version=s.package_version AND e.id=s.exercise_id LEFT JOIN generated_exercises g ON g.id=s.generated_exercise_id`;
 export const iso = (value: Date | string) => new Date(value).toISOString();
 export const hintsOf = (turn: Pick<TurnRow, 'used_hints'>): UsedHint[] =>
   z.array(usedHintSchema).parse(turn.used_hints);
@@ -162,6 +163,7 @@ export function attemptView(row: AttemptRow, reveal: boolean): EngineAttempt {
     operationId: row.operation_id,
     number: row.number,
     exerciseId: exercise.id,
+    generatedExerciseId: row.generated_exercise_id ?? null,
     exerciseVersion: exercise.version,
     skillId: exercise.skillId,
     instruction: exercise.instruction,
@@ -226,7 +228,7 @@ export async function lockRun(
 export async function stepsOf(tx: QueryExecutor, runId: string) {
   return (
     await tx.query<StepRow>(
-      'SELECT s.*,e.definition FROM engine_steps s JOIN learning_exercises e ON e.package_id=s.package_id AND e.package_version=s.package_version AND e.id=s.exercise_id WHERE s.run_id=$1 ORDER BY s.position',
+      'SELECT s.*,COALESCE(g.definition,e.definition) AS definition FROM engine_steps s JOIN learning_exercises e ON e.package_id=s.package_id AND e.package_version=s.package_version AND e.id=s.exercise_id LEFT JOIN generated_exercises g ON g.id=s.generated_exercise_id WHERE s.run_id=$1 ORDER BY s.position',
       [runId],
     )
   ).rows;
@@ -303,6 +305,14 @@ export class EngineRepository {
       const step = steps.find((s) => s.position === run.current_position);
       const turn = step && turns.find((t) => t.id === step.current_turn_id);
       const exercise = step ? exerciseSchema.parse(step.definition) : null;
+      const audio = step
+        ? (
+            await tx.query<{ cache_key: string }>(
+              'SELECT cache_key FROM run_listening_assets WHERE run_id=$1 AND step_id=$2 ORDER BY cache_key LIMIT 1',
+              [id, step.id],
+            )
+          ).rows[0]
+        : null;
       const material =
         exercise && run.purpose === 'practice'
           ? lessonSchema.parse(
@@ -339,6 +349,10 @@ export class EngineRepository {
                 stepId: step.id,
                 position: step.position,
                 exercise: exerciseView(exercise),
+                generatedExerciseId: step.generated_exercise_id ?? null,
+                listeningUrl: audio
+                  ? `/api/v1/engine/runs/${id}/steps/${step.id}/listening/${audio.cache_key}`
+                  : null,
                 turn: turnView(turn, this.now()),
                 hintsRemaining:
                   run.purpose === 'practice'

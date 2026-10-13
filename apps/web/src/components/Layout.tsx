@@ -11,6 +11,7 @@ const navigation = [
   { to: '/assistant', label: 'Помощник', icon: '◉' },
   { to: '/schedule', label: 'Расписание', icon: '▦' },
   { to: '/progress', label: 'Прогресс', icon: '↗' },
+  { to: '/admin/providers', label: 'AI и расходы', icon: '⚙' },
   { to: '/teacher', label: 'Преподаватель', icon: '◇' },
 ];
 export function Layout({ children, devTools }: { children: ReactNode; devTools: boolean }) {
@@ -23,7 +24,8 @@ export function Layout({ children, devTools }: { children: ReactNode; devTools: 
         (item) =>
           (item.to !== '/teacher' || user.role === 'teacher') &&
           (item.to !== '/onboarding' || user.role === 'student') &&
-          (item.to !== '/plan' || user.role === 'student'),
+          (item.to !== '/plan' || user.role === 'student') &&
+          (item.to !== '/admin/providers' || user.role === 'admin' || user.role === 'superadmin'),
       )
     : [
         { to: '/', label: 'Главная', icon: '⌂' },
@@ -83,9 +85,11 @@ export function Layout({ children, devTools }: { children: ReactNode; devTools: 
               <span aria-hidden="true">◇</span>
               {user.role === 'superadmin'
                 ? 'Суперадмин'
-                : user.role === 'teacher'
-                  ? 'Мои ученики'
-                  : 'Мой кабинет'}
+                : user.role === 'admin'
+                  ? 'Администратор'
+                  : user.role === 'teacher'
+                    ? 'Мои ученики'
+                    : 'Мой кабинет'}
             </NavLink>
           )}
           {devTools && (

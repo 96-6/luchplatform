@@ -4,8 +4,16 @@ import { createPlanSchema, plansQuerySchema } from '@luch/contracts';
 import type { AuthService } from '../auth/service.js';
 import { PlansService } from './service.js';
 
-export async function registerPlanRoutes(app: FastifyInstance, auth: AuthService) {
-  const service = new PlansService(auth.database);
+export async function registerPlanRoutes(
+  app: FastifyInstance,
+  auth: AuthService,
+  prepare?: (
+    actor: Awaited<ReturnType<AuthService['requireActor']>>,
+    planId: string,
+    assignmentId: string,
+  ) => Promise<void>,
+) {
+  const service = new PlansService(auth.database, Date.now, prepare);
   app.get('/api/v1/plans', async (request) => {
     const actor = await auth.requireActor(request);
     return {

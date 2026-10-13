@@ -99,6 +99,7 @@ export function AdminCreateAccount({ created }: { created: (user: User) => void 
           >
             <option value="student">Ученик</option>
             <option value="teacher">Преподаватель</option>
+            <option value="admin">Администратор</option>
             <option value="superadmin">Суперадмин</option>
           </select>
           <button>Создать и показать QR-код</button>

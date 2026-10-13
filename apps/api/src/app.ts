@@ -20,6 +20,16 @@ import { registerContentRoutes } from './modules/content/routes.js';
 import { registerEngineRoutes } from './modules/engine/routes.js';
 import { registerDiagnosticRoutes } from './modules/diagnostics/routes.js';
 import { registerPlanRoutes } from './modules/plans/routes.js';
+import { registerAdaptationRoutes } from './modules/adaptation/routes.js';
+import { ProviderSettingsService } from './modules/providers/settings.js';
+import { GenerationService } from './modules/providers/generation.js';
+import { SpeechService } from './modules/providers/speech.js';
+import {
+  TextGenerationAdapter,
+  ElevenLabsAdapter,
+  type ProviderFetch,
+} from './modules/providers/adapters.js';
+import { registerProviderRoutes } from './modules/providers/routes.js';
 import { MailService } from './modules/mail/service.js';
 import { CaptchaService } from './modules/security/captcha.js';
 import { NetworkService, type IpInspector } from './modules/security/network.js';
@@ -28,13 +38,23 @@ import { ipAllowed, validateRanges } from './modules/security/policy.js';
 export async function buildApp(
   settings: Settings,
   database: Database,
-  options: { captchaGenerator?: () => string; ipInspector?: IpInspector } = {},
+  options: {
+    captchaGenerator?: () => string;
+    ipInspector?: IpInspector;
+    providerFetch?: ProviderFetch;
+  } = {},
 ) {
   const crypto = new AccountCrypto(settings.AUTH_ENCRYPTION_KEY);
   const network = new NetworkService(database, settings, crypto, options.ipInspector);
   const mail = new MailService(database, settings, crypto);
   const auth = new AuthService(database, settings, crypto, mail, network);
   const captcha = new CaptchaService(database, crypto, options.captchaGenerator);
+  const providerSettings = new ProviderSettingsService(database, crypto, settings);
+  const generation = new GenerationService(
+    providerSettings,
+    new TextGenerationAdapter(options.providerFetch),
+  );
+  const speech = new SpeechService(providerSettings, new ElevenLabsAdapter(options.providerFetch));
   const proxyRanges = validateRanges(
     settings.TRUST_PROXY_CIDRS.split(',')
       .map((value) => value.trim())
@@ -174,7 +194,7 @@ export async function buildApp(
     });
   });
   app.get('/api/v1/system', async (request) => ({
-    data: { application: 'ЛУЧ', stage: 'plans', devToolsEnabled: settings.ENABLE_DEV_TOOLS },
+    data: { application: 'ЛУЧ', stage: 'adaptation', devToolsEnabled: settings.ENABLE_DEV_TOOLS },
     requestId: request.id,
   }));
   app.get('/api/v1/health/live', async (request) => ({
@@ -199,7 +219,11 @@ export async function buildApp(
   await registerContentRoutes(app, auth);
   await registerEngineRoutes(app, auth);
   await registerDiagnosticRoutes(app, auth);
-  await registerPlanRoutes(app, auth);
+  await registerPlanRoutes(app, auth, (actor, planId, assignmentId) =>
+    generation.prepare(actor, planId, assignmentId),
+  );
+  await registerAdaptationRoutes(app, auth);
+  await registerProviderRoutes(app, auth, providerSettings, speech);
 
   const webRoot = resolve(projectRoot, 'apps/web/dist');
   if (settings.SERVE_WEB) {
@@ -210,6 +234,8 @@ export async function buildApp(
   const webPaths = new Set([
     '/',
     '/plan',
+    '/operations',
+    '/admin/providers',
     '/assistant',
     '/schedule',
     '/progress',

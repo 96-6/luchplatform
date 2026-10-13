@@ -31,7 +31,13 @@ export function publicUser(row: UserRow): User {
   };
 }
 export const dashboardPath = (role: User['role']) =>
-  role === 'superadmin' ? '/admin' : role === 'teacher' ? '/teacher' : '/student';
+  role === 'superadmin'
+    ? '/admin'
+    : role === 'admin'
+      ? '/operations'
+      : role === 'teacher'
+        ? '/teacher'
+        : '/student';
 export async function audit(
   db: QueryExecutor,
   actorId: string | null,

@@ -16,6 +16,7 @@ import { LoadingState, ErrorState, EmptyState } from '../components/States';
 import { ContentBlocks } from './ContentPages';
 import { monitorIntegrity } from '../lib/integrity';
 import { useResource } from '../lib/useResource';
+import { ListeningPlayer } from '../components/ListeningPlayer';
 
 const labels = { practice: 'Тренировка', diagnostic: 'Диагностика', control: 'Контроль' };
 export function RunList({
@@ -193,6 +194,10 @@ function RunSession({ id }: { id: string }) {
       navigate(`/onboarding?userId=${view.run.user.id}`);
       return;
     }
+    if (view.run.sourceType === 'assignment') {
+      navigate(`/plan/${view.run.planIds[0]}`);
+      return;
+    }
     setBusy(true);
     setError(null);
     try {
@@ -285,6 +290,20 @@ function RunSession({ id }: { id: string }) {
             <h2>
               Задание {view.current.position + 1} из {view.run.totalSteps}
             </h2>
+            {view.current.generatedExerciseId && (
+              <p className="notice">
+                Сгенерированный демонстрационный вариант задания. Результат предварительный.
+              </p>
+            )}
+            {view.current.exercise.hasListening && (
+              <ListeningPlayer
+                key={view.current.stepId}
+                runId={id!}
+                stepId={view.current.stepId}
+                editable={editable}
+                initialUrl={view.current.listeningUrl}
+              />
+            )}
             {view.material.length > 0 && (
               <section className="panel">
                 <h3>Учебный материал</h3>

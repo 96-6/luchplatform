@@ -59,12 +59,23 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     </AuthContext.Provider>
   );
 }
-export function Protected({ children, role }: { children: ReactNode; role?: User['role'] }) {
+export function Protected({
+  children,
+  role,
+  roles,
+}: {
+  children: ReactNode;
+  role?: User['role'];
+  roles?: User['role'][];
+}) {
   const auth = useAuth();
   if (auth.loading) return <LoadingState />;
   if (auth.error) return <ErrorState error={auth.error} retry={auth.refresh} />;
   if (!auth.session.user) return <Navigate to="/login" replace />;
-  if (role && auth.session.user.role !== role)
+  if (
+    (role && auth.session.user.role !== role) ||
+    (roles && !roles.includes(auth.session.user.role))
+  )
     return <Navigate to={auth.session.dashboardPath ?? '/login'} replace />;
   return children;
 }
