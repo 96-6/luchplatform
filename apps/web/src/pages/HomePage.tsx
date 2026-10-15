@@ -1,7 +1,8 @@
-import { Link } from 'react-router-dom';
+import { Link, Navigate } from 'react-router-dom';
 import { useAuth } from '../auth/AuthContext';
 export function HomePage() {
   const { session } = useAuth();
+  if (session.user?.role === 'student') return <Navigate to="/student" replace />;
   return (
     <>
       <p className="eyebrow">Начните с вашей цели</p>

@@ -34,32 +34,6 @@ export function UserSummary({ user }: { user: User }) {
     </div>
   );
 }
-export function StudentPage() {
-  const { session } = useAuth();
-  const { state, refresh } = useResource(`/users/${session.user!.id}`, userSchema);
-  if (state.status === 'loading') return <LoadingState />;
-  if (state.status === 'error') return <ErrorState error={state.error} retry={refresh} />;
-  return (
-    <>
-      <p className="eyebrow">Ваше пространство</p>
-      <h1>Кабинет ученика</h1>
-      <section className="panel">
-        <UserSummary user={state.data} />
-      </section>
-      <RunList userId={session.user!.id} />
-      <PlanOverview userId={session.user!.id} />
-      <ProfileOverview userId={session.user!.id} />
-      <DiagnosticHistory userId={session.user!.id} />
-      <SkillStates userId={session.user!.id} />
-      <div className="next-grid">
-        <Link to="/courses">Учебные маршруты →</Link>
-        <Link to="/plan">Мой план →</Link>
-        <Link to="/schedule">Расписание →</Link>
-        <Link to="/progress">Прогресс →</Link>
-      </div>
-    </>
-  );
-}
 export function TeacherPage() {
   const { session } = useAuth();
   const { state, refresh } = useResource('/teacher/students', usersSchema);

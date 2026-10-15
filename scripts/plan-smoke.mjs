@@ -4,6 +4,7 @@ import { loadSettings } from '../apps/api/dist/config.js';
 import { createDatabase } from '../apps/api/dist/db/database.js';
 import { publicUser } from '../apps/api/dist/modules/accounts/repository.js';
 import { PlansService } from '../apps/api/dist/modules/plans/service.js';
+import { DashboardService } from '../apps/api/dist/modules/dashboard/service.js';
 
 const settings = loadSettings();
 if (settings.APP_ENV === 'production' || !settings.ENABLE_DEV_TOOLS)
@@ -29,6 +30,12 @@ try {
   assert.equal(plan.assignments[0].reason.kind, 'diagnostic_gap');
   const assignment = plan.assignments[0];
   let view = await service.startAssignment(actor, plan.plan.id, assignment.id);
+  const dashboard = new DashboardService(db);
+  const home = await dashboard.read(actor, 'Europe/Moscow');
+  assert.equal(home.plan.id, plan.plan.id);
+  assert.equal(home.profile.language, 'en');
+  assert.equal(home.profile.goal, 'work');
+  if (view.current) assert.equal(home.continueRun.id, view.run.id);
   const answer = async () => {
     const e = await service.engine.content.definition(
       'exercises',
@@ -57,7 +64,11 @@ try {
       draftAnswer: await answer(),
       paused: true,
     });
-    console.log('Initial plan, reason and first assignment draft persisted.');
+    const home = await dashboard.read(actor, 'Europe/Moscow');
+    assert.equal(home.continueRun.id, view.run.id);
+    assert.equal(home.continueRun.completedSteps, 1);
+    assert.ok(home.today.some((a) => a.id === assignment.id && a.runId === view.run.id));
+    console.log('Initial plan, reason, draft and student dashboard persisted.');
   } else {
     if (view.current) {
       assert.equal(view.current.position, 1);
@@ -81,7 +92,15 @@ try {
     assert.equal(saved.plan.completedAssignments, 1);
     assert.equal(view.run.planIds.includes(plan.plan.id), true);
     assert.deepEqual(saved.assignments[0].reason, assignment.reason);
-    console.log('Plan assignment resumed after restart; real completion and reason persisted.');
+    const home = await dashboard.read(actor, 'Europe/Moscow');
+    assert.equal(home.plan.completedAssignments, 1);
+    assert.equal(home.progress.completedLessons, 1);
+    assert.equal(home.continueRun, null);
+    assert.ok(home.recentResults.some((r) => r.runId === view.run.id));
+    assert.ok(home.reviews.length > 0);
+    console.log(
+      'Student dashboard and plan restored after restart; real completion, reviews and reason persisted.',
+    );
   }
 } finally {
   await db.close();

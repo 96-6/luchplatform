@@ -115,6 +115,10 @@ for (const prefix of [
   'assistant-control',
   'assistant-error',
   'assistant-admin',
+  'dashboard-ru',
+  'dashboard-en',
+  'dashboard-empty',
+  'dashboard-retry',
 ])
   for (const retry of [0, 1]) {
     const email = `${prefix}-${retry}@example.test`;

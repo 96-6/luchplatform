@@ -15,7 +15,8 @@ import {
   AuthenticatorPage,
   DemoMailPage,
 } from './pages/AuthPages';
-import { StudentPage, TeacherPage, TeacherStudentPage } from './pages/AccountPages';
+import { TeacherPage, TeacherStudentPage } from './pages/AccountPages';
+import { StudentPage } from './pages/StudentPage';
 import { AdminPage } from './pages/AdminPage';
 import { EngineHistoryPage, ExerciseRunPage } from './pages/EnginePages';
 import { OnboardingPage, DiagnosticResultPage } from './pages/DiagnosticPages';
@@ -190,8 +191,8 @@ export function App() {
             element={
               <Protected>
                 <PlaceholderPage
-                  title="Прогресс"
-                  description="Сохранённые ответы доступны в разделе «Обучение». Отчёт по навыкам, повторения и комментарии преподавателя появятся на следующих этапах."
+                  title="Учебный отчёт"
+                  description="Полный учебный отчёт пока недоступен. Краткий прогресс показан в кабинете, а сохранённые ответы доступны в разделе «Обучение»."
                 />
               </Protected>
             }

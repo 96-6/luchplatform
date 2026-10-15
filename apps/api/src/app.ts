@@ -20,6 +20,7 @@ import { registerContentRoutes } from './modules/content/routes.js';
 import { registerEngineRoutes } from './modules/engine/routes.js';
 import { registerDiagnosticRoutes } from './modules/diagnostics/routes.js';
 import { registerPlanRoutes } from './modules/plans/routes.js';
+import { registerDashboardRoutes } from './modules/dashboard/routes.js';
 import { registerAdaptationRoutes } from './modules/adaptation/routes.js';
 import { ProviderSettingsService } from './modules/providers/settings.js';
 import { GenerationService } from './modules/providers/generation.js';
@@ -227,6 +228,7 @@ export async function buildApp(
     generation.prepare(actor, planId, assignmentId),
   );
   await registerAdaptationRoutes(app, auth);
+  await registerDashboardRoutes(app, auth);
   await registerProviderRoutes(app, auth, providerSettings, speech);
   await registerAssistantRoutes(
     app,

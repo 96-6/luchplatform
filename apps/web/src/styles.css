@@ -919,3 +919,53 @@ fieldset legend {
     animation: none;
   }
 }
+
+.dashboard-list {
+  list-style: none;
+  padding: 0;
+  margin: 0;
+}
+.dashboard-assignment {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 1.5rem;
+  padding: 1.25rem 0;
+  border-top: 1px solid var(--border, #dce4de);
+}
+.dashboard-assignment > div {
+  min-width: 0;
+  overflow-wrap: anywhere;
+}
+.dashboard-assignment > button,
+.dashboard-assignment > .button-link {
+  flex-shrink: 0;
+}
+.dashboard-assignment h3 {
+  margin: 0.75rem 0;
+}
+.dashboard-next {
+  margin: 1.5rem 0;
+}
+.dashboard-stats {
+  display: grid;
+  grid-template-columns: repeat(3, minmax(0, 1fr));
+  gap: 1rem;
+}
+.dashboard-stats dd {
+  margin: 0.5rem 0;
+  font-size: 1.75rem;
+  font-weight: 700;
+}
+.dashboard-stats dt {
+  overflow-wrap: anywhere;
+}
+@media (max-width: 650px) {
+  .dashboard-assignment {
+    align-items: stretch;
+    flex-direction: column;
+  }
+  .dashboard-stats {
+    grid-template-columns: 1fr;
+  }
+}

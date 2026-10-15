@@ -20,13 +20,17 @@ export function Layout({ children, devTools }: { children: ReactNode; devTools: 
   const [logoutError, setLogoutError] = useState('');
   const user = auth.session.user;
   const visibleNavigation = user
-    ? navigation.filter(
-        (item) =>
-          (item.to !== '/teacher' || user.role === 'teacher') &&
-          (item.to !== '/onboarding' || user.role === 'student') &&
-          (item.to !== '/plan' || user.role === 'student') &&
-          (item.to !== '/admin/providers' || user.role === 'admin' || user.role === 'superadmin'),
-      )
+    ? navigation
+        .filter(
+          (item) =>
+            (item.to !== '/teacher' || user.role === 'teacher') &&
+            (item.to !== '/onboarding' || user.role === 'student') &&
+            (item.to !== '/plan' || user.role === 'student') &&
+            (item.to !== '/admin/providers' || user.role === 'admin' || user.role === 'superadmin'),
+        )
+        .map((item) =>
+          user.role === 'student' && item.to === '/' ? { ...item, to: '/student' } : item,
+        )
     : [
         { to: '/', label: 'Главная', icon: '⌂' },
         { to: '/login', label: 'Войти', icon: '→' },
@@ -80,7 +84,7 @@ export function Layout({ children, devTools }: { children: ReactNode; devTools: 
               {item.label}
             </NavLink>
           ))}
-          {user && (
+          {user && user.role !== 'student' && (
             <NavLink to={auth.session.dashboardPath ?? '/student'}>
               <span aria-hidden="true">◇</span>
               {user.role === 'superadmin'
