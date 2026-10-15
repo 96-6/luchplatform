@@ -246,6 +246,8 @@ for (const language of ['ru', 'en'] as const)
     );
     expect((await current(page)).current!.attempt).toBeNull();
     await page.reload();
+    await expect(page.locator('.exercise-instruction')).toHaveCount(1);
+    await expect(page.getByRole('region', { name: 'Голосовой ответ', exact: true })).toHaveCount(1);
     await expect(page.getByLabel('Распознанная реплика', { exact: true })).toHaveValue(
       language === 'ru' ? 'Меня зовут Анна.' : 'I am Anna.',
     );
@@ -259,6 +261,7 @@ for (const language of ['ru', 'en'] as const)
       .getByRole('button', { name: 'Подтвердить реплику и проверить', exact: true })
       .click();
     await expect(page.locator('.feedback h3')).toHaveText('Нужно исправить');
+    await expect(page.locator('.exercise-instruction')).toHaveCount(1);
     await expect(page.getByRole('region', { name: 'Голосовой ответ', exact: true })).toContainText(
       'В ответе есть ошибка.',
     );
@@ -280,6 +283,7 @@ for (const language of ['ru', 'en'] as const)
       .getByRole('button', { name: 'Подтвердить реплику и проверить', exact: true })
       .click();
     await expect(page.locator('.feedback h3')).toHaveText('Верно');
+    await expect(page.locator('.exercise-instruction')).toHaveCount(1);
     await played(page);
     await page.setViewportSize({ width: 390, height: 844 });
     expect(await page.evaluate(() => document.documentElement.scrollWidth <= innerWidth)).toBe(

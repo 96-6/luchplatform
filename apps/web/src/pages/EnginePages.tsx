@@ -319,14 +319,14 @@ function RunSession({ id }: { id: string }) {
               </section>
             )}
             <Question
-              key={view.current.turn.id}
+              key={`question:${view.current.turn.id}`}
               view={view}
               editable={editable && !voiceBusy}
               changed={setView}
               refresh={load}
             />
             <VoiceAnswer
-              key={view.current.turn.id}
+              key={`voice:${view.current.turn.id}`}
               view={view}
               editable={editable}
               changed={setView}
