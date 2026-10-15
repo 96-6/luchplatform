@@ -31,7 +31,7 @@ export const skillStateSchema = z.object({
 export const skillStatesSchema = z.object({ userId: z.uuid(), items: z.array(skillStateSchema) });
 export const planChangeSchema = z.object({
   id: z.uuid(),
-  attemptId: z.uuid(),
+  attemptId: z.uuid().nullable(),
   assignmentId: z.uuid().nullable(),
   action: z.enum([
     'correction_added',
@@ -43,10 +43,15 @@ export const planChangeSchema = z.object({
     'next_step_ready',
     'review_confirmed',
     'bank_unavailable',
+    'teacher_assignment_added',
+    'teacher_assignment_rescheduled',
+    'teacher_assignment_cancelled',
+    'assessment_reviewed',
   ]),
   skillId: contentIdSchema,
   skillName: z.string(),
-  outcome: learningOutcomeSchema,
+  outcome: learningOutcomeSchema.nullable(),
+  createdByName: z.string().nullable().default(null),
   reason: z.string(),
   createdBy: z.uuid(),
   createdAt: z.iso.datetime(),

@@ -13,6 +13,7 @@ export const assignmentReasonSchema = z.object({
     'typical_error',
     'guided_practice',
     'delayed_check',
+    'teacher',
   ]),
   text: z.string().min(1),
   goal: learningGoalSchema,
@@ -30,7 +31,7 @@ export const assignmentReasonSchema = z.object({
 });
 export const planAssignmentSchema = z.object({
   id: z.uuid(),
-  kind: z.enum(['initial', 'correction', 'supported_practice', 'review']),
+  kind: z.enum(['initial', 'correction', 'supported_practice', 'review', 'teacher']),
   purpose: z.enum(['practice', 'control']),
   dueAt: z.iso.datetime().nullable(),
   canStart: z.boolean(),
@@ -49,7 +50,10 @@ export const planAssignmentSchema = z.object({
       }),
     )
     .min(1),
-  status: z.enum(['pending', 'active', 'completed']),
+  status: z.enum(['pending', 'active', 'completed', 'cancelled']),
+  revision: z.number().int().nonnegative().default(0),
+  teacherNote: z.string().nullable().default(null),
+  cancelledAt: z.iso.datetime().nullable().default(null),
   runId: z.uuid().nullable(),
   completedSteps: z.number().int().nonnegative(),
   startedBy: z.uuid().nullable(),
@@ -71,7 +75,8 @@ export const planSummarySchema = z.object({
   createdBy: z.uuid(),
   createdAt: z.iso.datetime(),
   status: z.enum(['active', 'completed']),
-  totalAssignments: z.number().int().positive(),
+  totalAssignments: z.number().int().nonnegative(),
+  cancelledAssignments: z.number().int().nonnegative().default(0),
   completedAssignments: z.number().int().nonnegative(),
   recommendedDays: z.number().int().positive(),
   completedAt: z.iso.datetime().nullable(),
@@ -81,6 +86,7 @@ export const planViewSchema = z.object({
   assignments: z.array(planAssignmentSchema).min(1),
   nextAssignmentId: z.uuid().nullable(),
   writable: z.boolean(),
+  manageable: z.boolean().default(false),
 });
 export const createPlanSchema = z.strictObject({ diagnosticId: z.uuid() });
 export const plansQuerySchema = diagnosticsQuerySchema.safeExtend({

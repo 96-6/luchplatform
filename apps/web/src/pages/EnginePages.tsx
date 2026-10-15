@@ -649,7 +649,15 @@ function Question({
                 : 'Нужно исправить'
               : 'Ответ сохранён'}
           </h3>
+          {current.attempt.teacherReview && (
+            <p className="badge">
+              Оценка преподавателя: {current.attempt.teacherReview.author.name}
+            </p>
+          )}
           {current.attempt.evaluation && <p>{current.attempt.evaluation.explanation}</p>}
+          <Link to={`/learning/attempts/${current.attempt.id}`}>
+            Комментарии и история проверки →
+          </Link>
           <p>
             Время активности: {(current.attempt.activeMilliseconds / 1000).toFixed(1)} с
             {current.attempt.adminAssistance
@@ -698,7 +706,15 @@ function AttemptHistory({
                 attempt.answer.optionId
               )}
             </p>
+            {attempt.teacherReview && (
+              <p className="badge">Проверено преподавателем: {attempt.teacherReview.author.name}</p>
+            )}
             {attempt.evaluation && <p>{attempt.evaluation.explanation}</p>}
+            <p>
+              <Link to={`/learning/attempts/${attempt.id}`}>
+                Ответ и комментарии преподавателя →
+              </Link>
+            </p>
             {attempt.integrity && (
               <aside className="integrity-review">
                 <strong>

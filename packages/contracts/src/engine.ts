@@ -1,6 +1,7 @@
 import { z } from 'zod';
 import { userSchema } from './accounts.js';
 import { integrityAssessmentSchema } from './integrity.js';
+import { teacherReviewSchema } from './reviews.js';
 import {
   assetSchema,
   contentBlockSchema,
@@ -71,7 +72,7 @@ export const evaluationSchema = z.object({
   correct: z.boolean(),
   score: z.number().int(),
   maxScore: z.literal(1),
-  source: z.literal('luch-engine'),
+  source: z.enum(['luch-engine', 'teacher']),
   engineVersion: z.string(),
   rubricId: contentIdSchema,
   rubricVersion: z.number().int().positive(),
@@ -96,6 +97,9 @@ export const attemptSchema = z.object({
   speechInputId: z.uuid().nullable().default(null),
   answer: answerSchema,
   evaluation: evaluationSchema.nullable(),
+  automaticEvaluation: evaluationSchema.nullable().default(null),
+  teacherReview: teacherReviewSchema.nullable().default(null),
+  reviewRevision: z.number().int().nonnegative().default(0),
   usedHints: z.array(usedHintSchema),
   hadPriorFeedback: z.boolean(),
   independent: z.boolean(),

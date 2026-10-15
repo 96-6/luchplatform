@@ -27,6 +27,7 @@ export type PlanRow = {
   title: string;
   is_demo: boolean;
   total: number;
+  cancelled: number;
   completed: number;
   days: number;
   completed_at: Date | string | null;
@@ -38,8 +39,8 @@ export const planSelect = `SELECT p.*,d.profile_revision,d.questionnaire,
   JOIN users u ON u.id=p.user_id
   JOIN learning_routes l ON l.package_id=p.package_id AND l.package_version=p.package_version AND l.id=p.route_id
   JOIN content_revisions v ON v.package_id=p.package_id AND v.version=p.package_version
-  JOIN LATERAL (SELECT count(*)::integer AS total,count(*) FILTER (WHERE r.status='completed')::integer AS completed,
-    max(a.recommended_day) AS days,max(r.completed_at) AS completed_at
+  JOIN LATERAL (SELECT count(*) FILTER (WHERE a.cancelled_at IS NULL)::integer AS total,count(*) FILTER (WHERE r.status='completed' AND a.cancelled_at IS NULL)::integer AS completed,count(*) FILTER (WHERE a.cancelled_at IS NOT NULL)::integer AS cancelled,
+    COALESCE(max(a.recommended_day) FILTER (WHERE a.cancelled_at IS NULL),1) AS days,max(r.completed_at) AS completed_at
     FROM plan_assignments a LEFT JOIN engine_runs r ON r.id=a.run_id WHERE a.plan_id=p.id) totals ON true`;
 const iso = (value: Date | string | null) => (value ? new Date(value).toISOString() : null);
 export function planSummary(row: PlanRow) {
@@ -57,11 +58,12 @@ export function planSummary(row: PlanRow) {
     rulesVersion: row.rules_version,
     createdBy: row.created_by,
     createdAt: iso(row.created_at),
-    status: row.total === row.completed ? 'completed' : 'active',
+    status: row.total > 0 && row.total === row.completed ? 'completed' : 'active',
     totalAssignments: row.total,
+    cancelledAssignments: row.cancelled ?? 0,
     completedAssignments: row.completed,
     recommendedDays: row.days,
-    completedAt: row.total === row.completed ? iso(row.completed_at) : null,
+    completedAt: row.total > 0 && row.total === row.completed ? iso(row.completed_at) : null,
   });
 }
 export async function readPlan(tx: QueryExecutor, actor: Actor, id: string, now = Date.now()) {
@@ -79,16 +81,19 @@ export async function readPlan(tx: QueryExecutor, actor: Actor, id: string, now 
       reason: unknown;
       exercises: unknown;
       run_id: string | null;
-      status: 'pending' | 'active' | 'completed';
+      status: 'pending' | 'active' | 'completed' | 'cancelled';
+      teacher_revision: number;
+      teacher_note: string | null;
+      cancelled_at: Date | string | null;
       completed_steps: number;
       started_by: string | null;
       started_at: Date | string | null;
       completed_at: Date | string | null;
-      kind: 'initial' | 'correction' | 'supported_practice' | 'review';
+      kind: 'initial' | 'correction' | 'supported_practice' | 'review' | 'teacher';
       purpose: 'practice' | 'control';
       due_at: Date | string | null;
     }>(
-      `SELECT a.*,l.definition->>'title' AS title,COALESCE(r.status,'pending') AS status,
+      `SELECT a.*,l.definition->>'title' AS title,CASE WHEN a.cancelled_at IS NOT NULL THEN 'cancelled' ELSE COALESCE(r.status,'pending') END AS status,
     COALESCE(r.current_position,0) AS completed_steps,r.completed_at,
     (SELECT jsonb_agg(jsonb_build_object('id',e.exercise_id,'version',e.exercise_version,'generatedExerciseId',e.generated_exercise_id) ORDER BY e.position)
       FROM plan_assignment_exercises e WHERE e.assignment_id=a.id) AS exercises
@@ -103,10 +108,14 @@ export async function readPlan(tx: QueryExecutor, actor: Actor, id: string, now 
       purpose: a.purpose,
       dueAt: iso(a.due_at),
       canStart:
-        Boolean(a.run_id) ||
-        !a.due_at ||
-        new Date(a.due_at).getTime() <= now ||
-        actor.user.role === 'superadmin',
+        !a.cancelled_at &&
+        (Boolean(a.run_id) ||
+          !a.due_at ||
+          new Date(a.due_at).getTime() <= now ||
+          actor.user.role === 'superadmin'),
+      revision: a.teacher_revision,
+      teacherNote: a.teacher_note,
+      cancelledAt: iso(a.cancelled_at),
       position: a.position,
       recommendedDay: a.recommended_day,
       lessonId: a.lesson_id,
@@ -138,11 +147,12 @@ export async function readPlan(tx: QueryExecutor, actor: Actor, id: string, now 
         .filter((a) => a.status === 'pending' && a.canStart)
         .sort(
           (a, b) =>
-            ({ correction: 0, supported_practice: 1, review: 2, initial: 3 })[a.kind] -
-              { correction: 0, supported_practice: 1, review: 2, initial: 3 }[b.kind] ||
+            ({ teacher: 0, correction: 1, supported_practice: 2, review: 3, initial: 4 })[a.kind] -
+              { teacher: 0, correction: 1, supported_practice: 2, review: 3, initial: 4 }[b.kind] ||
             a.position - b.position,
         )[0]?.id ??
       null,
     writable: actor.user.id === row.user_id || actor.user.role === 'superadmin',
+    manageable: actor.user.role === 'teacher' || actor.user.role === 'superadmin',
   });
 }

@@ -59,6 +59,7 @@ export const studentDashboardSchema = z.object({
     assistedCorrect: count,
     incorrectAttempts: count,
     pendingEvaluationAttempts: count,
+    teacherReviewedAttempts: count.default(0),
   }),
   recentResults: z.array(
     z.object({
@@ -69,6 +70,7 @@ export const studentDashboardSchema = z.object({
       correct: z.boolean().nullable(),
       independent: z.boolean().nullable(),
       evaluatedAt: z.iso.datetime(),
+      teacherReviewed: z.boolean().default(false),
     }),
   ),
 });

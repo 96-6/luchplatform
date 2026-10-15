@@ -1,3 +1,4 @@
+import { registerTeacherRoutes } from './modules/teacher/routes.js';
 import { randomUUID } from 'node:crypto';
 import { access } from 'node:fs/promises';
 import { resolve } from 'node:path';
@@ -225,6 +226,7 @@ export async function buildApp(
   if (settings.ENABLE_DEV_TOOLS) await registerProbeRoutes(app, database);
   await registerAuthRoutes(app, auth, captcha);
   await registerAccountRoutes(app, auth);
+  await registerTeacherRoutes(app, auth);
   await registerContentRoutes(app, auth);
   await registerEngineRoutes(app, auth);
   await registerDiagnosticRoutes(app, auth);
@@ -261,6 +263,7 @@ export async function buildApp(
     '/assistant',
     '/schedule',
     '/progress',
+    '/feedback',
     '/teacher',
     '/system',
     '/student',
@@ -285,7 +288,7 @@ export async function buildApp(
       (webPaths.has(pathname) ||
         /^\/teacher\/students\/[0-9a-f-]{36}$/.test(pathname) ||
         /^\/courses\/[a-z0-9-]+\/[a-z0-9-]+(?:\/lessons\/[a-z0-9-]+)?$/.test(pathname) ||
-        /^\/learning\/runs\/[0-9a-f-]{36}$/.test(pathname) ||
+        /^\/learning\/(?:runs|attempts)\/[0-9a-f-]{36}$/.test(pathname) ||
         /^\/diagnostics\/[0-9a-f-]{36}$/.test(pathname) ||
         /^\/plan\/[0-9a-f-]{36}$/.test(pathname))
     ) {

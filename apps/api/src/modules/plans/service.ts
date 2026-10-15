@@ -78,6 +78,7 @@ export class PlansService {
           route_id: string;
           purpose: 'practice' | 'control';
           kind: string;
+          cancelled_at: Date | string | null;
           due_at: Date | string | null;
         }>('SELECT * FROM plan_assignments WHERE id=$1 AND plan_id=$2 FOR UPDATE', [
           assignmentId,
@@ -87,6 +88,8 @@ export class PlansService {
       if (!a)
         throw new AppError(404, 'ASSIGNMENT_NOT_FOUND', 'Назначение не найдено в этом плане.');
       await studentAccess(tx, actor, a.user_id, true);
+      if (a.cancelled_at)
+        throw new AppError(409, 'ASSIGNMENT_CANCELLED', 'Назначение отменено преподавателем.');
       if (a.run_id) return a.run_id;
       if (a.due_at && new Date(a.due_at).getTime() > this.now() && actor.user.role !== 'superadmin')
         throw new AppError(

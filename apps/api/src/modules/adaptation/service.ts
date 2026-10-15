@@ -76,17 +76,18 @@ export class AdaptationService {
       const rows = (
         await tx.query<{
           id: string;
-          attempt_id: string;
+          attempt_id: string | null;
+          created_by_name: string;
           assignment_id: string | null;
           action: string;
           skill_id: string;
           skill_name: string;
-          outcome: string;
+          outcome: string | null;
           reason: string;
           created_by: string;
           created_at: Date | string;
         }>(
-          `SELECT c.*,v.attempt_id,k.definition->>'title' AS skill_name FROM learning_plan_changes c JOIN engine_events v ON v.id=c.event_id
+          `SELECT c.*,COALESCE(v.attempt_id,ta.attempt_id) AS attempt_id,u.full_name AS created_by_name,k.definition->>'title' AS skill_name FROM learning_plan_changes c LEFT JOIN engine_events v ON v.id=c.event_id LEFT JOIN teacher_actions ta ON ta.id=c.teacher_action_id JOIN users u ON u.id=c.created_by
         JOIN learning_plans p ON p.id=c.plan_id JOIN learning_skills k ON k.package_id=p.package_id AND k.package_version=p.package_version AND k.id=c.skill_id WHERE c.plan_id=$1
         AND ($2::timestamptz IS NULL OR (c.created_at,c.id)<($2,$3::uuid)) ORDER BY c.created_at DESC,c.id DESC LIMIT $4`,
           [id, input.beforeCreatedAt ?? null, input.beforeId ?? null, input.limit + 1],
@@ -103,6 +104,7 @@ export class AdaptationService {
             outcome: c.outcome,
             reason: c.reason,
             createdBy: c.created_by,
+            createdByName: c.created_by_name,
             createdAt: iso(c.created_at),
           }),
         ),

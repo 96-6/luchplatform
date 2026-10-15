@@ -1,3 +1,4 @@
+import { TeacherUpdates } from './TeacherPages';
 import { useEffect, useState } from 'react';
 import { Link, useNavigate } from 'react-router-dom';
 import {
@@ -27,6 +28,7 @@ const kindLabels = {
   correction: 'Дополнительная практика',
   supported_practice: 'Практика самостоятельности',
   review: 'Отсроченная проверка',
+  teacher: 'Назначение преподавателя',
 };
 export function StudentPage() {
   const timeZone = Intl.DateTimeFormat().resolvedOptions().timeZone || 'UTC';
@@ -236,7 +238,7 @@ function Dashboard({ data, refresh }: { data: StudentDashboard; refresh: () => v
         ) : (
           <p role="status">
             {plan.status === 'completed'
-              ? 'Все назначения плана завершены.'
+              ? 'Активных незавершённых назначений в плане нет.'
               : 'Доступные задания выполнены. Следующая проверка откроется в указанное время.'}
           </p>
         )}
@@ -313,7 +315,7 @@ function Dashboard({ data, refresh }: { data: StudentDashboard; refresh: () => v
             </p>
             <progress
               aria-label="Выполнение текущего плана"
-              max={plan.totalAssignments}
+              max={Math.max(1, plan.totalAssignments)}
               value={plan.completedAssignments}
             />
           </>
@@ -332,6 +334,7 @@ function Dashboard({ data, refresh }: { data: StudentDashboard; refresh: () => v
             <dd>{progress.incorrectAttempts}</dd>
           </div>
         </dl>
+        <p>Проверено преподавателем: {progress.teacherReviewedAttempts}</p>
         <p className="muted">
           {progress.evaluatedAttempts} проверенных попыток
           {profile ? ` · ${languageLabels[profile.language]}` : ''}. Повторные попытки учитываются
@@ -344,6 +347,7 @@ function Dashboard({ data, refresh }: { data: StudentDashboard; refresh: () => v
           </p>
         )}
       </section>
+      <TeacherUpdates compact />
       <section className="panel" aria-labelledby="results-heading">
         <h2 id="results-heading">Последние результаты</h2>
         {data.recentResults.length ? (
@@ -360,6 +364,7 @@ function Dashboard({ data, refresh }: { data: StudentDashboard; refresh: () => v
                         : 'Верно с помощью'
                       : 'Есть ошибка'}
                 </span>
+                {r.teacherReviewed && <span className="badge">Проверено преподавателем</span>}
                 <time dateTime={r.evaluatedAt}>{formatDate(r.evaluatedAt)}</time>
                 <Link to={`/learning/runs/${r.runId}`}>Открыть ответ →</Link>
               </li>

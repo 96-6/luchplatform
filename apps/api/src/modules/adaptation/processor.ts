@@ -20,6 +20,8 @@ type Evidence = {
   purpose: 'practice' | 'diagnostic' | 'control';
   run_status: string;
   is_correct: boolean;
+  automatic_correct: boolean;
+  teacher_review_id: string | null;
   independent: boolean;
   used_hints: unknown[];
   evaluated_at: Date | string;
@@ -28,7 +30,7 @@ type Evidence = {
   user_role: string;
   assignment_kind: string | null;
 };
-const eventSelect = `SELECT v.id,v.attempt_id,v.created_at,a.user_id,a.submitted_by,a.is_correct,a.independent,a.used_hints,a.evaluated_at,
+const eventSelect = `SELECT v.id,v.attempt_id,v.created_at,a.user_id,a.submitted_by,a.is_correct AS automatic_correct,a.teacher_review_id,COALESCE(a.teacher_correct,a.is_correct) AS is_correct,a.independent,a.used_hints,a.evaluated_at,
   r.id AS run_id,r.package_id,r.package_version,r.route_id,r.purpose,r.status AS run_status,u.role AS user_role,
   COALESCE(g.definition,e.definition) AS definition,pa.kind AS assignment_kind
   FROM engine_events v JOIN engine_attempts a ON a.id=v.attempt_id JOIN engine_runs r ON r.id=a.run_id
@@ -238,7 +240,7 @@ async function adaptPlan(tx: QueryExecutor, e: Evidence, delayHours: number, now
       const next = (
         await tx.query<{ id: string }>(
           `SELECT a.id FROM plan_assignments a LEFT JOIN engine_runs r ON r.id=a.run_id
-        WHERE a.plan_id=$1 AND a.kind='initial' AND (r.status IS NULL OR r.status='active')
+        WHERE a.plan_id=$1 AND a.kind='initial' AND a.cancelled_at IS NULL AND (r.status IS NULL OR r.status='active')
         ORDER BY a.position LIMIT 1`,
           [plan.id],
         )
@@ -290,7 +292,7 @@ export async function processRunLearningEvents(tx: QueryExecutor, runId: string,
       'SELECT * FROM adaptive_policy WHERE id=1',
     )
   ).rows[0]!;
-  await tx.query('SELECT id FROM users WHERE id=$1 FOR UPDATE', [events[0]!.user_id]);
+  await tx.query('SELECT id FROM users WHERE id=$1 FOR NO KEY UPDATE', [events[0]!.user_id]);
   for (const e of events) {
     if (e.user_role === 'student') {
       const exercise = exerciseSchema.parse(e.definition),
@@ -347,7 +349,7 @@ export async function processRunLearningEvents(tx: QueryExecutor, runId: string,
           ],
         );
         await tx.query(
-          'INSERT INTO skill_observations (attempt_id,user_id,package_id,package_version,skill_id,outcome,purpose,rules_version,observed_at) VALUES ($1,$2,$3,$4,$5,$6,$7,$8,$9)',
+          'INSERT INTO skill_observations (attempt_id,user_id,package_id,package_version,skill_id,outcome,purpose,rules_version,observed_at,automatic_outcome,teacher_review_id) VALUES ($1,$2,$3,$4,$5,$6,$7,$8,$9,$10,$11)',
           [
             e.attempt_id,
             e.user_id,
@@ -358,6 +360,8 @@ export async function processRunLearningEvents(tx: QueryExecutor, runId: string,
             e.purpose,
             ADAPTATION_VERSION,
             observed,
+            outcomeOf({ ...e, is_correct: e.automatic_correct }),
+            e.teacher_review_id,
           ],
         );
         await tx.query(

@@ -176,7 +176,7 @@ export class LuchEngine {
       revision = await this.content.revision(assignment.package_id, assignment.package_version, tx);
     const id = randomUUID(),
       date = new Date(this.now()),
-      title = `${assignment.kind === 'review' ? 'Повторение' : assignment.kind === 'correction' ? 'Дополнительная практика' : 'Самостоятельная практика'}: ${lesson.title}`;
+      title = `${assignment.kind === 'review' ? 'Повторение' : assignment.kind === 'correction' ? 'Дополнительная практика' : assignment.kind === 'teacher' ? 'Задание преподавателя' : 'Самостоятельная практика'}: ${lesson.title}`;
     await tx.query(
       `INSERT INTO engine_runs (id,user_id,package_id,package_version,route_id,source_type,source_id,assignment_id,lesson_id,purpose,title,is_demo,total_steps,created_at,updated_at)
       VALUES ($1,$2,$3,$4,$5,'assignment',$6::text,$6::uuid,$7,$8,$9,$10,1,$11,$11)`,

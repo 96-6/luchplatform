@@ -28,14 +28,25 @@ export class GenerationService {
     try {
       const prepared = await this.settings.db.transaction(async (tx) => {
         const assignment = (
-          await tx.query<{ user_id: string; kind: string; run_id: string | null }>(
-            'SELECT * FROM plan_assignments WHERE id=$1 AND plan_id=$2',
-            [assignmentId, planId],
-          )
+          await tx.query<{
+            user_id: string;
+            kind: string;
+            run_id: string | null;
+            cancelled_at: Date | string | null;
+            due_at: Date | string | null;
+          }>('SELECT * FROM plan_assignments WHERE id=$1 AND plan_id=$2', [assignmentId, planId])
         ).rows[0];
         if (!assignment)
           throw new AppError(404, 'ASSIGNMENT_NOT_FOUND', 'Назначение не найдено в этом плане.');
         await studentAccess(tx, actor, assignment.user_id, true);
+        if (assignment.cancelled_at)
+          throw new AppError(409, 'ASSIGNMENT_CANCELLED', 'Назначение отменено преподавателем.');
+        if (
+          assignment.due_at &&
+          new Date(assignment.due_at).getTime() > this.settings.now() &&
+          actor.user.role !== 'superadmin'
+        )
+          throw new AppError(409, 'ASSIGNMENT_NOT_DUE', 'Время задания ещё не наступило.');
         if (
           assignment.run_id ||
           (assignment.kind !== 'correction' && assignment.kind !== 'supported_practice')

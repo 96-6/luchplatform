@@ -317,6 +317,17 @@ export function DiagnosticResultPage() {
         Анкета v{diagnostic.profileRevision} · пакет {diagnostic.packageId} v
         {diagnostic.packageVersion}
       </p>
+      {diagnostic.teacherReviewedAttempts > 0 && (
+        <aside className="notice">
+          <p>
+            Преподаватель проверил ответов: {diagnostic.teacherReviewedAttempts}. Ниже сохранён
+            исходный снимок автоматической диагностики, по которому был создан план.
+          </p>
+          <Link to={`/learning/runs/${diagnostic.runId}`}>
+            Текущие оценки и комментарии к ответам →
+          </Link>
+        </aside>
+      )}
       {!result ? (
         <section className="panel">
           <h2>Диагностика не завершена</h2>

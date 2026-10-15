@@ -165,6 +165,14 @@ for (const prefix of [
   'speech-failure',
   'speech-permission',
   'speech-control',
+  'teacher-ru',
+  'teacher-en',
+  'teacher-ru-tutor',
+  'teacher-en-tutor',
+  'teacher-retry-tutor',
+  'teacher-outsider',
+  'teacher-empty-tutor',
+  'teacher-retry-student',
 ])
   for (const retry of [0, 1]) {
     const email = `${prefix}-${retry}@example.test`;
@@ -182,7 +190,7 @@ for (const prefix of [
         prefix === 'adapt-providers-admin' ||
         prefix === 'assistant-admin'
           ? 'superadmin'
-          : prefix === 'plan-teacher'
+          : prefix === 'plan-teacher' || prefix.endsWith('-tutor')
             ? 'teacher'
             : 'student',
         fixtureCrypto.encrypt(key),

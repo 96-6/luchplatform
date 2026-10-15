@@ -8,6 +8,7 @@ import {
   lessonSchema,
   usedHintSchema,
   integrityAssessmentSchema,
+  teacherReviewSchema,
   type EngineAttempt,
   type Exercise,
   type RunView,
@@ -77,6 +78,9 @@ export type TurnRow = {
   created_by: string;
 };
 export type AttemptRow = {
+  teacher_correct?: boolean | null;
+  teacher_review?: Record<string, unknown> | null;
+  review_revision?: number;
   speech_input_id?: string | null;
   id: string;
   run_id: string;
@@ -104,7 +108,7 @@ export type AttemptRow = {
 export const runSelect = `SELECT r.*,EXISTS(SELECT 1 FROM plan_assignments ca WHERE ca.run_id=r.id AND ca.cache_fallback) AS cache_fallback,d.id AS diagnostic_id,u.full_name AS user_name,u.email AS user_email,u.role AS user_role,
     ARRAY(SELECT a.plan_id FROM plan_assignments a JOIN learning_plans p ON p.id=a.plan_id WHERE a.run_id=r.id ORDER BY p.created_at DESC,p.id DESC) AS plan_ids
     FROM engine_runs r JOIN users u ON u.id=r.user_id LEFT JOIN diagnostic_sessions d ON d.run_id=r.id`;
-export const attemptSelect = `SELECT a.*,t.number,s.generated_exercise_id,COALESCE(g.definition,e.definition) AS definition FROM engine_attempts a JOIN engine_turns t ON t.id=a.turn_id JOIN engine_steps s ON s.id=a.step_id JOIN learning_exercises e ON e.package_id=s.package_id AND e.package_version=s.package_version AND e.id=s.exercise_id LEFT JOIN generated_exercises g ON g.id=s.generated_exercise_id`;
+export const attemptSelect = `SELECT a.*,t.number,s.generated_exercise_id,COALESCE(g.definition,e.definition) AS definition, CASE WHEN tr.id IS NOT NULL THEN jsonb_build_object('id',tr.id,'revision',tr.revision,'decision',tr.decision,'correct',tr.correct,'comment',tr.comment,'author',jsonb_build_object('id',tr.author_id,'name',rv_author.full_name),'createdAt',tr.created_at) ELSE NULL END AS teacher_review FROM engine_attempts a JOIN engine_turns t ON t.id=a.turn_id JOIN engine_steps s ON s.id=a.step_id JOIN learning_exercises e ON e.package_id=s.package_id AND e.package_version=s.package_version AND e.id=s.exercise_id LEFT JOIN generated_exercises g ON g.id=s.generated_exercise_id LEFT JOIN teacher_reviews tr ON tr.id=a.teacher_review_id LEFT JOIN users rv_author ON rv_author.id=tr.author_id`;
 export const iso = (value: Date | string) => new Date(value).toISOString();
 export const hintsOf = (turn: Pick<TurnRow, 'used_hints'>): UsedHint[] =>
   z.array(usedHintSchema).parse(turn.used_hints);
@@ -162,6 +166,14 @@ export function summary(row: RunRow) {
 }
 export function attemptView(row: AttemptRow, reveal: boolean): EngineAttempt {
   const exercise = exerciseSchema.parse(row.definition);
+  const automatic = reveal ? evaluationSchema.parse(row.evaluation) : null;
+  const review =
+    reveal && row.teacher_review
+      ? teacherReviewSchema.parse({
+          ...row.teacher_review,
+          createdAt: iso(String(row.teacher_review.createdAt)),
+        })
+      : null;
   return {
     id: row.id,
     stepId: row.step_id,
@@ -180,7 +192,19 @@ export function attemptView(row: AttemptRow, reveal: boolean): EngineAttempt {
     assistantHelp: row.assistant_help,
     speechInputId: row.speech_input_id ?? null,
     answer: draftAnswerSchema.unwrap().parse(row.answer),
-    evaluation: reveal ? evaluationSchema.parse(row.evaluation) : null,
+    evaluation:
+      automatic && review
+        ? {
+            ...automatic,
+            correct: review.correct!,
+            score: Number(review.correct),
+            source: 'teacher',
+            explanation: review.comment,
+          }
+        : automatic,
+    automaticEvaluation: automatic,
+    teacherReview: review,
+    reviewRevision: row.review_revision ?? 0,
     usedHints: z.array(usedHintSchema).parse(row.used_hints),
     hadPriorFeedback: row.prior_feedback,
     independent: row.independent,
@@ -251,7 +275,7 @@ export async function learningProgress(db: QueryExecutor, userId: string) {
   }>(
     `SELECT (SELECT count(*) FROM engine_runs WHERE user_id=$1)::text AS runs,
      (SELECT count(*) FROM engine_runs WHERE user_id=$1 AND status='completed')::text AS completed_runs,
-     count(*)::text AS attempts,count(*) FILTER (WHERE is_correct)::text AS correct_attempts,
+     count(*)::text AS attempts,count(*) FILTER (WHERE COALESCE(teacher_correct,is_correct))::text AS correct_attempts,
      count(*) FILTER (WHERE NOT independent)::text AS assisted_attempts FROM engine_attempts WHERE user_id=$1`,
     [userId],
   );

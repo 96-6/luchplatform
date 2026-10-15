@@ -22,7 +22,7 @@ function calendarDay(timestamp: number, timeZone: string) {
   const part = (type: string) => Number(parts.find((p) => p.type === type)!.value);
   return Date.UTC(part('year'), part('month') - 1, part('day')) / 86_400_000;
 }
-const priority = { correction: 0, supported_practice: 1, review: 2, initial: 3 };
+const priority = { teacher: 0, correction: 1, supported_practice: 2, review: 3, initial: 4 };
 function order(a: DashboardAssignment, b: DashboardAssignment) {
   return (
     Number(b.status === 'active') - Number(a.status === 'active') ||

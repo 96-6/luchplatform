@@ -71,6 +71,7 @@ export const diagnosticSummarySchema = z.object({
   isDemo: z.boolean(),
   status: z.enum(['active', 'completed']),
   answeredQuestions: z.number().int().nonnegative(),
+  teacherReviewedAttempts: z.number().int().nonnegative().default(0),
   totalQuestions: z.number().int().positive(),
   createdAt: z.iso.datetime(),
   completedAt: z.iso.datetime().nullable(),

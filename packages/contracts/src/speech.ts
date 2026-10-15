@@ -50,7 +50,7 @@ export const speechConfirmationSchema = z.object({
       id: z.uuid(),
       planId: z.uuid(),
       title: z.string(),
-      kind: z.enum(['initial', 'correction', 'supported_practice', 'review']),
+      kind: z.enum(['initial', 'correction', 'supported_practice', 'review', 'teacher']),
       dueAt: z.iso.datetime().nullable(),
     })
     .nullable(),

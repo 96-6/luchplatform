@@ -11,6 +11,7 @@ const navigation = [
   { to: '/assistant', label: 'Помощник', icon: '◉' },
   { to: '/schedule', label: 'Расписание', icon: '▦' },
   { to: '/progress', label: 'Прогресс', icon: '↗' },
+  { to: '/feedback', label: 'Комментарии преподавателя', icon: '✎' },
   { to: '/admin/providers', label: 'AI и расходы', icon: '⚙' },
   { to: '/teacher', label: 'Преподаватель', icon: '◇' },
 ];
@@ -25,6 +26,7 @@ export function Layout({ children, devTools }: { children: ReactNode; devTools: 
           (item) =>
             (item.to !== '/teacher' || user.role === 'teacher') &&
             (item.to !== '/onboarding' || user.role === 'student') &&
+            (item.to !== '/feedback' || user.role === 'student') &&
             (item.to !== '/plan' || user.role === 'student') &&
             (item.to !== '/admin/providers' || user.role === 'admin' || user.role === 'superadmin'),
         )

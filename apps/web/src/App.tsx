@@ -1,3 +1,4 @@
+import { AttemptReviewPage, TeacherFeedbackPage } from './pages/TeacherPages';
 import { Route, Routes, Link, Navigate } from 'react-router-dom';
 import { AssistantPage } from './pages/AssistantPage';
 import { systemSchema } from '@luch/contracts';
@@ -40,6 +41,22 @@ export function App() {
         <ErrorState error={state.error} retry={refresh} />
       ) : (
         <Routes>
+          <Route
+            path="/learning/attempts/:id"
+            element={
+              <Protected>
+                <AttemptReviewPage />
+              </Protected>
+            }
+          />
+          <Route
+            path="/feedback"
+            element={
+              <Protected>
+                <TeacherFeedbackPage />
+              </Protected>
+            }
+          />
           <Route path="/" element={<HomePage />} />
           <Route
             path="/onboarding"
@@ -208,7 +225,7 @@ export function App() {
           <Route
             path="/teacher/students/:id"
             element={
-              <Protected role="teacher">
+              <Protected roles={['teacher', 'superadmin']}>
                 <TeacherStudentPage />
               </Protected>
             }

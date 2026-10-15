@@ -55,6 +55,12 @@ export function SkillStates({ userId }: { userId: string }) {
     </section>
   );
 }
+const teacherChangeLabels: Record<string, string> = {
+  teacher_assignment_added: 'Назначение преподавателя',
+  teacher_assignment_rescheduled: 'Изменён срок задания',
+  teacher_assignment_cancelled: 'Назначение отменено',
+  assessment_reviewed: 'Проверка преподавателя',
+};
 export function PlanChanges({ id }: { id: string }) {
   const [page, setPage] = useState<z.infer<typeof planChangesPageSchema> | null>(null),
     [error, setError] = useState<Error | null>(null),
@@ -105,12 +111,17 @@ export function PlanChanges({ id }: { id: string }) {
             {page.items.map((c) => (
               <li key={c.id} data-testid="plan-change">
                 <p>
-                  <strong>{outcomeLabels[c.outcome]}</strong> ·{' '}
+                  <strong>
+                    {teacherChangeLabels[c.action] ??
+                      (c.outcome ? outcomeLabels[c.outcome] : 'Решение преподавателя')}
+                  </strong>{' '}
+                  ·{' '}
                   <time dateTime={c.createdAt}>
                     {new Date(c.createdAt).toLocaleString('ru-RU')}
                   </time>
                 </p>
-                <p>{c.reason}</p>
+                {c.createdByName && <p className="muted">Автор: {c.createdByName}</p>}
+                <p className="content-text">{c.reason}</p>
                 {c.assignmentId && (
                   <Link to={`/plan/${id}#assignment-${c.assignmentId}`}>Назначение →</Link>
                 )}

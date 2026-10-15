@@ -390,7 +390,12 @@ export function VoiceAnswer({
           </p>
           {input.edited && <p className="muted">Распознанный текст исправлен перед проверкой.</p>}
           <p>
-            <strong>Демо-помощник:</strong> {input.reply}
+            <strong>
+              {view.current?.attempt?.teacherReview
+                ? 'Первоначальный ответ демо-помощника:'
+                : 'Демо-помощник:'}
+            </strong>{' '}
+            {input.reply}
           </p>
           {input.messageId && (
             <AssistantReplyAudio

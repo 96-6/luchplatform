@@ -49,7 +49,7 @@ export async function assignments(
     JOIN learning_lessons l ON l.package_id=a.package_id AND l.package_version=a.package_version AND l.id=a.lesson_id
     LEFT JOIN engine_runs r ON r.id=a.run_id
     WHERE a.user_id=$1 AND ($2::text IS NULL OR d.questionnaire->>'language'=$2)
-      AND (a.plan_id=$3::uuid OR a.kind<>'initial') AND COALESCE(r.status,'pending')<>'completed'
+      AND a.cancelled_at IS NULL AND (a.plan_id=$3::uuid OR a.kind<>'initial') AND COALESCE(r.status,'pending')<>'completed'
     ORDER BY p.created_at,a.position,a.id`,
       [userId, language, planId],
     )
@@ -82,12 +82,14 @@ export async function progress(tx: QueryExecutor, userId: string, language: stri
       assisted_correct: number;
       incorrect: number;
       pending: number;
+      teacher_reviewed: number;
     }>(
       `SELECT
       count(*) FILTER (WHERE r.purpose='practice' OR r.status='completed')::integer AS evaluated,
-      count(*) FILTER (WHERE (r.purpose='practice' OR r.status='completed') AND a.is_correct AND a.independent)::integer AS independent_correct,
-      count(*) FILTER (WHERE (r.purpose='practice' OR r.status='completed') AND a.is_correct AND NOT a.independent)::integer AS assisted_correct,
-      count(*) FILTER (WHERE (r.purpose='practice' OR r.status='completed') AND NOT a.is_correct)::integer AS incorrect,
+      count(*) FILTER (WHERE (r.purpose='practice' OR r.status='completed') AND COALESCE(a.teacher_correct,a.is_correct) AND a.independent)::integer AS independent_correct,
+      count(*) FILTER (WHERE (r.purpose='practice' OR r.status='completed') AND COALESCE(a.teacher_correct,a.is_correct) AND NOT a.independent)::integer AS assisted_correct,
+      count(*) FILTER (WHERE (r.purpose='practice' OR r.status='completed') AND NOT COALESCE(a.teacher_correct,a.is_correct))::integer AS incorrect,
+      count(*) FILTER (WHERE (r.purpose='practice' OR r.status='completed') AND a.teacher_correct IS NOT NULL)::integer AS teacher_reviewed,
       count(*) FILTER (WHERE r.purpose<>'practice' AND r.status<>'completed')::integer AS pending
     FROM engine_attempts a JOIN engine_runs r ON r.id=a.run_id
     JOIN learning_routes route ON route.package_id=r.package_id AND route.package_version=r.package_version AND route.id=r.route_id
@@ -112,6 +114,7 @@ export async function progress(tx: QueryExecutor, userId: string, language: stri
     assistedCorrect: counts.assisted_correct,
     incorrectAttempts: counts.incorrect,
     pendingEvaluationAttempts: counts.pending,
+    teacherReviewedAttempts: counts.teacher_reviewed,
   };
 }
 
@@ -125,9 +128,11 @@ export async function recentResults(tx: QueryExecutor, userId: string, language:
       correct: boolean | null;
       independent: boolean | null;
       evaluated_at: Date | string;
+      teacher_reviewed: boolean;
     }>(
       `SELECT a.id,a.run_id,r.title,r.purpose,a.evaluated_at,
-      CASE WHEN r.purpose='practice' OR r.status='completed' THEN a.is_correct ELSE NULL END AS correct,
+      CASE WHEN r.purpose='practice' OR r.status='completed' THEN COALESCE(a.teacher_correct,a.is_correct) ELSE NULL END AS correct,
+      (r.purpose='practice' OR r.status='completed') AND a.teacher_correct IS NOT NULL AS teacher_reviewed,
       CASE WHEN r.purpose='practice' OR r.status='completed' THEN a.independent ELSE NULL END AS independent
     FROM engine_attempts a JOIN engine_runs r ON r.id=a.run_id
     JOIN learning_routes route ON route.package_id=r.package_id AND route.package_version=r.package_version AND route.id=r.route_id
@@ -144,5 +149,6 @@ export async function recentResults(tx: QueryExecutor, userId: string, language:
     correct: r.correct,
     independent: r.independent,
     evaluatedAt: iso(r.evaluated_at),
+    teacherReviewed: r.teacher_reviewed,
   }));
 }

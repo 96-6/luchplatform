@@ -10,6 +10,8 @@ export * from './providers.js';
 export * from './assistant.js';
 export * from './dashboard.js';
 export * from './speech.js';
+export * from './reviews.js';
+export * from './teacher.js';
 
 export const API_PREFIX = '/api/v1';
 export const systemSchema = z.object({

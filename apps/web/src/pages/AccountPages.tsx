@@ -1,3 +1,4 @@
+import { RecentAttempts, TeacherUpdates } from './TeacherPages';
 import { Link, useParams } from 'react-router-dom';
 import { userSchema, usersSchema, type User } from '@luch/contracts';
 import { useAuth } from '../auth/AuthContext';
@@ -73,6 +74,7 @@ export function TeacherPage() {
   );
 }
 export function TeacherStudentPage() {
+  const { session } = useAuth();
   const { id } = useParams();
   const { state, refresh } = useResource(`/users/${id}`, userSchema);
   if (state.status === 'loading') return <LoadingState />;
@@ -87,12 +89,14 @@ export function TeacherStudentPage() {
       <p>
         <Link to={`/assistant?userId=${id}`}>Персонаж и переписка помощника →</Link>
       </p>
+      <RecentAttempts userId={id!} />
+      <TeacherUpdates userId={id!} compact />
       <RunList userId={id} />
       <PlanOverview userId={id!} />
       <ProfileOverview userId={id!} />
       <DiagnosticHistory userId={id!} />
       <SkillStates userId={id!} />
-      <Link to="/teacher">← Мои ученики</Link>
+      <Link to={session.dashboardPath ?? '/teacher'}>← Кабинет</Link>
     </>
   );
 }

@@ -1,3 +1,4 @@
+import { TeacherAssignExercise, TeacherEditAssignment } from '../components/TeacherPlanControls';
 import { useEffect, useState } from 'react';
 import { Link, useNavigate, useParams, useSearchParams } from 'react-router-dom';
 import { planViewSchema, plansPageSchema, runViewSchema } from '@luch/contracts';
@@ -9,12 +10,18 @@ import { EmptyState, ErrorState, LoadingState } from '../components/States';
 import { QuestionnaireSummary, languageLabels } from '../components/QuestionnaireSummary';
 import { SkillStates, PlanChanges } from './AdaptationViews';
 
-const statusLabels = { pending: 'Не начато', active: 'В процессе', completed: 'Завершено' };
+const statusLabels = {
+  pending: 'Не начато',
+  active: 'В процессе',
+  completed: 'Завершено',
+  cancelled: 'Отменено преподавателем',
+};
 const kindLabels = {
   initial: 'Шаг маршрута',
   correction: 'Дополнительная практика',
   supported_practice: 'Практика самостоятельности',
   review: 'Отсроченная проверка',
+  teacher: 'Назначение преподавателя',
 };
 export function DiagnosticPlanLink({
   diagnosticId,
@@ -199,7 +206,7 @@ export function PlanDetailPage() {
 }
 function PlanDetail({ id }: { id: string }) {
   const { session } = useAuth();
-  const { state, refresh } = useResource(`/plans/${id}`, planViewSchema);
+  const { state, refresh } = useResource(`/plans/${id}`, planViewSchema, true);
   const navigate = useNavigate();
   const [busy, setBusy] = useState(false),
     [error, setError] = useState<Error | null>(null),
@@ -258,8 +265,14 @@ function PlanDetail({ id }: { id: string }) {
         </strong>{' '}
         · {statusLabels[plan.status]}
       </p>
+      {plan.cancelledAssignments > 0 && (
+        <p>
+          Отменено преподавателем: {plan.cancelledAssignments}. Отменённые задания не входят в
+          счётчик выполнения.
+        </p>
+      )}
       <progress
-        max={plan.totalAssignments}
+        max={Math.max(1, plan.totalAssignments)}
         value={plan.completedAssignments}
         aria-label="Выполнение плана"
       />
@@ -295,9 +308,11 @@ function PlanDetail({ id }: { id: string }) {
       )}
       {!next && (
         <p role="status">
-          {plan.status === 'completed'
-            ? 'Все назначения этого плана завершены. Результаты доступны в уроках.'
-            : 'Готовых назначений сейчас нет. Повторения откроются в указанное время.'}
+          {plan.totalAssignments === 0
+            ? 'Активных назначений в плане нет. Преподаватель может добавить новую практику.'
+            : plan.status === 'completed'
+              ? 'Активных незавершённых назначений в плане нет. Результаты доступны в уроках.'
+              : 'Готовых назначений сейчас нет. Повторения откроются в указанное время.'}
         </p>
       )}
       {error && (
@@ -306,6 +321,7 @@ function PlanDetail({ id }: { id: string }) {
           retry={() => (editable && retryAssignmentId ? void start(retryAssignmentId) : refresh())}
         />
       )}
+      {state.data.manageable && <TeacherAssignExercise plan={state.data} changed={refresh} />}
       <ol className="plan-list">
         {assignments.map((a) => (
           <li
@@ -342,7 +358,22 @@ function PlanDetail({ id }: { id: string }) {
                 {!a.canStart ? ' · пока недоступно' : ''}
               </p>
             )}
-            {a.status === 'completed' ? (
+            {a.teacherNote && (
+              <p className="content-text">
+                <strong>Комментарий преподавателя:</strong> {a.teacherNote}
+              </p>
+            )}
+            {state.data.manageable && (
+              <TeacherEditAssignment
+                key={`edit:${a.id}:${a.revision}`}
+                planId={id}
+                assignment={a}
+                changed={refresh}
+              />
+            )}
+            {a.status === 'cancelled' ? (
+              <p>Назначение отменено. Оно сохранено в истории и не считается выполненным.</p>
+            ) : a.status === 'completed' ? (
               <Link to={`/learning/runs/${a.runId}`}>Результаты урока →</Link>
             ) : editable ? (
               <button
@@ -364,7 +395,10 @@ function PlanDetail({ id }: { id: string }) {
           </li>
         ))}
       </ol>
-      <PlanChanges id={plan.id} />
+      <PlanChanges
+        key={state.data.assignments.map((a) => `${a.id}:${a.revision}`).join(',')}
+        id={plan.id}
+      />
       <SkillStates userId={plan.user.id} />
       <p>
         <Link to={`/diagnostics/${plan.diagnosticId}`}>Диагностика, на которой основан план →</Link>

@@ -25,11 +25,13 @@ export type DiagnosticRow = {
   status: 'active' | 'completed';
   total_steps: number;
   answered: string;
+  teacher_reviewed: number;
   plan_id: string | null;
 };
 export const diagnosticSelect = `SELECT d.*,r.title,r.is_demo,r.status,r.total_steps,
   u.email AS user_email,u.full_name AS user_name,
-  (SELECT count(*) FROM engine_attempts a WHERE a.run_id=d.run_id)::text AS answered
+  (SELECT count(*) FROM engine_attempts a WHERE a.run_id=d.run_id)::text AS answered,
+  (SELECT count(*)::integer FROM engine_attempts a WHERE a.run_id=d.run_id AND a.teacher_correct IS NOT NULL) AS teacher_reviewed
   ,p.id AS plan_id FROM diagnostic_sessions d JOIN engine_runs r ON r.id=d.run_id JOIN users u ON u.id=d.user_id
   LEFT JOIN learning_plans p ON p.diagnostic_id=d.id`;
 export function diagnosticSummary(row: DiagnosticRow) {
@@ -47,6 +49,7 @@ export function diagnosticSummary(row: DiagnosticRow) {
     isDemo: row.is_demo,
     status: row.status,
     answeredQuestions: Number(row.answered),
+    teacherReviewedAttempts: row.teacher_reviewed ?? 0,
     totalQuestions: row.total_steps,
     createdAt: new Date(row.created_at).toISOString(),
     completedAt: row.completed_at ? new Date(row.completed_at).toISOString() : null,
