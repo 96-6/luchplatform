@@ -1,6 +1,6 @@
 # LUCH development rules
 
-Follow the user's numbered tasks in `docs/ROADMAP.md` from top to bottom. Complete subtasks in order, verify the stated acceptance result, and record evidence before starting the next task. This repository currently implements tasks 1–11. Task 11 is the current acceptance scope; do not begin task 12 without a new user instruction.
+Follow the user's numbered tasks in `docs/ROADMAP.md` from top to bottom. Complete subtasks in order, verify the stated acceptance result, and record evidence before starting the next task. This repository implements and verifies tasks 1–11. Task 11 acceptance is recorded in `docs/ACCEPTANCE_TASK_11.md`; do not begin task 12 without a new user instruction.
 
 - Read `README.md`, `docs/ARCHITECTURE.md`, and the current task's acceptance record before changes.
 - Keep the React client, Fastify API, and shared validation contracts integrated. Only the server reads database credentials or provider keys.
