@@ -58,6 +58,7 @@ const limited = [
   'requestsPerUserDay',
   'maxOutputTokens',
   'maxTtsCharacters',
+  'maxRecordingSeconds',
   'maxVideoSeconds',
   'maxVideoCharacters',
   'maxConcurrent',
@@ -112,7 +113,7 @@ export class ProviderSettingsService {
       ? this.environment.OPENAI_API_KEY
       : id === 'neuroapi'
         ? this.environment.NEUROAPI_API_KEY
-        : id === 'elevenlabs'
+        : id === 'elevenlabs' || id === 'elevenlabs_stt'
           ? this.environment.ELEVENLABS_API_KEY
           : (this.environment.HEYGEN_API_KEY ?? '');
   }
@@ -194,12 +195,16 @@ export class ProviderSettingsService {
       for (const key of limited) controls[key] = Math.min(controls[key], input.ceilings[key]);
       if (!input.ceilings.maxTtsCharacters) {
         controls.listeningEnabled = false;
+        controls.assistantSpeechEnabled = false;
         controls.withListening = false;
       }
+      if (!input.ceilings.maxRecordingSeconds) controls.transcriptionEnabled = false;
       if (!input.ceilings.maxVideoSeconds || !input.ceilings.maxVideoCharacters)
         controls.videoEnabled = false;
       if (!input.ceilings.lifetimeMicros) {
         controls.videoEnabled = false;
+        controls.transcriptionEnabled = false;
+        controls.assistantSpeechEnabled = false;
         controls.enabled = false;
         controls.listeningEnabled = false;
         controls.withListening = false;
@@ -250,14 +255,16 @@ export class ProviderSettingsService {
         (!confirmed ||
           (id === 'heygen'
             ? !input.minuteRate || !['avatar_iv', 'avatar_v', 'avatar_iii'].includes(input.model)
-            : id === 'elevenlabs'
-              ? !input.characterRate || !input.voiceRu || !input.voiceEn
-              : !input.inputRate || !input.outputRate))
+            : id === 'elevenlabs_stt'
+              ? !input.minuteRate || !['scribe_v1', 'scribe_v2'].includes(input.model)
+              : id === 'elevenlabs'
+                ? !input.characterRate || !input.voiceRu || !input.voiceEn
+                : !input.inputRate || !input.outputRate))
       )
         throw new AppError(
           400,
           'PROVIDER_INCOMPLETE',
-          'Укажите и подтвердите цены; для ElevenLabs нужны голоса обоих языков, для HeyGen — цена минуты и поддерживаемый движок.',
+          'Укажите и подтвердите цены; для ElevenLabs нужны голоса обоих языков, для Scribe — цена минуты и модель scribe_v2/scribe_v1, для HeyGen — цена минуты и поддерживаемый движок.',
         );
       if (
         input.enabled &&

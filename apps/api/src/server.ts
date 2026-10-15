@@ -2,6 +2,7 @@ import { loadSettings } from './config.js';
 import { createDatabase } from './db/database.js';
 import { buildApp } from './app.js';
 import { assertSchemaCurrent } from './db/migrations.js';
+import { expireSpeechAudio } from './modules/speech/repository.js';
 import { recoverLearningEvents } from './modules/adaptation/processor.js';
 
 try {
@@ -11,6 +12,7 @@ try {
   try {
     await assertSchemaCurrent(database);
     await recoverLearningEvents(database);
+    await expireSpeechAudio(database, Date.now());
     app = await buildApp(settings, database);
   } catch (error) {
     await database.close();

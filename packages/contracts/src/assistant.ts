@@ -57,7 +57,7 @@ export const assistantMessageSchema = z.object({
   id: z.uuid(),
   role: z.enum(['user', 'assistant']),
   content: z.string(),
-  action: assistantActionSchema,
+  action: assistantActionSchema.or(z.literal('answer')),
   avatarId: avatarIdSchema,
   stepId: z.uuid(),
   turnId: z.uuid(),

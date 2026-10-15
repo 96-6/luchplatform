@@ -9,6 +9,7 @@ export * from './adaptation.js';
 export * from './providers.js';
 export * from './assistant.js';
 export * from './dashboard.js';
+export * from './speech.js';
 
 export const API_PREFIX = '/api/v1';
 export const systemSchema = z.object({

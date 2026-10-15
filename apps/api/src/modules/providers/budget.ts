@@ -43,7 +43,8 @@ export class ProviderBudget {
     userId: string,
     request: {
       resourceKey: string;
-      kind: 'adaptive_exercise' | 'listening' | 'avatar_video';
+      kind:
+        'adaptive_exercise' | 'listening' | 'avatar_video' | 'transcription' | 'assistant_speech';
       assignmentId?: string;
       cacheKey?: string;
       inputBound: number;
@@ -68,12 +69,16 @@ export class ProviderBudget {
     const enabled =
       request.kind === 'avatar_video'
         ? config.controls.videoEnabled
-        : request.kind === 'listening'
-          ? config.controls.listeningEnabled
-          : config.controls.enabled;
+        : request.kind === 'transcription'
+          ? config.controls.transcriptionEnabled
+          : request.kind === 'assistant_speech'
+            ? config.controls.assistantSpeechEnabled
+            : request.kind === 'listening'
+              ? config.controls.listeningEnabled
+              : config.controls.enabled;
     if (!enabled) throw new AppError(409, 'PROVIDER_DISABLED', 'Внешняя генерация выключена.');
     if (
-      request.kind === 'listening' &&
+      (request.kind === 'listening' || request.kind === 'assistant_speech') &&
       request.inputBound >
         Math.min(config.controls.maxTtsCharacters, config.ceilings.maxTtsCharacters)
     )
@@ -81,6 +86,16 @@ export class ProviderBudget {
         409,
         'PROVIDER_INPUT_LIMIT',
         'Текст превышает разрешённый объём озвучивания.',
+      );
+    if (
+      request.kind === 'transcription' &&
+      request.inputBound >
+        Math.min(config.controls.maxRecordingSeconds, config.ceilings.maxRecordingSeconds)
+    )
+      throw new AppError(
+        409,
+        'PROVIDER_INPUT_LIMIT',
+        'Запись превышает разрешённую продолжительность.',
       );
     if (
       request.kind === 'avatar_video' &&
@@ -103,9 +118,11 @@ export class ProviderBudget {
           now &&
         (request.kind === 'avatar_video'
           ? p.id === 'heygen' && p.minute_rate
-          : request.kind === 'listening'
-            ? p.id === 'elevenlabs' && p.character_rate
-            : ['openai', 'neuroapi'].includes(p.id) && p.input_rate && p.output_rate) &&
+          : request.kind === 'transcription'
+            ? p.id === 'elevenlabs_stt' && p.minute_rate
+            : request.kind === 'listening' || request.kind === 'assistant_speech'
+              ? p.id === 'elevenlabs' && p.character_rate
+              : ['openai', 'neuroapi'].includes(p.id) && p.input_rate && p.output_rate) &&
         (request.kind !== 'adaptive_exercise' ||
           config.controls.strategy === 'cheapest' ||
           p.id === config.controls.strategy),
@@ -117,9 +134,11 @@ export class ProviderBudget {
     const costOf = (p: ProviderRow) =>
       request.kind === 'avatar_video'
         ? videoCost(request.inputBound, p)
-        : request.kind === 'listening'
-          ? characterCost(request.inputBound, p)
-          : tokenCost(request.inputBound, outputBound, p);
+        : request.kind === 'transcription'
+          ? videoCost(Math.max(60, request.inputBound), p)
+          : request.kind === 'listening' || request.kind === 'assistant_speech'
+            ? characterCost(request.inputBound, p)
+            : tokenCost(request.inputBound, outputBound, p);
     const provider = valid.sort((a, b) => costOf(a) - costOf(b) || a.id.localeCompare(b.id))[0];
     if (!provider)
       throw new AppError(
@@ -215,8 +234,11 @@ export class ProviderBudget {
     errorCode?: string,
   ) {
     const cost = actual
-      ? r.provider.id === 'heygen'
-        ? videoCost(actual.input, r.provider)
+      ? r.provider.id === 'heygen' || r.provider.id === 'elevenlabs_stt'
+        ? videoCost(
+            r.provider.id === 'elevenlabs_stt' ? Math.max(60, actual.input) : actual.input,
+            r.provider,
+          )
         : r.provider.id === 'elevenlabs'
           ? characterCost(actual.input, r.provider)
           : tokenCost(actual.input, actual.output, r.provider)
@@ -242,6 +264,9 @@ export class ProviderBudget {
       );
       await tx.query(
         "UPDATE ai_configuration SET controls=jsonb_set(controls,'{videoEnabled}','false') WHERE id=1",
+      );
+      await tx.query(
+        "UPDATE ai_configuration SET controls=jsonb_set(jsonb_set(controls,'{transcriptionEnabled}','false'),'{assistantSpeechEnabled}','false') WHERE id=1",
       );
       await tx.query(
         'UPDATE external_providers SET enabled=false,revision=revision+1 WHERE id=$1',

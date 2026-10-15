@@ -969,3 +969,24 @@ fieldset legend {
     grid-template-columns: 1fr;
   }
 }
+
+.voice-answer textarea,
+.voice-answer select {
+  width: 100%;
+  max-width: 100%;
+}
+.voice-answer > button {
+  margin: 0 0.5rem 0.75rem 0;
+}
+.voice-feedback {
+  margin-top: 1.25rem;
+  overflow-wrap: anywhere;
+}
+.assistant-audio {
+  margin: 0.75rem 0;
+}
+.assistant-audio audio {
+  display: block;
+  width: 100%;
+  max-width: 440px;
+}

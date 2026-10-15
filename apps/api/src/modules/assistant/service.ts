@@ -163,6 +163,58 @@ export class AssistantService {
       };
     });
   }
+  async recordAnswerInTransaction(
+    tx: QueryExecutor,
+    actor: Actor,
+    runId: string,
+    turnId: string,
+    operationId: string,
+    text: string,
+    attemptId: string,
+  ) {
+    const { run, step, turn, context } = await this.context(tx, actor, runId, true);
+    if (!step || !turn || !context || turn.id !== turnId || turn.state !== 'answered')
+      throw new AppError(409, 'TURN_CHANGED', 'Задание изменилось. Обновите прохождение.');
+    const row = (
+      await tx.query<AttemptRow>(
+        `${attemptSelect} WHERE a.id=$1 AND a.run_id=$2 AND a.turn_id=$3`,
+        [attemptId, runId, turnId],
+      )
+    ).rows[0];
+    if (!row) throw new AppError(409, 'ANSWER_REQUIRED', 'Сначала сохраните подтверждённый ответ.');
+    const attempt = attemptView(row, run.purpose === 'practice' || run.status === 'completed');
+    context.lastAttempt = {
+      id: attempt.id,
+      exerciseId: attempt.exerciseId,
+      answer: attempt.answer,
+      evaluation: attempt.evaluation,
+    };
+    const preferences = (await profileOf(tx, run.user_id)).preferences;
+    const reply = attempt.evaluation
+      ? `${attempt.evaluation.correct ? 'Верно.' : 'В ответе есть ошибка.'} ${attempt.evaluation.explanation}`
+      : 'Ответ сохранён. Оценка и объяснение появятся после завершения всей проверки.';
+    const id = randomUUID();
+    await tx.query(
+      'INSERT INTO assistant_exchanges (id,user_id,run_id,step_id,turn_id,operation_id,request,context,preferences,action,user_text,assistant_text,actor_id,created_at) VALUES ($1,$2,$3,$4,$5,$6,$7,$8,$9,$10,$11,$12,$13,$14)',
+      [
+        id,
+        run.user_id,
+        runId,
+        step.id,
+        turnId,
+        operationId,
+        JSON.stringify({ operationId, turnId, text, attemptId, source: 'confirmed_response' }),
+        JSON.stringify(assistantContextSchema.parse(context)),
+        JSON.stringify(preferences),
+        'answer',
+        text,
+        reply,
+        actor.user.id,
+        new Date(this.now()),
+      ],
+    );
+    return id;
+  }
   async send(actor: Actor, runId: string, input: z.infer<typeof sendAssistantMessageSchema>) {
     await this.db.transaction(async (tx) => {
       const { run, step, turn, context, exercise } = await this.context(tx, actor, runId, true);

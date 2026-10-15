@@ -119,7 +119,11 @@ export class ElevenLabsAdapter {
           'content-type': 'application/json',
           accept: 'audio/mpeg',
         },
-        body: JSON.stringify({ text, model_id: r.provider.model, language_code: language }),
+        body: JSON.stringify({
+          text,
+          model_id: r.provider.model,
+          ...(r.provider.model === 'eleven_multilingual_v2' ? {} : { language_code: language }),
+        }),
         signal: AbortSignal.timeout(7000),
         redirect: 'error',
       },

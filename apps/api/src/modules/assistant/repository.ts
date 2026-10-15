@@ -40,7 +40,7 @@ export type ExchangeRow = {
   request: unknown;
   context: unknown;
   preferences: unknown;
-  action: 'explain' | 'hint' | 'dialogue';
+  action: 'explain' | 'hint' | 'dialogue' | 'answer';
   user_text: string;
   assistant_text: string;
   actor_id: string;
@@ -78,6 +78,7 @@ export function messagesOf(rows: ExchangeRow[], debug = false) {
         content:
           row.user_text ||
           {
+            answer: 'Ответ на задание.',
             explain: 'Объясните задание.',
             hint: 'Нужна подсказка.',
             dialogue: 'Давайте поговорим по теме.',

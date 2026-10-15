@@ -93,6 +93,7 @@ export const attemptSchema = z.object({
   submittedFor: z.uuid(),
   adminAssistance: z.boolean(),
   assistantHelp: z.boolean().default(false),
+  speechInputId: z.uuid().nullable().default(null),
   answer: answerSchema,
   evaluation: evaluationSchema.nullable(),
   usedHints: z.array(usedHintSchema),

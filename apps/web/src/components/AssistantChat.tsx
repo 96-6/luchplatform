@@ -9,6 +9,7 @@ import {
 } from '@luch/contracts';
 import type { z } from 'zod';
 import { api, ApiError } from '../lib/api';
+import { AssistantReplyAudio } from './AssistantReplyAudio';
 import { ErrorState } from './States';
 type Chat = z.infer<typeof assistantChatSchema>;
 type Pending = z.infer<typeof sendAssistantMessageSchema>;
@@ -42,7 +43,7 @@ export function AssistantChat({
       mounted.current = false;
       c.abort();
     };
-  }, [base]);
+  }, [base, view.attempts.length]);
   async function send(kind: AssistantAction) {
     if (!view.current || busy) return;
     const request = pending.current ?? {
@@ -141,6 +142,12 @@ export function AssistantChat({
                 <summary>Сохранённый контекст этой реплики</summary>
                 <pre className="engine-debug">{JSON.stringify(m.context, null, 2)}</pre>
               </details>
+            )}
+            {m.role === 'assistant' && (
+              <AssistantReplyAudio
+                messageId={m.id}
+                editable={editable && Boolean(chat?.writable)}
+              />
             )}
             {m.role === 'assistant' && (
               <AssistantVideo messageId={m.id} editable={editable && Boolean(chat.writable)} />

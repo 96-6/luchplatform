@@ -16,6 +16,7 @@ import { LoadingState, ErrorState, EmptyState } from '../components/States';
 import { ContentBlocks } from './ContentPages';
 import { monitorIntegrity } from '../lib/integrity';
 import { useResource } from '../lib/useResource';
+import { VoiceAnswer } from '../components/VoiceAnswer';
 import { AssistantChat } from '../components/AssistantChat';
 import { ListeningPlayer } from '../components/ListeningPlayer';
 
@@ -161,6 +162,7 @@ export function ExerciseRunPage() {
   return <RunSession key={id} id={id!} />;
 }
 function RunSession({ id }: { id: string }) {
+  const [voiceBusy, setVoiceBusy] = useState(false);
   const { session } = useAuth();
   const [view, setView] = useState<RunView | null>(null),
     [error, setError] = useState<Error | null>(null);
@@ -319,9 +321,17 @@ function RunSession({ id }: { id: string }) {
             <Question
               key={view.current.turn.id}
               view={view}
+              editable={editable && !voiceBusy}
+              changed={setView}
+              refresh={load}
+            />
+            <VoiceAnswer
+              key={view.current.turn.id}
+              view={view}
               editable={editable}
               changed={setView}
               refresh={load}
+              onBusy={setVoiceBusy}
             />
             {view.current.attempt && editable && (
               <div className="form-actions">

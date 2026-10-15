@@ -23,6 +23,7 @@ COPY --from=build /app/scripts/diagnostic-smoke.mjs ./scripts/diagnostic-smoke.m
 COPY --from=build /app/scripts/plan-smoke.mjs ./scripts/plan-smoke.mjs
 COPY --from=build /app/scripts/adaptation-smoke.mjs ./scripts/adaptation-smoke.mjs
 COPY --from=build /app/scripts/assistant-smoke.mjs ./scripts/assistant-smoke.mjs
+COPY --from=build /app/scripts/speech-smoke.mjs ./scripts/speech-smoke.mjs
 COPY --from=build /app/apps/web/package.json ./apps/web/package.json
 COPY --from=build /app/apps/web/dist ./apps/web/dist
 COPY --from=build /app/packages/contracts ./packages/contracts

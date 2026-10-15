@@ -26,6 +26,7 @@ const numberLabels = {
   requestsPerUserDay: 'Запросов на ученика в день',
   maxOutputTokens: 'Максимум токенов ответа',
   maxTtsCharacters: 'Максимум символов озвучивания',
+  maxRecordingSeconds: 'Максимум секунд голосовой записи',
   maxVideoSeconds: 'Максимум секунд видео HeyGen',
   maxVideoCharacters: 'Максимум символов реплики HeyGen',
   maxConcurrent: 'Одновременных запросов',
@@ -78,8 +79,9 @@ export function ProviderPage() {
     <>
       <h1>AI, озвучивание и расходы</h1>
       <p>
-        Генеративные варианты — OpenAI или NeuroAPI. Listening — ElevenLabs. Видеоаватары — HeyGen.
-        При недоступности генерации задания продолжаются из учебного банка.
+        Генеративные варианты — OpenAI или NeuroAPI. Listening, распознавание Scribe и голосовые
+        ответы — ElevenLabs. Видеоаватары — HeyGen. При недоступности генерации задания продолжаются
+        из учебного банка.
       </p>
       <section className="notice">
         <p>
@@ -258,6 +260,22 @@ function ControlsForm({ view, busy, save }: { view: View; busy: boolean; save: S
             />
             Разрешить генерацию видео HeyGen
           </label>
+          <label className="checkbox">
+            <input
+              type="checkbox"
+              checked={data.transcriptionEnabled}
+              onChange={(e) => setData({ ...data, transcriptionEnabled: e.target.checked })}
+            />
+            Разрешить распознавание ElevenLabs Scribe
+          </label>
+          <label className="checkbox">
+            <input
+              type="checkbox"
+              checked={data.assistantSpeechEnabled}
+              onChange={(e) => setData({ ...data, assistantSpeechEnabled: e.target.checked })}
+            />
+            Озвучивать ответы помощника через ElevenLabs
+          </label>
           <label htmlFor="ai-strategy">Выбор текстового провайдера</label>
           <select
             id="ai-strategy"
@@ -349,9 +367,11 @@ function ProviderForm({
       ? 'OpenAI'
       : p.id === 'neuroapi'
         ? 'NeuroAPI'
-        : p.id === 'elevenlabs'
-          ? 'ElevenLabs'
-          : 'HeyGen';
+        : p.id === 'elevenlabs_stt'
+          ? 'ElevenLabs Scribe STT'
+          : p.id === 'elevenlabs'
+            ? 'ElevenLabs'
+            : 'HeyGen';
   const rate = (
     field: 'inputRate' | 'outputRate' | 'characterRate' | 'minuteRate',
     label: string,
@@ -427,6 +447,15 @@ function ProviderForm({
               {rate('minuteRate', 'Верхняя цена HeyGen, USD за минуту видео')}
               <p>
                 Движки: avatar_iv, avatar_v или avatar_iii. Голоса и аватары настраиваются выше.
+              </p>
+            </>
+          ) : p.id === 'elevenlabs_stt' ? (
+            <>
+              {rate('minuteRate', 'Верхняя цена Scribe, USD за минуту записи')}
+              <p>
+                Модели scribe_v2 и scribe_v1. До 30 секунд на реплику; для короткого запроса
+                резервируется цена одной полной минуты. Ключ ElevenLabs задаётся здесь или через
+                ELEVENLABS_API_KEY на сервере.
               </p>
             </>
           ) : p.id === 'elevenlabs' ? (

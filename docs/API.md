@@ -205,7 +205,7 @@ API локально: `http://127.0.0.1:3000`. Клиент использует
 | POST  | `/engine/runs/:id/steps/:stepId/listening`           | Владелец/суперадмин: `{ operationId }`, подготовить или вернуть кэш `{ url, cached }`              |
 | GET   | `/engine/runs/:id/steps/:stepId/listening/:cacheKey` | Владелец/его преподаватель/суперадмин: сохранённое аудио, `audio/mpeg`, поддержка Range            |
 
-POST требуют сессии, допустимого origin и CSRF. Обычные ученик/преподаватель не управляют настройками. `provider=openai|neuroapi|elevenlabs`. Все денежные поля — целые микродоллары; входные/выходные цены за миллион токенов, цена речи за тысячу символов. Полные контракты — `packages/contracts/src/providers.ts`.
+POST требуют сессии, допустимого origin и CSRF. Обычные ученик/преподаватель не управляют настройками. `provider=openai|neuroapi|elevenlabs|elevenlabs_stt|heygen`. Все денежные поля — целые микродоллары; входные/выходные цены за миллион токенов, цена TTS за тысячу символов, STT/видео за минуту. Полные контракты — `packages/contracts/src/providers.ts`.
 
 Общие ограничения: суммы за всё время, день, месяц и на ученика; число вызовов на ученика в день, максимальные токены, символы речи, одновременные вызовы и срок подтверждения цен. Рабочие настройки: переключатели генерации/listening/аудиовариантов, `strategy=cheapest|openai|neuroapi`, текущие ограничения и `reviewDelayHours`. Редакции настроек защищают от потерянного обновления; устаревшая редакция даёт 409 `SETTINGS_CHANGED`, превышение разрешённых ограничений — 400 `LIMIT_EXCEEDED`.
 
@@ -230,6 +230,32 @@ POST требуют сессии, допустимого origin и CSRF. Обы�
 Чат помечен «Демо-помощник». Обычные роли получают `context: null`; суперадмин видит текущий и сохранённый контекст реплик. Объяснение/подсказка/диалог до тренировочного ответа помечают попытку как выполненную с помощью. Контроль и диагностика отклоняют подсказки/диалог с `HINTS_DISABLED`; нейтральное объяснение не раскрывает оценку.
 
 Схемы провайдеров теперь включают `heygen`, цену `minuteRate`, управление `videoEnabled`, `maxVideoCharacters` и `maxVideoSeconds`. Эти настройки меняет суперадмин. Видео возвращает `status: pending/ready/error`, защищённый `url` при готовности, `cached` и сообщение. `CONTENT_GENERATION_UNAVAILABLE` означает отсутствие доступного нового/непросмотренного материала; попытка и оценка не изменяются. Сохранённые прохождения и старые ролики допускают повторное открытие.
+
+## Голосовое взаимодействие — задача 10
+
+Контракты — `packages/contracts/src/speech.ts`. Все пути ниже начинаются с `/api/v1`. GET доступны владельцу, его преподавателю и суперадмину; POST — владельцу и суперадмину, требуют CSRF. Автор записи и подтверждения сохраняется. Ключи/сырой звук/эталонные ответы через эти методы не выдаются.
+
+| Метод | Путь                                            | Запрос и результат                                                                                   |
+| ----- | ----------------------------------------------- | ---------------------------------------------------------------------------------------------------- |
+| GET   | `/engine/runs/:runId/speech`                    | Текущий turn, `enabled`, `ttsEnabled`, `writable`, `maxSeconds` и последняя неотброшенная реплика    |
+| POST  | `/engine/runs/:runId/speech/inputs`             | `{ turnId, operationId, audioBase64 }`; PCM16 mono WAV 16 kHz; сохранённый `SpeechInput`             |
+| GET   | `/engine/runs/:runId/speech/inputs/:id`         | Состояние и сохранённые тексты реплики                                                               |
+| GET   | `/engine/runs/:runId/speech/inputs/:id/result`  | Реплика, актуальный `RunView`, созданное по её attempt дополнительное назначение или `null`          |
+| POST  | `/engine/runs/:runId/speech/inputs/:id/retry`   | `{ operationId }`; явный новый STT-вызов из сохранённой неудачной записи, если не истекли 24 часа    |
+| POST  | `/engine/runs/:runId/speech/inputs/:id/discard` | `{}`; отказаться от готовой/неудачной записи, удалить бинарный файл                                  |
+| POST  | `/engine/runs/:runId/speech/inputs/:id/confirm` | `{ operationId, text, optionId? }`; атомарное сохранение ответа/чата/адаптации, `SpeechConfirmation` |
+| POST  | `/engine/runs/:runId/speech/text`               | `{ turnId, operationId, text, optionId? }`; тот же результат для текстовой альтернативы, без STT     |
+| GET   | `/assistant/messages/:id/audio`                 | `{ url: string \| null }`; только сохранённое аудио, без платного вызова                             |
+| POST  | `/assistant/messages/:id/audio`                 | `{ operationId }`; подготовить TTS сохранённой реплики либо вернуть кэш `{ url, cached }`            |
+| GET   | `/assistant/messages/:id/audio/:key`            | Авторизованный `audio/mpeg` с Range; тот же доступ, что к сообщению                                  |
+
+`SpeechInput` содержит `id`, `runId`, `turnId`, `source=voice|text`, `status=processing|ready|error|discarded|confirmed`, `transcript`, `confirmedText`, `optionId`, `edited`, `durationMilliseconds`, `canRetry`, `attemptId`, `messageId`, `reply`, `error`, `createdAt`. Временная ошибка STT возвращает сохранённый `status=error`, без attempt. Ошибки формата/лимита не создают провайдерного запроса. Текст trim 1–1000 символов; максимум аудио 960 044 байта/30 секунд, входной HTTP body ограничен 1 400 000 байтами.
+
+`SpeechConfirmation` содержит `{ input, view, assignment }`. У назначения — `id`, `planId`, `title`, `kind`, `dueAt`; запуск и проверка срока прежние. Для наборов с отложенной обработкой назначение появится после завершения набора. В `Attempt` добавлен nullable `speechInputId`; обычные текстовые ответы сохраняют `null`. Пары сообщений о подтверждённом ответе имеют `action=answer`; публичный send чата по-прежнему принимает только `explain|hint|dialogue`.
+
+Идемпотентность: повтор одинакового `operationId`/payload возвращает прежнюю запись/попытку. Конфликт даёт 409 `SPEECH_OPERATION_CONFLICT` или `SPEECH_CONFIRM_CONFLICT`. Устаревший turn — 409 `TURN_CHANGED`/`ANSWER_ALREADY_SAVED`; до нового платного вызова. Неоднозначная реплика выбора — 409 `SPEECH_CHOICE_REQUIRED`, без оценки; требуется `optionId`. `SPEECH_NOT_READY` запрещает подтвердить неподготовленную запись. Сбой TTS — 503 `SPEECH_UNAVAILABLE`, оценка/чат сохранены; повтор того же платного UUID не отправляет запрос заново.
+
+В настройках добавлены `transcriptionEnabled`, `assistantSpeechEnabled`, `maxRecordingSeconds` (0–30; ноль запрещает запись). Scribe требует `minuteRate`, модель `scribe_v1|scribe_v2` и серверный ключ; вид запроса в журнале `transcription`. Голос чата использует TTS-конфигурацию `elevenlabs`, `maxTtsCharacters` и вид `assistant_speech`. Бюджеты и подтверждение цен общие с остальными вызовами. Подробности — [SPEECH.md](SPEECH.md).
 
 ## Главная ученика — задача 8
 

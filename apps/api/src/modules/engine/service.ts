@@ -378,105 +378,109 @@ export class LuchEngine {
     });
     return this.repository.view(actor, id);
   }
-  async answer(actor: Actor, id: string, input: z.infer<typeof submitAnswerSchema>) {
-    const attemptId = await this.db.transaction(async (tx) => {
-      const run = await lockRun(tx, id, actor, true);
-      if (this.db.kind === 'postgres')
-        await tx.query('SELECT pg_advisory_xact_lock(hashtextextended($1,0))', [
-          `answer:${run.user_id}:${input.operationId}`,
-        ]);
-      const existing = (
-        await tx.query<AttemptRow>(`${attemptSelect} WHERE a.user_id=$1 AND a.operation_id=$2`, [
-          run.user_id,
-          input.operationId,
-        ])
-      ).rows[0];
-      if (existing) {
-        if (
-          existing.run_id !== id ||
-          existing.turn_id !== input.turnId ||
-          canonicalJson(existing.answer) !== canonicalJson(input.answer)
-        )
-          throw new AppError(
-            409,
-            'ANSWER_OPERATION_CONFLICT',
-            'Эта операция уже сохранена с другим ответом.',
-          );
-        return existing.id;
-      }
-      const { step, turn, exercise } = await this.current(tx, run, input.turnId);
-      if (turn.state !== 'open')
+  async answerInTransaction(
+    tx: QueryExecutor,
+    actor: Actor,
+    id: string,
+    input: z.infer<typeof submitAnswerSchema>,
+  ) {
+    const run = await lockRun(tx, id, actor, true);
+    if (this.db.kind === 'postgres')
+      await tx.query('SELECT pg_advisory_xact_lock(hashtextextended($1,0))', [
+        `answer:${run.user_id}:${input.operationId}`,
+      ]);
+    const existing = (
+      await tx.query<AttemptRow>(`${attemptSelect} WHERE a.user_id=$1 AND a.operation_id=$2`, [
+        run.user_id,
+        input.operationId,
+      ])
+    ).rows[0];
+    if (existing) {
+      if (
+        existing.run_id !== id ||
+        existing.turn_id !== input.turnId ||
+        canonicalJson(existing.answer) !== canonicalJson(input.answer)
+      )
         throw new AppError(
           409,
-          'ANSWER_ALREADY_SAVED',
-          'Ответ уже проверен. Обновите прохождение.',
+          'ANSWER_OPERATION_CONFLICT',
+          'Эта операция уже сохранена с другим ответом.',
         );
-      const evaluation = evaluate(exercise, input.answer),
-        hints = hintsOf(turn),
-        date = new Date(this.now()),
-        attempt = randomUUID();
-      const active = activeTime(turn, this.now()),
-        elapsed = Math.max(0, this.now() - new Date(turn.started_at).getTime());
-      const adminAssistance = turn.admin_assistance || actor.user.id !== run.user_id;
-      const independent =
-        hints.length === 0 && !turn.prior_feedback && !turn.assistant_help && !adminAssistance;
-      await tx.query(
-        'INSERT INTO engine_attempts (id,run_id,step_id,turn_id,user_id,submitted_by,operation_id,answer,evaluation,is_correct,independent,used_hints,prior_feedback,active_ms,elapsed_ms,started_at,evaluated_at,admin_assistance,assistant_help) VALUES ($1,$2,$3,$4,$5,$6,$7,$8,$9,$10,$11,$12,$13,$14,$15,$16,$17,$18,$19)',
-        [
-          attempt,
-          id,
-          step.id,
-          turn.id,
-          run.user_id,
-          actor.user.id,
-          input.operationId,
-          JSON.stringify(input.answer),
-          JSON.stringify(evaluation),
-          evaluation.correct,
+      return existing.id;
+    }
+    const { step, turn, exercise } = await this.current(tx, run, input.turnId);
+    if (turn.state !== 'open')
+      throw new AppError(409, 'ANSWER_ALREADY_SAVED', 'Ответ уже проверен. Обновите прохождение.');
+    const evaluation = evaluate(exercise, input.answer),
+      hints = hintsOf(turn),
+      date = new Date(this.now()),
+      attempt = randomUUID();
+    const active = activeTime(turn, this.now()),
+      elapsed = Math.max(0, this.now() - new Date(turn.started_at).getTime());
+    const adminAssistance = turn.admin_assistance || actor.user.id !== run.user_id;
+    const independent =
+      hints.length === 0 && !turn.prior_feedback && !turn.assistant_help && !adminAssistance;
+    await tx.query(
+      'INSERT INTO engine_attempts (id,run_id,step_id,turn_id,user_id,submitted_by,operation_id,answer,evaluation,is_correct,independent,used_hints,prior_feedback,active_ms,elapsed_ms,started_at,evaluated_at,admin_assistance,assistant_help) VALUES ($1,$2,$3,$4,$5,$6,$7,$8,$9,$10,$11,$12,$13,$14,$15,$16,$17,$18,$19)',
+      [
+        attempt,
+        id,
+        step.id,
+        turn.id,
+        run.user_id,
+        actor.user.id,
+        input.operationId,
+        JSON.stringify(input.answer),
+        JSON.stringify(evaluation),
+        evaluation.correct,
+        independent,
+        JSON.stringify(hints),
+        turn.prior_feedback,
+        active,
+        elapsed,
+        turn.started_at,
+        date,
+        adminAssistance,
+        turn.assistant_help,
+      ],
+    );
+    await tx.query(
+      "UPDATE engine_turns SET state='answered',draft_answer=$2,active_ms=$3,resumed=false,last_seen_at=$4,admin_assistance=$5 WHERE id=$1",
+      [turn.id, JSON.stringify(input.answer), active, date, adminAssistance],
+    );
+    const integrity = await recordIntegrity(tx, run, turn, attempt, this.now());
+    await tx.query(
+      'INSERT INTO engine_events (id,attempt_id,kind,payload,created_at) VALUES ($1,$1,$2,$3,$4)',
+      [
+        attempt,
+        'exercise.answered',
+        JSON.stringify({
+          attemptId: attempt,
+          userId: run.user_id,
+          submittedBy: actor.user.id,
+          packageId: run.package_id,
+          packageVersion: run.package_version,
+          exerciseId: exercise.id,
+          exerciseVersion: exercise.version,
+          skillId: exercise.skillId,
+          purpose: run.purpose,
+          correct: evaluation.correct,
           independent,
-          JSON.stringify(hints),
-          turn.prior_feedback,
-          active,
-          elapsed,
-          turn.started_at,
-          date,
           adminAssistance,
-          turn.assistant_help,
-        ],
-      );
-      await tx.query(
-        "UPDATE engine_turns SET state='answered',draft_answer=$2,active_ms=$3,resumed=false,last_seen_at=$4,admin_assistance=$5 WHERE id=$1",
-        [turn.id, JSON.stringify(input.answer), active, date, adminAssistance],
-      );
-      const integrity = await recordIntegrity(tx, run, turn, attempt, this.now());
-      await tx.query(
-        'INSERT INTO engine_events (id,attempt_id,kind,payload,created_at) VALUES ($1,$1,$2,$3,$4)',
-        [
-          attempt,
-          'exercise.answered',
-          JSON.stringify({
-            attemptId: attempt,
-            userId: run.user_id,
-            submittedBy: actor.user.id,
-            packageId: run.package_id,
-            packageVersion: run.package_version,
-            exerciseId: exercise.id,
-            exerciseVersion: exercise.version,
-            skillId: exercise.skillId,
-            purpose: run.purpose,
-            correct: evaluation.correct,
-            independent,
-            adminAssistance,
-            requiresReview: integrity.requiresReview,
-            usedHintCount: hints.length,
-          }),
-          date,
-        ],
-      );
-      await this.changed(tx, run, actor, 'answer_submitted');
-      await processRunLearningEvents(tx, id, this.now());
-      return attempt;
-    });
+          requiresReview: integrity.requiresReview,
+          usedHintCount: hints.length,
+        }),
+        date,
+      ],
+    );
+    await this.changed(tx, run, actor, 'answer_submitted');
+    await processRunLearningEvents(tx, id, this.now());
+    return attempt;
+  }
+  async answer(actor: Actor, id: string, input: z.infer<typeof submitAnswerSchema>) {
+    const attemptId = await this.db.transaction((tx) =>
+      this.answerInTransaction(tx, actor, id, input),
+    );
     const view = await this.repository.view(actor, id);
     return { attempt: view.attempts.find((attempt) => attempt.id === attemptId)!, view };
   }

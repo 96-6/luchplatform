@@ -11,6 +11,10 @@ import { projectRoot, type Settings } from './config.js';
 import type { Database } from './db/database.js';
 import { assertSchemaCurrent } from './db/migrations.js';
 import { AppError } from './errors.js';
+import { registerVoiceRoutes } from './modules/speech/routes.js';
+import { VoiceService } from './modules/speech/service.js';
+import { AssistantAudioService } from './modules/speech/audio.js';
+import { ElevenLabsTranscriptionAdapter } from './modules/speech/adapter.js';
 import { registerProbeRoutes } from './modules/probes/routes.js';
 import { AccountCrypto } from './modules/auth/crypto.js';
 import { AuthService } from './modules/auth/service.js';
@@ -226,6 +230,12 @@ export async function buildApp(
   await registerDiagnosticRoutes(app, auth);
   await registerPlanRoutes(app, auth, (actor, planId, assignmentId) =>
     generation.prepare(actor, planId, assignmentId),
+  );
+  await registerVoiceRoutes(
+    app,
+    auth,
+    new VoiceService(providerSettings, new ElevenLabsTranscriptionAdapter(options.providerFetch)),
+    new AssistantAudioService(providerSettings, new ElevenLabsAdapter(options.providerFetch)),
   );
   await registerAdaptationRoutes(app, auth);
   await registerDashboardRoutes(app, auth);

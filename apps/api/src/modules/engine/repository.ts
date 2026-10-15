@@ -77,6 +77,7 @@ export type TurnRow = {
   created_by: string;
 };
 export type AttemptRow = {
+  speech_input_id?: string | null;
   id: string;
   run_id: string;
   step_id: string;
@@ -177,6 +178,7 @@ export function attemptView(row: AttemptRow, reveal: boolean): EngineAttempt {
     submittedFor: row.user_id,
     adminAssistance: row.admin_assistance,
     assistantHelp: row.assistant_help,
+    speechInputId: row.speech_input_id ?? null,
     answer: draftAnswerSchema.unwrap().parse(row.answer),
     evaluation: reveal ? evaluationSchema.parse(row.evaluation) : null,
     usedHints: z.array(usedHintSchema).parse(row.used_hints),

@@ -18,13 +18,13 @@ export class ApiError extends Error {
 export async function api<T extends z.ZodType>(
   path: string,
   schema: T,
-  options: { signal?: AbortSignal; body?: unknown; keepalive?: boolean } = {},
+  options: { signal?: AbortSignal; body?: unknown; keepalive?: boolean; timeoutMs?: number } = {},
 ): Promise<z.infer<T>> {
   const controller = new AbortController();
   const abort = () => controller.abort();
   if (options.signal?.aborted) controller.abort();
   options.signal?.addEventListener('abort', abort, { once: true });
-  const timer = setTimeout(abort, 10000);
+  const timer = setTimeout(abort, options.timeoutMs ?? 10000);
   try {
     const response = await fetch(`${API_PREFIX}${path}`, {
       method: options.body === undefined ? 'GET' : 'POST',

@@ -37,6 +37,24 @@ await bootstrapService(database, settings).provision(
   'superadmin',
   true,
 );
+let speechTestMode = { sttFailure: false, ttsFailure: false, transcript: null };
+const mic = Buffer.alloc(44 + 32000 * 2);
+mic.write('RIFF', 0);
+mic.writeUInt32LE(mic.length - 8, 4);
+mic.write('WAVEfmt ', 8);
+mic.writeUInt32LE(16, 16);
+mic.writeUInt16LE(1, 20);
+mic.writeUInt16LE(1, 22);
+mic.writeUInt32LE(16000, 24);
+mic.writeUInt32LE(32000, 28);
+mic.writeUInt16LE(2, 32);
+mic.writeUInt16LE(16, 34);
+mic.write('data', 36);
+mic.writeUInt32LE(mic.length - 44, 40);
+for (let at = 44; at < mic.length; at += 2)
+  mic.writeInt16LE(Math.round(Math.sin(at / 20) * 10000), at);
+await mkdir(new URL('../data/', import.meta.url), { recursive: true });
+await writeFile(new URL('../data/e2e-mic.wav', import.meta.url), mic);
 const app = await buildApp(settings, database, {
   captchaGenerator: () => 'ABCDE',
   providerFetch: async (url, options) => {
@@ -52,6 +70,19 @@ const app = await buildApp(settings, database, {
       });
     if (String(url) === 'https://resource.heygen.ai/test-fixture.mp4')
       return new Response(testVideo, { headers: { 'content-type': 'video/mp4' } });
+    if (String(url) === 'https://api.elevenlabs.io/v1/speech-to-text') {
+      if (speechTestMode.sttFailure) throw new Error('Test STT outage');
+      const language = options.body.get('language_code');
+      return Response.json({
+        text: speechTestMode.transcript ?? (language === 'ru' ? 'Меня зовут Анна.' : 'I am Anna.'),
+        language_code: language,
+      });
+    }
+    if (
+      String(url).startsWith('https://api.elevenlabs.io/v1/text-to-speech/') &&
+      speechTestMode.ttsFailure
+    )
+      throw new Error('Test TTS outage');
     if (String(url).startsWith('https://api.elevenlabs.io/'))
       return new Response(testTone, { headers: { 'content-type': 'audio/mpeg' } });
     const body = JSON.parse(String(options.body));
@@ -93,6 +124,16 @@ app.post('/__e2e/isolate', async (request, reply) => {
   await database.exec('TRUNCATE auth_rate_limits');
   return reply.code(204).send();
 });
+app.post('/__e2e/speech-mode', async (request, reply) => {
+  if (request.headers['x-e2e-fixture'] !== testIsolationToken) return reply.code(403).send();
+  speechTestMode = {
+    sttFailure: Boolean(request.body.sttFailure),
+    ttsFailure: Boolean(request.body.ttsFailure),
+    transcript:
+      typeof request.body.transcript === 'string' ? request.body.transcript.slice(0, 1000) : null,
+  };
+  return reply.code(204).send();
+});
 const fixturePath = new URL('../data/e2e-accounts.json', import.meta.url);
 for (const prefix of [
   'engine-retry',
@@ -119,6 +160,11 @@ for (const prefix of [
   'dashboard-en',
   'dashboard-empty',
   'dashboard-retry',
+  'speech-ru',
+  'speech-en',
+  'speech-failure',
+  'speech-permission',
+  'speech-control',
 ])
   for (const retry of [0, 1]) {
     const email = `${prefix}-${retry}@example.test`;
