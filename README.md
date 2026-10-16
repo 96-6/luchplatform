@@ -185,23 +185,26 @@ npm run content:export -- --package luch-demo --file ./luch-demo-export.json
 
 Полный пример — [.env.example](.env.example). Сервер читает `.env` в корне проекта; переменные процесса имеют приоритет. Неизвестное значение флага, неверный порт или адрес приводят к отказу запуска с названием проблемного параметра.
 
-| Параметр                                                   | Назначение                                                                    |
-| ---------------------------------------------------------- | ----------------------------------------------------------------------------- |
-| `APP_ENV`                                                  | `development`, `test` или `production`                                        |
-| `APP_URL`                                                  | Полный origin приложения; разрешённый адрес браузерных запросов               |
-| `API_HOST`, `API_PORT`                                     | Адрес и порт API; в контейнере host `0.0.0.0`                                 |
-| `WEB_PORT`                                                 | Порт Vite в разработке                                                        |
-| `DATABASE_URL`                                             | `pglite:./data/luch` локально или `postgresql://user:password@host:5432/luch` |
-| `DATABASE_SSL`                                             | `true` для TLS к внешней базе с проверкой сертификата                         |
-| `ENABLE_DEV_TOOLS`                                         | Тестовые записи и проверка системы; по умолчанию выключены                    |
-| `LOCAL_DEBUG_LOGIN`                                        | Изолированный локальный режим; по умолчанию выключен, production запрещён     |
-| `LOCAL_DEBUG_ADMIN_ALIAS`                                  | Локальное значение доступа из окружения; не включается в репозиторий          |
-| `SERVE_WEB`                                                | Раздача собранного клиента сервером                                           |
-| `LOG_LEVEL`                                                | `debug`, `info`, `warn`, `error`, `silent`                                    |
-| `OPENAI_API_KEY`, `NEUROAPI_API_KEY`, `ELEVENLABS_API_KEY` | Необязательные серверные ключи; приоритет имеет настройка суперадмина в базе  |
-| `AI_API_URL`, `AI_API_KEY`                                 | Серверные параметры будущего помощника                                        |
-| `SPEECH_API_URL`, `SPEECH_API_KEY`                         | Зарезервированы; адаптеры ElevenLabs используют `ELEVENLABS_API_KEY`          |
-| `VIDEO_SERVICE_URL`, `VIDEO_API_KEY`                       | Серверные параметры будущего видеосервиса                                     |
+| Параметр                                                   | Назначение                                                                              |
+| ---------------------------------------------------------- | --------------------------------------------------------------------------------------- |
+| `APP_ENV`                                                  | `development`, `test` или `production`                                                  |
+| `APP_URL`                                                  | Полный origin приложения; разрешённый адрес браузерных запросов                         |
+| `API_HOST`, `API_PORT`                                     | Адрес и порт API; в контейнере host `0.0.0.0`                                           |
+| `WEB_PORT`                                                 | Порт Vite в разработке                                                                  |
+| `DATABASE_URL`                                             | `pglite:./data/luch` локально или `postgresql://user:password@host:5432/luch`           |
+| `DATABASE_SSL`                                             | `true` для TLS к внешней базе с проверкой сертификата                                   |
+| `ENABLE_DEV_TOOLS`                                         | Тестовые записи и проверка системы; по умолчанию выключены                              |
+| `LOCAL_DEBUG_LOGIN`                                        | Изолированный локальный режим; по умолчанию выключен, production запрещён               |
+| `LOCAL_DEBUG_ADMIN_ALIAS`                                  | Локальное значение доступа из окружения; не включается в репозиторий                    |
+| `SERVE_WEB`                                                | Раздача собранного клиента сервером                                                     |
+| `LOG_LEVEL`                                                | `debug`, `info`, `warn`, `error`, `silent`                                              |
+| `OPENAI_API_KEY`, `NEUROAPI_API_KEY`, `ELEVENLABS_API_KEY` | Необязательные серверные ключи; приоритет имеет настройка суперадмина в базе            |
+| `AI_API_URL`, `AI_API_KEY`                                 | Серверные параметры будущего помощника                                                  |
+| `SPEECH_API_URL`, `SPEECH_API_KEY`                         | Зарезервированы; адаптеры ElevenLabs используют `ELEVENLABS_API_KEY`                    |
+| `VIDEO_SERVICE_URL`, `VIDEO_API_KEY`                       | Серверные параметры будущего видеосервиса                                               |
+| `LIVEKIT_URL`, `LIVEKIT_WS_URL`                            | Внутренние HTTP/WS-адреса SFU; браузеры используют шлюз приложения                      |
+| `LIVEKIT_API_KEY`, `LIVEKIT_API_SECRET`                    | Серверные ключи собственного LiveKit; подготовка через `setup --video`                  |
+| `LIVEKIT_NODE_IP`                                          | Адрес медиа для локальной конфигурации; на хостинге см. [MEETINGS.md](docs/MEETINGS.md) |
 
 Без ключей и бюджетов адаптация работает из банка, внешние сервисы не вызываются. Ключи клиенту не передаются. Для production обязательны отдельный PostgreSQL, HTTPS в `APP_URL`, `ENABLE_DEV_TOOLS=false`, постоянный `AUTH_ENCRYPTION_KEY` и настроенный SMTP (`MAIL_MODE=smtp`). Рабочий URL, TLS и аккаунты хостинга подключаются на этапе размещения.
 
