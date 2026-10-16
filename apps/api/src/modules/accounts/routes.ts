@@ -73,10 +73,15 @@ export async function registerAccountRoutes(app: FastifyInstance, auth: AuthServ
   });
   app.get('/api/v1/admin/accounts', async (request) => {
     const actor = await auth.requireActor(request, 'superadmin');
-    const { search } = z.object({ search: z.string().max(100).default('') }).parse(request.query);
+    const { search, role } = z
+      .strictObject({
+        search: z.string().max(100).default(''),
+        role: z.enum(['student', 'teacher', 'admin', 'superadmin']).optional(),
+      })
+      .parse(request.query);
     const result = await db.query<UserRow>(
-      'SELECT * FROM users WHERE email ILIKE $1 OR full_name ILIKE $1 ORDER BY created_at DESC,id LIMIT 100',
-      [`%${search}%`],
+      'SELECT * FROM users WHERE ($2::text IS NULL OR role=$2) AND (email ILIKE $1 OR full_name ILIKE $1) ORDER BY created_at DESC,id LIMIT 100',
+      [`%${search}%`, role ?? null],
     );
     await audit(db, actor.user.id, 'accounts.list_view');
     return { data: result.rows.map(publicUser), requestId: request.id };

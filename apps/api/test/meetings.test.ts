@@ -605,3 +605,30 @@ describe('meeting recovery boundaries', () => {
     ).toHaveLength(0);
   });
 });
+
+describe('scheduler account lookup scale', () => {
+  it('finds the assigned teacher beyond the first hundred general accounts, with independent role search', async () => {
+    const root = await f.active('superadmin'),
+      teacher = await f.active('teacher');
+    await f.db.query("UPDATE users SET created_at=now()-interval '1 year' WHERE id=$1", [
+      teacher.actor.user.id,
+    ]);
+    await f.db.query(
+      "INSERT INTO users (id,email,full_name,role) SELECT md5('meeting-directory-'||n)::uuid,'directory-'||n||'@example.test','Directory','student' FROM generate_series(1,105) n",
+    );
+    const all = await f.app.inject({ url: '/api/v1/admin/accounts', headers: root.headers });
+    expect(all.json().data).toHaveLength(100);
+    expect(all.json().data.some((u: { id: string }) => u.id === teacher.actor.user.id)).toBe(false);
+    const found = await f.app.inject({
+      url: '/api/v1/admin/accounts?role=teacher',
+      headers: root.headers,
+    });
+    expect(found.statusCode).toBe(200);
+    expect(found.json().data.map((u: { id: string }) => u.id)).toEqual([teacher.actor.user.id]);
+    const denied = await f.app.inject({
+      url: '/api/v1/admin/accounts?role=teacher',
+      headers: teacher.headers,
+    });
+    expect(denied.statusCode).toBe(403);
+  });
+});

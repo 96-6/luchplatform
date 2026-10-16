@@ -74,7 +74,7 @@ export function SchedulePage() {
   }
   return (
     <>
-      <h1>Расписание видеозанятий</h1>
+      <h1>Расписание</h1>
       <p>Время показано в часовом поясе {zone}. Встречи открываются в браузере.</p>
       <div className="calendar-toolbar">
         <button
