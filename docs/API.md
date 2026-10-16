@@ -305,3 +305,33 @@ POST требуют сессии, допустимого origin и CSRF. Обы�
 UUID операции сохраняется вместе с точным запросом. Повтор возвращает актуальное состояние без нового действия; изменённое содержимое с тем же UUID даёт 409 `TEACHER_OPERATION_CONFLICT`. Устаревшие редакции — `REVIEW_CHANGED`/`ASSIGNMENT_CHANGED`; начатое или отменённое назначение — `ASSIGNMENT_LOCKED`; запуск отменённого — `ASSIGNMENT_CANCELLED`. Незавершённый закрытый набор — `ASSESSMENT_INCOMPLETE`, упражнение вне закреплённого банка — `INVALID_TEACHER_EXERCISE`. Авторство, оценка/назначение, проекция навыка и история сохраняются транзакционно. Повторная отправка и одновременное действие ученика не создают дубликаты.
 
 Пользовательский сценарий и ограничения — [TEACHER.md](TEACHER.md).
+
+## Расписание и видеозанятия — задача 12
+
+Контракты — `packages/contracts/src/meetings.ts`. Все пути ниже начинаются с `/api/v1`; сессия обязательна, изменения требуют CSRF. Ученик видит приглашённые встречи, организаторы — свои, администратор и суперадмин — все. Информация устройств доступна только организаторам и суперадмину.
+
+| Метод    | Путь                                      | Назначение                                                                                                               |
+| -------- | ----------------------------------------- | ------------------------------------------------------------------------------------------------------------------------ |
+| GET      | `/meetings/options`                       | Доступные ученики и организаторы для планирования                                                                        |
+| GET      | `/meetings?from=ISO&to=ISO`               | Период до 93 дней; `limit` 1–100, `beforeStartsAt`/`beforeId` из `nextCursor`                                            |
+| POST     | `/meetings`                               | Создать встречу из `createMeetingSchema`, вернуть `Meeting`                                                              |
+| GET/POST | `/meetings/:id`                           | Прочитать / изменить расписание до начала с `revision` и `operationId`                                                   |
+| POST     | `/meetings/:id/join`                      | `{ operationId }`; сохранённая сессия ожидания/допуска и встреча                                                         |
+| GET      | `/meetings/:id/room-state?sessionId=UUID` | Собственная сессия, доступность, фактические подключения, руки, приватные предупреждения и очередь ожидания для ведущего |
+| POST     | `/meetings/:id/sessions/:sid/token`       | `{}`; допуск к видеосвязи для собственной допущенной сессии                                                              |
+| POST     | `/meetings/:id/sessions/:sid/leave`       | `{}`; выход из своего подключения                                                                                        |
+| POST     | `/meetings/:id/sessions/:sid/hand`        | `{ raised: boolean }`                                                                                                    |
+| POST     | `/meetings/:id/sessions/:sid/devices`     | Последовательный `revision`, `camera`/`microphone`: `{ label, trackSid }` либо `null`                                    |
+| POST     | `/meetings/:id/moderate`                  | `operationId`, `action`, `targetId?`, `revision?`; актуальная встреча                                                    |
+| GET/POST | `/meetings/:id/messages`                  | История по 50 сообщений / `{ operationId, text }` (1–2000 символов)                                                      |
+| POST     | `/meetings/:id/summary`                   | `operationId`, `revision`, `comment`, `homework[]`; итог и обычные назначения плана атомарно                             |
+
+Создание: `title` 1–160, `description` до 3000, `language=ru|en`, `startsAt`/`endsAt` UTC ISO, `timeZone` IANA, `organizerId`, `coorganizerIds` до 5, `studentIds` 1–50 без повторов, `lobbyEnabled`. Продолжительность — до 8 часов. Основной организатор — преподаватель, преподаватели должны быть связаны со всеми учениками. `Meeting` содержит статусы `scheduled|live|completed|cancelled`, редакции, участников, доступность/права, итоговую историю и домашние ссылки. В группе ученик получает только свои домашние назначения.
+
+Модерация: `admit`, `kick`, `restore`, `mute_audio`, `allow_audio`, `disable_video`, `allow_video`, `stop_screen`, `allow_screen`, `lower_hand`, `mute_all`, `lock`, `unlock`, `end`, `cancel`. `targetId` — ID подключения, кроме `restore` (ID ученика). Смена входа/завершение/отмена требуют редакции встречи. Разрешение медиа не включает устройство удалённо. `pendingCommands` у ведущего означает, что команда сохранена и ожидает доставки; состояние недоступности видеосервера не считается учебной ошибкой.
+
+Отчёт устройств принимает только имя активного входа и ID опубликованного трека, не весь инвентарь. Результаты видны только проверяющим: `warnings[]` содержит `kind`, `label`, `match`, `reportedAt`; обычным участникам возвращается пустой список и `deviceReportedAt=null`. Демонстрации экрана не классифицируются как камеры. `self.deviceRevision` позволяет продолжить последовательность после обновления страницы. Метки являются сообщением клиента, не аттестацией оборудования.
+
+Итог после завершения: комментарий 1–3000; `homework[]` до 50 строк `{ studentId, planId, exerciseId, reason, dueAt }`. План принадлежит участнику и языку встречи; действуют прежние проверки доступа преподавателя. Все назначения используют существующий банк и luch engine. Повтор UUID безопасен, другой запрос с прежним UUID — `MEETING_OPERATION_CONFLICT`; устаревшие редакции — `MEETING_CHANGED` / `MEETING_SUMMARY_CHANGED`. `MEETING_NOT_ADMITTED`, `MEETING_REMOVED`, `MEETING_NOT_OPEN`, `MEETING_CLOSED` описывают состояние входа. `VIDEO_NOT_CONFIGURED` / `VIDEO_UNAVAILABLE` — технические состояния без изменения оценок. Чат ограничен 20 новыми сообщениями в минуту; история принимает пару `beforeCreatedAt`/`beforeId`.
+
+Настройка и ограничения — [MEETINGS.md](MEETINGS.md).

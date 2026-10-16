@@ -24,7 +24,10 @@ import { seedDemoContent } from '../../src/modules/content/bootstrap.js';
 import type { ProviderFetch } from '../../src/modules/providers/adapters.js';
 
 export type Login = { actor: Actor; headers: { cookie: string; 'x-csrf-token': string } };
-export async function learningFixture(providerFetch?: ProviderFetch) {
+export async function learningFixture(
+  providerFetch?: ProviderFetch,
+  meetingVideo?: import('../../src/modules/meetings/adapter.js').MeetingVideo,
+) {
   const settings = parseSettings({
     APP_ENV: 'test',
     DATABASE_URL: process.env.TEST_DATABASE_URL ?? 'pglite:memory',
@@ -38,7 +41,7 @@ export async function learningFixture(providerFetch?: ProviderFetch) {
     throw new Error('Use an isolated test database.');
   const db = await createDatabase(settings);
   await migrate(db);
-  const app = await buildApp(settings, db, { providerFetch }),
+  const app = await buildApp(settings, db, { providerFetch, meetingVideo }),
     crypto = new AccountCrypto(settings.AUTH_ENCRYPTION_KEY);
   const demo = contentPackageSchema.parse(
     JSON.parse(await readFile(resolve(projectRoot, 'content/demo/luch-demo.json'), 'utf8')),

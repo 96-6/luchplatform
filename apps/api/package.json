@@ -30,6 +30,7 @@
     "dotenv": "^17.0.0",
     "fastify": "5.12.5",
     "ipaddr.js": "2.5.0",
+    "livekit-server-sdk": "2.19.1",
     "nodemailer": "10.1.0",
     "otpauth": "9.5.2",
     "pg": "8.23.1",

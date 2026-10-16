@@ -37,11 +37,26 @@ jobs:
           TEST_DATABASE_URL: postgresql://luch:ci-only-password@127.0.0.1:5432/luch_test
       - run: npm run build
       - run: npx playwright install --with-deps chromium
-      - run: npm run test:e2e
+      - name: Start self-hosted LiveKit for real browser calls
+        run: |
+          node scripts/prepare-video-test.mjs
+          docker run -d --name luch-video-test --network host -v "$PWD/data/video-test/livekit.yaml:/etc/livekit.yaml:ro" livekit/livekit-server:v1.13.10 --config /etc/livekit.yaml
+          for attempt in $(seq 1 30); do
+            if curl --fail --silent http://127.0.0.1:7880 > /dev/null; then break; fi
+            sleep 1
+          done
+          curl --fail --silent http://127.0.0.1:7880 > /dev/null
+      - name: Browser and real WebRTC media checks
+        run: xvfb-run --auto-servernum npm run test:e2e
+        env:
+          LUCH_VIDEO_TEST_ENV: data/video-test/environment.json
+      - name: Stop browser video server
+        if: always()
+        run: docker rm -f luch-video-test || true
       - name: Docker Compose startup and persisted write
         run: |
-          node scripts/setup.mjs --compose
-          docker compose --env-file .env.compose up --build -d --wait
+          node scripts/setup.mjs --compose --video
+          docker compose --env-file .env.compose --profile video up --build -d --wait
           node scripts/compose-smoke.mjs
           docker compose --env-file .env.compose exec -T app node apps/api/dist/modules/content/cli.js seed-demo
           docker compose --env-file .env.compose exec -T app node apps/api/dist/modules/content/cli.js seed-demo
@@ -93,6 +108,13 @@ jobs:
             sleep 1
           done
           docker compose --env-file .env.compose exec -T app node scripts/teacher-smoke.mjs verify
+          docker compose --env-file .env.compose exec -T app node scripts/meeting-smoke.mjs
+          docker compose --env-file .env.compose restart app
+          for attempt in $(seq 1 30); do
+            if curl --fail --silent http://localhost:3000/api/v1/health/ready > /dev/null; then break; fi
+            sleep 1
+          done
+          docker compose --env-file .env.compose exec -T app node scripts/meeting-smoke.mjs verify
           docker compose --env-file .env.compose exec -T app node apps/api/dist/modules/content/cli.js export --package luch-demo --file /tmp/luch-demo-reopened.json
           docker compose --env-file .env.compose exec -T app node --input-type=module -e 'import { readFile } from "node:fs/promises"; import assert from "node:assert/strict"; const a=JSON.parse(await readFile("/tmp/luch-demo-export.json","utf8")); const b=JSON.parse(await readFile("/tmp/luch-demo-reopened.json","utf8")); assert.deepEqual(a,b); assert.deepEqual([b.routes.length,b.lessons.length,b.exercises.length],[2,12,48]);'
       - name: Compose logs
@@ -100,7 +122,7 @@ jobs:
         run: docker compose --env-file .env.compose logs --no-color || true
       - name: Stop test containers
         if: always()
-        run: docker compose --env-file .env.compose down || true
+        run: docker compose --env-file .env.compose --profile video down || true
       - uses: actions/upload-artifact@v4
         if: failure()
         with:

@@ -1,3 +1,4 @@
+import { UpcomingMeetings } from './meetings/shared';
 import { TeacherUpdates } from './TeacherPages';
 import { useEffect, useState } from 'react';
 import { Link, useNavigate } from 'react-router-dom';
@@ -347,6 +348,7 @@ function Dashboard({ data, refresh }: { data: StudentDashboard; refresh: () => v
           </p>
         )}
       </section>
+      <UpcomingMeetings />
       <TeacherUpdates compact />
       <section className="panel" aria-labelledby="results-heading">
         <h2 id="results-heading">Последние результаты</h2>

@@ -32,7 +32,22 @@ x-app-environment: &app-environment
   SPEECH_API_KEY: ${SPEECH_API_KEY:-}
   VIDEO_SERVICE_URL: ${VIDEO_SERVICE_URL:-}
   VIDEO_API_KEY: ${VIDEO_API_KEY:-}
+  LIVEKIT_URL: ${LIVEKIT_URL:-}
+  LIVEKIT_WS_URL: ${LIVEKIT_WS_URL:-}
+  LIVEKIT_API_KEY: ${LIVEKIT_API_KEY:-}
+  LIVEKIT_API_SECRET: ${LIVEKIT_API_SECRET:-}
 services:
+  livekit:
+    image: livekit/livekit-server:v1.13.10
+    profiles: [video]
+    restart: unless-stopped
+    command: ['--config', '/etc/livekit.yaml']
+    volumes:
+      - ./data/livekit.yaml:/etc/livekit.yaml:ro
+    ports:
+      - '127.0.0.1:7880:7880'
+      - '7881:7881/tcp'
+      - '7882:7882/udp'
   db:
     image: postgres:17-alpine
     restart: unless-stopped

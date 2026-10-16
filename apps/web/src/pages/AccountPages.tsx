@@ -1,3 +1,4 @@
+import { UpcomingMeetings } from './meetings/shared';
 import { RecentAttempts, TeacherUpdates } from './TeacherPages';
 import { Link, useParams } from 'react-router-dom';
 import { userSchema, usersSchema, type User } from '@luch/contracts';
@@ -42,6 +43,7 @@ export function TeacherPage() {
     <>
       <p className="eyebrow">Рабочее пространство</p>
       <h1>Кабинет преподавателя</h1>
+      <UpcomingMeetings />
       <section className="panel">
         <UserSummary user={session.user!} />
       </section>

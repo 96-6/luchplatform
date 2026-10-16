@@ -54,3 +54,4 @@ export function envelopeSchema<T extends z.ZodType>(data: T) {
 export type SystemInfo = z.infer<typeof systemSchema>;
 export type Probe = z.infer<typeof probeSchema>;
 export type CreateProbe = z.infer<typeof createProbeSchema>;
+export * from './meetings.js';

@@ -990,3 +990,339 @@ fieldset legend {
   width: 100%;
   max-width: 440px;
 }
+
+/* Calendar and browser lessons (task 12). */
+.calendar-toolbar,
+.meeting-title,
+.participant-top,
+.participant-tools,
+.button-row {
+  display: flex;
+  gap: 0.65rem;
+  align-items: center;
+  flex-wrap: wrap;
+}
+.calendar-toolbar {
+  margin: 1.5rem 0;
+  align-items: end;
+}
+.calendar-toolbar label {
+  flex: 1;
+  min-width: 9rem;
+}
+.calendar-toolbar input,
+.calendar-toolbar select {
+  margin-bottom: 0;
+}
+.calendar-grid {
+  display: grid;
+  grid-template-columns: repeat(7, minmax(0, 1fr));
+  gap: 0.5rem;
+}
+.calendar-day {
+  border: 1px solid var(--border, #d5dfd8);
+  border-radius: 0.6rem;
+  padding: 0.6rem;
+  min-height: 11rem;
+  min-width: 0;
+  background: #fafcf9;
+}
+.calendar-day h2 {
+  font-size: 0.85rem;
+  margin: 0 0 0.8rem;
+}
+.calendar-meeting {
+  padding: 0.65rem;
+  margin: 0.4rem 0;
+  border-radius: 0.45rem;
+  border-left: 4px solid #1b6359;
+  background: #e8f2eb;
+  overflow-wrap: anywhere;
+}
+.calendar-meeting p {
+  font-size: 0.8rem;
+  margin: 0.4rem 0;
+}
+.calendar-meeting.cancelled {
+  opacity: 0.65;
+  border-left-color: #92938a;
+  background: #f1f1ed;
+}
+.calendar-meeting.live {
+  border-left-color: #c07a17;
+  background: #fff5db;
+}
+.meeting-agenda {
+  list-style: none;
+  padding: 0;
+  display: grid;
+  gap: 0.7rem;
+}
+.meeting-agenda > li,
+.meeting-agenda > .calendar-meeting {
+  border: 1px solid #dae3dc;
+  padding: 1rem;
+  border-radius: 0.7rem;
+  overflow-wrap: anywhere;
+}
+.meeting-picker {
+  max-height: 22rem;
+  overflow: auto;
+}
+.meeting-picker .checkbox {
+  margin: 0.7rem 0;
+}
+.meeting-title {
+  justify-content: space-between;
+}
+.meeting-prejoin {
+  max-width: 50rem;
+}
+.form-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(min(100%, 15rem), 1fr));
+  gap: 1rem;
+}
+.form-grid label {
+  min-width: 0;
+}
+.form-grid input,
+.form-grid select {
+  width: 100%;
+}
+.homework-row {
+  border-top: 1px solid #d9e3da;
+  padding: 1rem 0;
+}
+.meeting-controls {
+  background: #f0f5ee;
+  padding: 1rem;
+  border-radius: 1rem;
+  margin: 1rem 0;
+  position: relative;
+}
+.meeting-controls button[aria-pressed='true'] {
+  background: #163e37;
+  color: #fff;
+}
+.meeting-controls summary {
+  cursor: pointer;
+  margin-top: 1rem;
+}
+.participant-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(min(100%, 18rem), 1fr));
+  gap: 1rem;
+  margin: 1rem 0;
+}
+.participant-tile {
+  background: #18322f;
+  color: #f4faf7;
+  border: 3px solid transparent;
+  border-radius: 1rem;
+  min-width: 0;
+  position: relative;
+  overflow: visible;
+}
+.participant-tile.speaking {
+  border-color: #79c8a6;
+}
+.participant-tile.pinned {
+  grid-column: 1/-1;
+  max-width: 65rem;
+  width: 100%;
+  justify-self: center;
+}
+.participant-top {
+  padding: 0.6rem;
+  justify-content: space-between;
+  min-height: 3rem;
+  overflow-wrap: anywhere;
+}
+.participant-tile video {
+  display: block;
+  width: 100%;
+  height: 15rem;
+  object-fit: cover;
+  background: #0f2421;
+}
+.participant-tile.pinned video {
+  height: min(60vh, 35rem);
+}
+.participant-placeholder {
+  display: grid;
+  place-items: center;
+  height: 15rem;
+  background: #254b44;
+  font-size: 4rem;
+  color: #d7eee5;
+}
+.participant-caption {
+  font-size: 0.85rem;
+  margin: 0.7rem;
+}
+.participant-tools {
+  padding: 0.5rem;
+}
+.participant-tools button {
+  font-size: 0.8rem;
+}
+.participant-moderation {
+  padding: 0.65rem;
+  overflow-wrap: anywhere;
+}
+.participant-moderation summary {
+  cursor: pointer;
+  margin-bottom: 0.7rem;
+}
+.participant-tile:fullscreen {
+  background: #18322f;
+  display: flex;
+  flex-direction: column;
+  justify-content: center;
+}
+.participant-tile:fullscreen video {
+  height: 75vh;
+  object-fit: contain;
+}
+.device-warnings {
+  display: flex;
+  gap: 0.35rem;
+  position: relative;
+}
+.device-warning {
+  padding: 0.1rem 0.25rem;
+  background: #fff7ed;
+  color: #d97706;
+  min-width: 2rem;
+  border: 1px solid #f5ad4a;
+  border-radius: 0.4rem;
+  line-height: 1;
+}
+.device-warning:hover {
+  background: #ffedd5;
+  color: #b45309;
+}
+.device-warning-detail {
+  position: absolute;
+  right: 0;
+  top: 2.4rem;
+  width: min(22rem, 78vw);
+  z-index: 10;
+  background: #fff7ed;
+  color: #713f12;
+  border: 1px solid #ea9b38;
+  border-radius: 0.7rem;
+  padding: 1rem;
+  box-shadow: 0 8px 24px #10282030;
+  overflow-wrap: anywhere;
+}
+.device-warning-detail p {
+  font-size: 0.9rem;
+}
+.device-warning-detail small {
+  display: block;
+  margin-bottom: 0.7rem;
+}
+.raised-hand {
+  font-size: 1.4rem;
+}
+.screen-stage {
+  display: grid;
+  gap: 1rem;
+}
+.screen-share {
+  background: #0c201b;
+  color: #fff;
+  border-radius: 0.8rem;
+  padding: 0.7rem;
+}
+.screen-share video {
+  display: block;
+  width: 100%;
+  max-height: 70vh;
+  object-fit: contain;
+}
+.meeting-connection {
+  color: #476359;
+}
+.meeting-chat [role='log'] {
+  max-height: 26rem;
+  overflow: auto;
+}
+.meeting-chat [role='log'] article {
+  border-bottom: 1px solid #e2e8df;
+  padding: 0.7rem 0;
+}
+.meeting-chat time {
+  font-size: 0.8rem;
+  color: #65746b;
+}
+.warning {
+  padding: 0.8rem;
+  border: 1px solid #e7b45a;
+  background: #fff6dc;
+  color: #73531a;
+  border-radius: 0.5rem;
+}
+.button.danger,
+button.danger {
+  background: #8d3e35;
+  color: #fff;
+}
+.calendar-meeting a {
+  color: #134f46;
+}
+.conference audio {
+  display: none;
+}
+.content-text {
+  overflow-wrap: anywhere;
+}
+@media (max-width: 1050px) {
+  .calendar-grid {
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+  }
+  .calendar-day {
+    min-height: 9rem;
+  }
+}
+@media (max-width: 600px) {
+  .calendar-grid {
+    grid-template-columns: 1fr;
+  }
+  .calendar-toolbar {
+    align-items: stretch;
+  }
+  .calendar-toolbar > button {
+    flex: 1;
+  }
+  .calendar-day {
+    min-height: auto;
+  }
+  .meeting-title h1 {
+    font-size: 1.65rem;
+  }
+  .participant-grid {
+    grid-template-columns: 1fr;
+  }
+  .meeting-controls .button-row button {
+    flex: 1 1 45%;
+  }
+  .participant-tile.pinned {
+    grid-column: auto;
+  }
+  .device-warning-detail {
+    right: -0.5rem;
+    width: min(20rem, 76vw);
+  }
+  .meeting-moderation .button-row button {
+    width: 100%;
+  }
+  .meeting-agenda > li {
+    padding: 0.75rem;
+  }
+  .calendar-toolbar label {
+    min-width: 8rem;
+  }
+}
