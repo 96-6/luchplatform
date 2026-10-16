@@ -297,7 +297,12 @@ test('real screen share, moderation, permission failure, locked reconnect, root 
     const peerPage = await pctx.newPage(),
       peer = await login(peerPage, 'meeting-moderation-peer');
     await link(browser, tutor.user.id, [student.user.id, peer.user.id]);
-    const id = await createUI(teacher, [student.user.name], 'ru', 'Управление видеовстречей');
+    const id = await createUI(
+      teacher,
+      [student.user.name, peer.user.name],
+      'ru',
+      'Управление видеовстречей',
+    );
     await enter(teacher, id, true);
     await connected(teacher);
     const s = await enter(studentPage, id);
