@@ -1,5 +1,7 @@
 # Adapt for your host; never commit actual keys or certificate material.
 # See docs/MEETINGS.md and the upstream LiveKit deployment guide.
+# Only the API may reach 7880; restrict it with your host/container firewall.
+# Public clients use the application gateway, never this signalling port.
 port: 7880
 bind_addresses: ['0.0.0.0']
 rtc:

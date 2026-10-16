@@ -36,7 +36,10 @@ if (process.argv.includes('--video')) {
       process.argv.includes('--compose') ? 'http://livekit:7880' : 'http://127.0.0.1:7880',
     );
   if (!get('LIVEKIT_WS_URL'))
-    set('LIVEKIT_WS_URL', compose ? 'ws://livekit:7880' : 'ws://127.0.0.1:7880');
+    set(
+      'LIVEKIT_WS_URL',
+      process.argv.includes('--compose') ? 'ws://livekit:7880' : 'ws://127.0.0.1:7880',
+    );
   await mkdir(new URL('data/', root), { recursive: true });
   await writeFile(
     new URL('data/livekit.yaml', root),
