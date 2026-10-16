@@ -2,20 +2,22 @@
 
 Точные версии и транзитивные зависимости зафиксированы в `package-lock.json`; установка — через `npm ci`. Основные компоненты:
 
-| Компонент                        | Назначение                                   | Лицензия           |
-| -------------------------------- | -------------------------------------------- | ------------------ |
-| React / React DOM                | Клиент                                       | MIT                |
-| React Router                     | Навигация                                    | MIT                |
-| Vite / React plugin              | Сборка клиента                               | MIT                |
-| Fastify / Cors / Helmet / Static | Сервер, заголовки и статика                  | MIT                |
-| node-postgres (`pg`)             | Сетевой доступ к PostgreSQL                  | MIT                |
-| PGlite                           | PostgreSQL для локальной разработки и тестов | Apache-2.0         |
-| PostgreSQL                       | Сервер базы                                  | PostgreSQL License |
-| Zod                              | Проверка данных                              | MIT                |
-| proper-lockfile                  | Защита локального каталога базы              | MIT                |
-| dotenv                           | Чтение серверного окружения                  | BSD-2-Clause       |
-| TypeScript / tsx                 | Типы и запуск исходного сервера              | Apache-2.0 / MIT   |
-| Vitest / Playwright              | Проверки API и браузера                      | MIT / Apache-2.0   |
+| Компонент                               | Назначение                                       | Лицензия           |
+| --------------------------------------- | ------------------------------------------------ | ------------------ |
+| React / React DOM                       | Клиент                                           | MIT                |
+| React Router                            | Навигация                                        | MIT                |
+| Vite / React plugin                     | Сборка клиента                                   | MIT                |
+| Fastify / Cors / Helmet / Static        | Сервер, заголовки и статика                      | MIT                |
+| Fastify WebSocket / ws                  | Авторизованная сигнализация видеовстреч          | MIT                |
+| node-postgres (`pg`)                    | Сетевой доступ к PostgreSQL                      | MIT                |
+| PGlite                                  | PostgreSQL для локальной разработки и тестов     | Apache-2.0         |
+| LiveKit server / SDK / React components | Собственная видеосвязь WebRTC, медиа и модерация | Apache-2.0         |
+| PostgreSQL                              | Сервер базы                                      | PostgreSQL License |
+| Zod                                     | Проверка данных                                  | MIT                |
+| proper-lockfile                         | Защита локального каталога базы                  | MIT                |
+| dotenv                                  | Чтение серверного окружения                      | BSD-2-Clause       |
+| TypeScript / tsx                        | Типы и запуск исходного сервера                  | Apache-2.0 / MIT   |
+| Vitest / Playwright                     | Проверки API и браузера                          | MIT / Apache-2.0   |
 
 Лицензии сторонних компонентов сохраняются в установленных пакетах. Наличие публичного репозитория само по себе не задаёт лицензию на собственный код ЛУЧ; отдельная открытая лицензия на него здесь не добавлена.
 

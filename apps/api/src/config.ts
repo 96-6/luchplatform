@@ -41,9 +41,46 @@ const settingsSchema = z
     SPEECH_API_KEY: z.string().default(''),
     VIDEO_SERVICE_URL: optionalUrl,
     VIDEO_API_KEY: z.string().default(''),
+    LIVEKIT_URL: optionalUrl,
+    LIVEKIT_WS_URL: optionalUrl,
+    LIVEKIT_API_KEY: z.string().default(''),
+    LIVEKIT_API_SECRET: z.string().default(''),
   })
   .superRefine((settings, context) => {
     const url = new URL(settings.APP_URL);
+    const video = [
+      settings.LIVEKIT_URL,
+      settings.LIVEKIT_WS_URL,
+      settings.LIVEKIT_API_KEY,
+      settings.LIVEKIT_API_SECRET,
+    ];
+    if (
+      video.some(Boolean) &&
+      (!video.every(Boolean) ||
+        settings.LIVEKIT_API_SECRET.length < 32 ||
+        !/^https?:/.test(settings.LIVEKIT_URL) ||
+        !/^wss?:/.test(settings.LIVEKIT_WS_URL))
+    )
+      context.addIssue({
+        code: 'custom',
+        path: ['LIVEKIT_URL'],
+        message:
+          'Supply the server HTTP URL, internal WS URL, key and a secret of at least 32 characters.',
+      });
+    for (const [field, value] of [
+      ['LIVEKIT_URL', settings.LIVEKIT_URL],
+      ['LIVEKIT_WS_URL', settings.LIVEKIT_WS_URL],
+    ] as const) {
+      if (value) {
+        const endpoint = new URL(value);
+        if (endpoint.username || endpoint.password || endpoint.search || endpoint.hash)
+          context.addIssue({
+            code: 'custom',
+            path: [field],
+            message: 'Use an endpoint URL without credentials or query parameters.',
+          });
+      }
+    }
     if (
       settings.LOCAL_DEBUG_LOGIN &&
       (settings.APP_ENV === 'production' ||

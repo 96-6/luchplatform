@@ -1,0 +1,26 @@
+# Adapt for your host; never commit actual keys or certificate material.
+# See docs/MEETINGS.md and the upstream LiveKit deployment guide.
+# Only the API may reach 7880; restrict it with your host/container firewall.
+# Public clients use the application gateway, never this signalling port.
+port: 7880
+bind_addresses: ['0.0.0.0']
+rtc:
+  tcp_port: 7881
+  udp_port: 7882
+  use_external_ip: true
+room:
+  auto_create: false
+  enable_remote_unmute: false
+keys:
+  YOUR_LIVEKIT_API_KEY: REPLACE_WITH_A_RANDOM_SECRET_OF_AT_LEAST_32_CHARACTERS
+# TURN/TLS needs a reachable endpoint and a trusted certificate.
+# Use 443 on a dedicated TURN endpoint or route it through a suitable L4 proxy.
+# turn:
+#   enabled: true
+#   domain: turn.example.com
+#   tls_port: 443
+#   udp_port: 3478
+#   cert_file: /etc/livekit/tls/fullchain.pem
+#   key_file: /etc/livekit/tls/privkey.pem
+logging:
+  level: warn

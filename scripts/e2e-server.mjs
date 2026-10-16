@@ -1,6 +1,6 @@
 import { testVideo } from '../tests/e2e/test-video.mjs';
 import { testTone } from '../tests/e2e/test-tone.mjs';
-import { mkdir, mkdtemp, rm, writeFile } from 'node:fs/promises';
+import { mkdir, mkdtemp, rm, writeFile, readFile } from 'node:fs/promises';
 import { tmpdir } from 'node:os';
 import { join } from 'node:path';
 import { parseSettings } from '../apps/api/dist/config.js';
@@ -15,7 +15,11 @@ import { randomUUID } from 'node:crypto';
 
 const directory = await mkdtemp(join(tmpdir(), 'luch-e2e-'));
 const localAdminAlias = randomBytes(18).toString('base64url');
+const videoEnvironment = process.env.LUCH_VIDEO_TEST_ENV
+  ? JSON.parse(await readFile(process.env.LUCH_VIDEO_TEST_ENV, 'utf8'))
+  : {};
 const settings = parseSettings({
+  ...videoEnvironment,
   APP_ENV: 'test',
   AUTH_ENCRYPTION_KEY: randomBytes(32).toString('base64'),
   APP_URL: 'http://127.0.0.1:3200',
@@ -173,6 +177,17 @@ for (const prefix of [
   'teacher-outsider',
   'teacher-empty-tutor',
   'teacher-retry-student',
+  'meeting-ru-student',
+  'meeting-en-student',
+  'meeting-ru-tutor',
+  'meeting-en-tutor',
+  'meeting-moderation-student',
+  'meeting-moderation-tutor',
+  'meeting-calendar-student',
+  'meeting-calendar-tutor',
+  'meeting-outsider',
+  'meeting-calendar-peer',
+  'meeting-moderation-peer',
 ])
   for (const retry of [0, 1]) {
     const email = `${prefix}-${retry}@example.test`;
@@ -183,7 +198,7 @@ for (const prefix of [
       [
         randomUUID(),
         email,
-        'Проверка движка',
+        prefix.startsWith('meeting-') ? `Встречи ${prefix}` : 'Проверка движка',
         prefix === 'engine-integrity-admin' ||
         prefix === 'plan-admin' ||
         prefix === 'adapt-admin' ||

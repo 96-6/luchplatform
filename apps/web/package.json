@@ -9,7 +9,9 @@
     "typecheck": "tsc --noEmit"
   },
   "dependencies": {
+    "@livekit/components-react": "2.9.24",
     "@luch/contracts": "0.1.0",
+    "livekit-client": "2.23.0",
     "react": "19.3.0",
     "react-dom": "19.3.0",
     "react-router-dom": "^7.9.0",

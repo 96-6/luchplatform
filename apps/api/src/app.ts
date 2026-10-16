@@ -1,3 +1,8 @@
+import websocket from '@fastify/websocket';
+import { registerMeetingSignalling } from './modules/meetings/signalling.js';
+import { registerMeetingRoutes } from './modules/meetings/routes.js';
+import { MeetingsService } from './modules/meetings/service.js';
+import { LiveKitVideo, type MeetingVideo } from './modules/meetings/adapter.js';
 import { registerTeacherRoutes } from './modules/teacher/routes.js';
 import { randomUUID } from 'node:crypto';
 import { access } from 'node:fs/promises';
@@ -52,6 +57,7 @@ export async function buildApp(
     captchaGenerator?: () => string;
     ipInspector?: IpInspector;
     providerFetch?: ProviderFetch;
+    meetingVideo?: MeetingVideo;
   } = {},
 ) {
   const crypto = new AccountCrypto(settings.AUTH_ENCRYPTION_KEY);
@@ -100,6 +106,12 @@ export async function buildApp(
     credentials: false,
   });
   await app.register(cookies);
+  await app.register(websocket, {
+    options: { maxPayload: 256 * 1024 },
+    errorHandler: (_error, socket) => {
+      socket.terminate();
+    },
+  });
   await app.register(helmet, {
     contentSecurityPolicy: {
       directives: {
@@ -107,8 +119,9 @@ export async function buildApp(
         scriptSrc: ["'self'"],
         styleSrc: ["'self'"],
         imgSrc: ["'self'", 'data:', 'https:'],
-        mediaSrc: ["'self'", 'https:'],
-        connectSrc: ["'self'"],
+        mediaSrc: ["'self'", 'https:', 'blob:'],
+        workerSrc: ["'self'", 'blob:'],
+        connectSrc: ["'self'", new URL(settings.APP_URL.replace(/^http/, 'ws')).origin],
         ...(network.probeTargets().length
           ? {
               imgSrc: [
@@ -227,6 +240,12 @@ export async function buildApp(
   await registerAuthRoutes(app, auth, captcha);
   await registerAccountRoutes(app, auth);
   await registerTeacherRoutes(app, auth);
+  const meetings = new MeetingsService(
+    database,
+    options.meetingVideo ?? new LiveKitVideo(settings),
+  );
+  await registerMeetingRoutes(app, auth, meetings, settings.APP_ENV !== 'test');
+  await registerMeetingSignalling(app, auth, meetings, settings);
   await registerContentRoutes(app, auth);
   await registerEngineRoutes(app, auth);
   await registerDiagnosticRoutes(app, auth);
@@ -290,7 +309,8 @@ export async function buildApp(
         /^\/courses\/[a-z0-9-]+\/[a-z0-9-]+(?:\/lessons\/[a-z0-9-]+)?$/.test(pathname) ||
         /^\/learning\/(?:runs|attempts)\/[0-9a-f-]{36}$/.test(pathname) ||
         /^\/diagnostics\/[0-9a-f-]{36}$/.test(pathname) ||
-        /^\/plan\/[0-9a-f-]{36}$/.test(pathname))
+        /^\/plan\/[0-9a-f-]{36}$/.test(pathname) ||
+        /^\/meetings\/[0-9a-f-]{36}(?:\/room)?$/.test(pathname))
     ) {
       return reply.type('text/html').sendFile('index.html');
     }

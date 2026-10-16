@@ -277,109 +277,126 @@ export class TeacherService {
     });
   }
   async assign(actor: Actor, planId: string, input: z.infer<typeof teacherAssignmentSchema>) {
-    await this.db.transaction(async (tx) => {
-      await this.operationLock(tx, actor, input.operationId);
-      const p = await this.lockedPlan(tx, actor, planId),
-        request = { planId, ...input };
-      if (await this.replay(tx, actor, input.operationId, 'assignment_added', request)) return;
-      const row = (
-        await tx.query<{ definition: unknown; skill_title: string }>(
-          `SELECT e.definition,k.definition->>'title' AS skill_title FROM learning_exercises e JOIN learning_lessons l ON l.package_id=e.package_id AND l.package_version=e.package_version AND l.id=e.lesson_id JOIN learning_skills k ON k.package_id=e.package_id AND k.package_version=e.package_version AND k.id=e.skill_id WHERE e.package_id=$1 AND e.package_version=$2 AND l.route_id=$3 AND e.id=$4 AND e.purpose IN ('practice','control')`,
-          [p.package_id, p.package_version, p.route_id, input.exerciseId],
-        )
-      ).rows[0];
-      if (!row)
-        throw new AppError(
-          400,
-          'INVALID_TEACHER_EXERCISE',
-          'Выберите тренировку или контроль из закреплённого маршрута плана.',
-        );
-      const e = exerciseSchema.parse(row.definition),
-        id = randomUUID(),
-        actionId = randomUUID(),
-        now = this.now();
-      const pos = (
-        await tx.query<{ position: number }>(
-          'SELECT COALESCE(max(position),-1)+1 AS position FROM plan_assignments WHERE plan_id=$1',
-          [planId],
-        )
-      ).rows[0]!.position;
-      const day = Math.max(
-        1,
-        Math.floor(
-          ((input.dueAt ? new Date(input.dueAt).getTime() : now) -
-            new Date(p.created_at).getTime()) /
-            86400000,
-        ) + 1,
-      );
-      const reason = {
-        kind: 'teacher',
-        text: input.reason,
-        goal: questionnaireSchema.parse(p.questionnaire).goal,
-        goalMatched: false,
-        skills: [
-          {
-            skillId: e.skillId,
-            name: row.skill_title,
-            correct: 0,
-            questions: 1,
-            independentCorrect: 0,
-          },
-        ],
-      };
-      await tx.query(
-        "INSERT INTO plan_assignments (id,plan_id,user_id,package_id,package_version,route_id,lesson_id,purpose,position,recommended_day,estimated_minutes,reason,kind,skill_id,created_at,due_at,teacher_note) VALUES ($1,$2,$3,$4,$5,$6,$7,$8,$9,$10,$11,$12,'teacher',$13,$14,$15,$16)",
-        [
-          id,
-          planId,
-          p.user_id,
-          p.package_id,
-          p.package_version,
-          p.route_id,
-          e.lessonId,
-          e.purpose,
-          pos,
-          day,
-          input.estimatedMinutes,
-          JSON.stringify(reason),
-          e.skillId,
-          new Date(now),
-          input.dueAt,
-          input.reason,
-        ],
-      );
-      await tx.query(
-        'INSERT INTO plan_assignment_exercises (assignment_id,package_id,package_version,exercise_id,exercise_version,position) VALUES ($1,$2,$3,$4,$5,0)',
-        [id, p.package_id, p.package_version, e.id, e.version],
-      );
-      await tx.query(
-        "INSERT INTO teacher_actions (id,actor_id,student_id,operation_id,kind,request,plan_id,assignment_id,comment,created_at) VALUES ($1,$2,$3,$4,'assignment_added',$5,$6,$7,$8,$9)",
-        [
-          actionId,
-          actor.user.id,
-          p.user_id,
-          input.operationId,
-          JSON.stringify(request),
-          planId,
-          id,
-          input.reason,
-          new Date(now),
-        ],
-      );
-      await planChange(tx, {
-        id: actionId,
-        planId,
-        assignmentId: id,
-        action: 'teacher_assignment_added',
-        skillId: e.skillId,
-        outcome: null,
-        reason: input.reason,
-        actorId: actor.user.id,
-        now,
-      });
-      await audit(tx, actor.user.id, 'teacher.exercise_assigned', p.user_id);
-    });
+    await this.db.transaction((tx) => this.assignInTransaction(tx, actor, planId, input));
     return this.db.transaction((tx) => readPlan(tx, actor, planId, this.now()));
+  }
+  async assignInTransaction(
+    tx: QueryExecutor,
+    actor: Actor,
+    planId: string,
+    input: z.infer<typeof teacherAssignmentSchema>,
+  ) {
+    await this.operationLock(tx, actor, input.operationId);
+    const p = await this.lockedPlan(tx, actor, planId),
+      request = { planId, ...input };
+    if (await this.replay(tx, actor, input.operationId, 'assignment_added', request))
+      return (
+        await tx.query<{ assignment_id: string }>(
+          'SELECT assignment_id FROM teacher_actions WHERE actor_id=$1 AND operation_id=$2',
+          [actor.user.id, input.operationId],
+        )
+      ).rows[0]!.assignment_id;
+    const row = (
+      await tx.query<{ definition: unknown; skill_title: string }>(
+        `SELECT e.definition,k.definition->>'title' AS skill_title FROM learning_exercises e JOIN learning_lessons l ON l.package_id=e.package_id AND l.package_version=e.package_version AND l.id=e.lesson_id JOIN learning_skills k ON k.package_id=e.package_id AND k.package_version=e.package_version AND k.id=e.skill_id WHERE e.package_id=$1 AND e.package_version=$2 AND l.route_id=$3 AND e.id=$4 AND e.purpose IN ('practice','control')`,
+        [p.package_id, p.package_version, p.route_id, input.exerciseId],
+      )
+    ).rows[0];
+    if (!row)
+      throw new AppError(
+        400,
+        'INVALID_TEACHER_EXERCISE',
+        'Выберите тренировку или контроль из закреплённого маршрута плана.',
+      );
+    const e = exerciseSchema.parse(row.definition),
+      id = randomUUID(),
+      actionId = randomUUID(),
+      now = this.now();
+    const pos = (
+      await tx.query<{ position: number }>(
+        'SELECT COALESCE(max(position),-1)+1 AS position FROM plan_assignments WHERE plan_id=$1',
+        [planId],
+      )
+    ).rows[0]!.position;
+    const day = Math.max(
+      1,
+      Math.floor(
+        ((input.dueAt ? new Date(input.dueAt).getTime() : now) - new Date(p.created_at).getTime()) /
+          86400000,
+      ) + 1,
+    );
+    const reason = {
+      kind: 'teacher',
+      text: input.reason,
+      goal: questionnaireSchema.parse(p.questionnaire).goal,
+      goalMatched: false,
+      skills: [
+        {
+          skillId: e.skillId,
+          name: row.skill_title,
+          correct: 0,
+          questions: 1,
+          independentCorrect: 0,
+        },
+      ],
+    };
+    await tx.query(
+      "INSERT INTO plan_assignments (id,plan_id,user_id,package_id,package_version,route_id,lesson_id,purpose,position,recommended_day,estimated_minutes,reason,kind,skill_id,created_at,due_at,teacher_note) VALUES ($1,$2,$3,$4,$5,$6,$7,$8,$9,$10,$11,$12,'teacher',$13,$14,$15,$16)",
+      [
+        id,
+        planId,
+        p.user_id,
+        p.package_id,
+        p.package_version,
+        p.route_id,
+        e.lessonId,
+        e.purpose,
+        pos,
+        day,
+        input.estimatedMinutes,
+        JSON.stringify(reason),
+        e.skillId,
+        new Date(now),
+        input.dueAt,
+        input.reason,
+      ],
+    );
+    await tx.query(
+      'INSERT INTO plan_assignment_exercises (assignment_id,package_id,package_version,exercise_id,exercise_version,position) VALUES ($1,$2,$3,$4,$5,0)',
+      [id, p.package_id, p.package_version, e.id, e.version],
+    );
+    await tx.query(
+      "INSERT INTO teacher_actions (id,actor_id,student_id,operation_id,kind,request,plan_id,assignment_id,comment,created_at) VALUES ($1,$2,$3,$4,'assignment_added',$5,$6,$7,$8,$9)",
+      [
+        actionId,
+        actor.user.id,
+        p.user_id,
+        input.operationId,
+        JSON.stringify(request),
+        planId,
+        id,
+        input.reason,
+        new Date(now),
+      ],
+    );
+    await planChange(tx, {
+      id: actionId,
+      planId,
+      assignmentId: id,
+      action: 'teacher_assignment_added',
+      skillId: e.skillId,
+      outcome: null,
+      reason: input.reason,
+      actorId: actor.user.id,
+      now,
+    });
+    await audit(tx, actor.user.id, 'teacher.exercise_assigned', p.user_id);
+    return (
+      await tx.query<{ assignment_id: string }>(
+        'SELECT assignment_id FROM teacher_actions WHERE actor_id=$1 AND operation_id=$2',
+        [actor.user.id, input.operationId],
+      )
+    ).rows[0]!.assignment_id;
   }
   async updateAssignment(
     actor: Actor,

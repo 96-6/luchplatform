@@ -138,7 +138,7 @@ function Accounts() {
           {selected && (
             <AccountDetail key={selected} id={selected} version={detailVersion} onSaved={saved} />
           )}
-          <AssignTeacher users={state.data} onSaved={saved} />
+          <AssignTeacher onSaved={saved} version={detailVersion} />
         </>
       )}
     </>
@@ -302,7 +302,25 @@ function AccountDetail({
     </section>
   );
 }
-function AssignTeacher({ users, onSaved }: { users: User[]; onSaved: () => void }) {
+function AssignTeacher({ onSaved, version }: { onSaved: () => void; version: number }) {
+  const [teacherSearch, setTeacherSearch] = useState(''),
+    [studentSearch, setStudentSearch] = useState(''),
+    [teacherFilter, setTeacherFilter] = useState(''),
+    [studentFilter, setStudentFilter] = useState('');
+  const teachers = useResource(
+    `/admin/accounts?role=teacher&search=${encodeURIComponent(teacherFilter)}`,
+    usersSchema,
+  );
+  const students = useResource(
+    `/admin/accounts?role=student&search=${encodeURIComponent(studentFilter)}`,
+    usersSchema,
+  );
+  useEffect(() => {
+    if (version > 0) {
+      teachers.refresh();
+      students.refresh();
+    }
+  }, [version, teachers.refresh, students.refresh]);
   const [teacherId, setTeacherId] = useState('');
   const [studentId, setStudentId] = useState('');
   const [message, setMessage] = useState('');
@@ -332,6 +350,23 @@ function AssignTeacher({ users, onSaved }: { users: User[]; onSaved: () => void 
           void assign(event);
         }}
       >
+        <label htmlFor="teacher-lookup">Поиск преподавателя</label>
+        <input
+          id="teacher-lookup"
+          value={teacherSearch}
+          onChange={(e) => setTeacherSearch(e.target.value)}
+          maxLength={100}
+        />
+        <button
+          type="button"
+          className="secondary"
+          onClick={() => {
+            setTeacherId('');
+            setTeacherFilter(teacherSearch);
+          }}
+        >
+          Найти преподавателя
+        </button>
         <label htmlFor="assign-teacher">Преподаватель</label>
         <select
           id="assign-teacher"
@@ -340,14 +375,29 @@ function AssignTeacher({ users, onSaved }: { users: User[]; onSaved: () => void 
           required
         >
           <option value="">Выберите преподавателя</option>
-          {users
-            .filter((user) => user.role === 'teacher')
-            .map((user) => (
-              <option value={user.id} key={user.id}>
-                {user.name} · {user.email}
-              </option>
-            ))}
+          {(teachers.state.status === 'ready' ? teachers.state.data : []).map((user) => (
+            <option value={user.id} key={user.id}>
+              {user.name} · {user.email}
+            </option>
+          ))}
         </select>
+        <label htmlFor="student-lookup">Поиск ученика для закрепления</label>
+        <input
+          id="student-lookup"
+          value={studentSearch}
+          onChange={(e) => setStudentSearch(e.target.value)}
+          maxLength={100}
+        />
+        <button
+          type="button"
+          className="secondary"
+          onClick={() => {
+            setStudentId('');
+            setStudentFilter(studentSearch);
+          }}
+        >
+          Найти ученика
+        </button>
         <label htmlFor="assign-student">Ученик</label>
         <select
           id="assign-student"
@@ -356,16 +406,20 @@ function AssignTeacher({ users, onSaved }: { users: User[]; onSaved: () => void 
           required
         >
           <option value="">Выберите ученика</option>
-          {users
-            .filter((user) => user.role === 'student')
-            .map((user) => (
-              <option value={user.id} key={user.id}>
-                {user.name} · {user.email}
-              </option>
-            ))}
+          {(students.state.status === 'ready' ? students.state.data : []).map((user) => (
+            <option value={user.id} key={user.id}>
+              {user.name} · {user.email}
+            </option>
+          ))}
         </select>
         <button disabled={busy}>Назначить преподавателя</button>
       </form>
+      {teachers.state.status === 'error' && (
+        <ErrorState error={teachers.state.error} retry={teachers.refresh} />
+      )}
+      {students.state.status === 'error' && (
+        <ErrorState error={students.state.error} retry={students.refresh} />
+      )}
       {error && (
         <p role="alert" className="error inline-message">
           {error.message}

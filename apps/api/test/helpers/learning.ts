@@ -14,7 +14,7 @@ import {
   type User,
 } from '@luch/contracts';
 import { buildApp } from '../../src/app.js';
-import { parseSettings, projectRoot } from '../../src/config.js';
+import { parseSettings, projectRoot, type Settings } from '../../src/config.js';
 import { createDatabase, type Database, type QueryExecutor } from '../../src/db/database.js';
 import { migrate } from '../../src/db/migrations.js';
 import { AccountCrypto, createTotp } from '../../src/modules/auth/crypto.js';
@@ -24,12 +24,20 @@ import { seedDemoContent } from '../../src/modules/content/bootstrap.js';
 import type { ProviderFetch } from '../../src/modules/providers/adapters.js';
 
 export type Login = { actor: Actor; headers: { cookie: string; 'x-csrf-token': string } };
-export async function learningFixture(providerFetch?: ProviderFetch) {
+export async function learningFixture(
+  providerFetch?: ProviderFetch,
+  meetingVideo?: import('../../src/modules/meetings/adapter.js').MeetingVideo,
+  videoSettings?: Pick<
+    Settings,
+    'LIVEKIT_URL' | 'LIVEKIT_WS_URL' | 'LIVEKIT_API_KEY' | 'LIVEKIT_API_SECRET'
+  >,
+) {
   const settings = parseSettings({
     APP_ENV: 'test',
     DATABASE_URL: process.env.TEST_DATABASE_URL ?? 'pglite:memory',
     AUTH_ENCRYPTION_KEY: randomBytes(32).toString('base64'),
     LOG_LEVEL: 'silent',
+    ...videoSettings,
   });
   if (
     process.env.TEST_DATABASE_URL &&
@@ -38,7 +46,7 @@ export async function learningFixture(providerFetch?: ProviderFetch) {
     throw new Error('Use an isolated test database.');
   const db = await createDatabase(settings);
   await migrate(db);
-  const app = await buildApp(settings, db, { providerFetch }),
+  const app = await buildApp(settings, db, { providerFetch, meetingVideo }),
     crypto = new AccountCrypto(settings.AUTH_ENCRYPTION_KEY);
   const demo = contentPackageSchema.parse(
     JSON.parse(await readFile(resolve(projectRoot, 'content/demo/luch-demo.json'), 'utf8')),

@@ -1,3 +1,9 @@
+import { lazy, Suspense } from 'react';
+import { SchedulePage } from './pages/meetings/SchedulePage';
+import { MeetingPage } from './pages/meetings/MeetingPage';
+const MeetingRoomPage = lazy(() =>
+  import('./pages/meetings/MeetingRoomPage').then((m) => ({ default: m.MeetingRoomPage })),
+);
 import { AttemptReviewPage, TeacherFeedbackPage } from './pages/TeacherPages';
 import { Route, Routes, Link, Navigate } from 'react-router-dom';
 import { AssistantPage } from './pages/AssistantPage';
@@ -54,6 +60,24 @@ export function App() {
             element={
               <Protected>
                 <TeacherFeedbackPage />
+              </Protected>
+            }
+          />
+          <Route
+            path="/meetings/:id"
+            element={
+              <Protected>
+                <MeetingPage />
+              </Protected>
+            }
+          />
+          <Route
+            path="/meetings/:id/room"
+            element={
+              <Protected>
+                <Suspense fallback={<LoadingState text="Открываем видеокомнату…" />}>
+                  <MeetingRoomPage />
+                </Suspense>
               </Protected>
             }
           />
@@ -196,10 +220,7 @@ export function App() {
             path="/schedule"
             element={
               <Protected>
-                <PlaceholderPage
-                  title="Расписание"
-                  description="Здесь появятся назначенные занятия и ссылки на видеокомнаты."
-                />
+                <SchedulePage />
               </Protected>
             }
           />
