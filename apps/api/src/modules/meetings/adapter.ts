@@ -39,7 +39,7 @@ export class LiveKitVideo implements MeetingVideo {
   private client: RoomServiceClient;
   constructor(private settings: Settings) {
     this.configured = Boolean(settings.LIVEKIT_URL && settings.LIVEKIT_API_SECRET);
-    this.browserUrl = settings.LIVEKIT_WS_URL;
+    this.browserUrl = new URL('/api/v1/video', settings.APP_URL).toString().replace(/^http/, 'ws');
     this.client = new RoomServiceClient(
       settings.LIVEKIT_URL || 'http://127.0.0.1:7880',
       settings.LIVEKIT_API_KEY,
@@ -120,10 +120,7 @@ export class LiveKitVideo implements MeetingVideo {
   }
   async remove(name: string, identity: string) {
     await this.call(
-      () =>
-        this.client.removeParticipant(name, identity, {
-          revokeTokenTs: BigInt(Math.floor(Date.now() / 1000) + 86400),
-        }),
+      () => this.client.removeParticipant(name, identity),
       () => undefined,
     );
   }

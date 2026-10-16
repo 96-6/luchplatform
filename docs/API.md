@@ -336,4 +336,6 @@ UUID операции сохраняется вместе с точным зап
 
 Итог после завершения: комментарий 1–3000; `homework[]` до 50 строк `{ studentId, planId, exerciseId, reason, dueAt }`. План принадлежит участнику и языку встречи; действуют прежние проверки доступа преподавателя. Все назначения используют существующий банк и luch engine. Повтор UUID безопасен, другой запрос с прежним UUID — `MEETING_OPERATION_CONFLICT`; устаревшие редакции — `MEETING_CHANGED` / `MEETING_SUMMARY_CHANGED`. `MEETING_NOT_ADMITTED`, `MEETING_REMOVED`, `MEETING_NOT_OPEN`, `MEETING_CLOSED` описывают состояние входа. `VIDEO_NOT_CONFIGURED` / `VIDEO_UNAVAILABLE` — технические состояния без изменения оценок. Чат ограничен 20 новыми сообщениями в минуту; история принимает пару `beforeCreatedAt`/`beforeId`.
 
+Браузерный `serverUrl` указывает на `/api/v1/video` приложения. WebSocket `/video/rtc` и `/video/rtc/v1` и их GET `/validate` требуют действующую сессию, собственный подписанный допуск и текущее разрешение подключения. Старый допуск удалённого/вышедшего участника не даёт повторного входа. Порт сигнализации SFU — внутренний.
+
 Настройка и ограничения — [MEETINGS.md](MEETINGS.md).

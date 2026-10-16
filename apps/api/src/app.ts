@@ -1,3 +1,5 @@
+import websocket from '@fastify/websocket';
+import { registerMeetingSignalling } from './modules/meetings/signalling.js';
 import { registerMeetingRoutes } from './modules/meetings/routes.js';
 import { MeetingsService } from './modules/meetings/service.js';
 import { LiveKitVideo, type MeetingVideo } from './modules/meetings/adapter.js';
@@ -104,6 +106,12 @@ export async function buildApp(
     credentials: false,
   });
   await app.register(cookies);
+  await app.register(websocket, {
+    options: { maxPayload: 256 * 1024 },
+    errorHandler: (_error, socket) => {
+      socket.terminate();
+    },
+  });
   await app.register(helmet, {
     contentSecurityPolicy: {
       directives: {
@@ -113,15 +121,7 @@ export async function buildApp(
         imgSrc: ["'self'", 'data:', 'https:'],
         mediaSrc: ["'self'", 'https:', 'blob:'],
         workerSrc: ["'self'", 'blob:'],
-        connectSrc: [
-          "'self'",
-          ...(settings.LIVEKIT_WS_URL
-            ? [
-                new URL(settings.LIVEKIT_WS_URL).origin,
-                new URL(settings.LIVEKIT_WS_URL.replace(/^ws/, 'http')).origin,
-              ]
-            : []),
-        ],
+        connectSrc: ["'self'", new URL(settings.APP_URL.replace(/^http/, 'ws')).origin],
         ...(network.probeTargets().length
           ? {
               imgSrc: [
@@ -240,12 +240,12 @@ export async function buildApp(
   await registerAuthRoutes(app, auth, captcha);
   await registerAccountRoutes(app, auth);
   await registerTeacherRoutes(app, auth);
-  await registerMeetingRoutes(
-    app,
-    auth,
-    new MeetingsService(database, options.meetingVideo ?? new LiveKitVideo(settings)),
-    settings.APP_ENV !== 'test',
+  const meetings = new MeetingsService(
+    database,
+    options.meetingVideo ?? new LiveKitVideo(settings),
   );
+  await registerMeetingRoutes(app, auth, meetings, settings.APP_ENV !== 'test');
+  await registerMeetingSignalling(app, auth, meetings, settings);
   await registerContentRoutes(app, auth);
   await registerEngineRoutes(app, auth);
   await registerDiagnosticRoutes(app, auth);

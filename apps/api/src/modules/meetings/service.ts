@@ -355,6 +355,31 @@ export class MeetingsService {
       };
     });
   }
+  // Every new signalling connection must use the persisted admission and current media policy.
+  // Self-hosted LiveKit does not revoke old participant JWTs when removing a participant.
+  async signal(actor: Actor, sid: string, roomName: string, connected = false) {
+    return this.db.transaction(async (tx) => {
+      const found = (
+        await tx.query<{ meeting_id: string }>(
+          'SELECT meeting_id FROM meeting_sessions WHERE id=$1',
+          [sid],
+        )
+      ).rows[0];
+      if (!found) throw new AppError(403, 'MEETING_NOT_ADMITTED', 'Подключение недоступно.');
+      const a = await access(tx, actor, found.meeting_id, true),
+        s = await session(tx, actor, sid, found.meeting_id);
+      if (
+        a.m.room_name !== roomName ||
+        a.m.status !== 'live' ||
+        this.now() > new Date(a.m.ends_at).getTime() + 14400000 ||
+        s.state !== 'admitted' ||
+        a.member?.blocked_at
+      )
+        throw new AppError(403, 'MEETING_NOT_ADMITTED', 'Подключение недоступно.');
+      if (connected) await this.video.permissions(roomName, sid, policy(a.member));
+      return this.video.token(roomName, sid, actor.user.name, policy(a.member));
+    });
+  }
   async leave(actor: Actor, id: string, sid: string) {
     await this.db.transaction(async (tx) => {
       await access(tx, actor, id, true);

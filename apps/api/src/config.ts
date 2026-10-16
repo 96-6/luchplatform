@@ -65,7 +65,7 @@ const settingsSchema = z
         code: 'custom',
         path: ['LIVEKIT_URL'],
         message:
-          'Supply the server HTTP URL, browser WS URL, key and a secret of at least 32 characters.',
+          'Supply the server HTTP URL, internal WS URL, key and a secret of at least 32 characters.',
       });
     for (const [field, value] of [
       ['LIVEKIT_URL', settings.LIVEKIT_URL],
@@ -81,17 +81,6 @@ const settingsSchema = z
           });
       }
     }
-    if (
-      settings.APP_ENV === 'production' &&
-      settings.LIVEKIT_WS_URL &&
-      !settings.LIVEKIT_WS_URL.startsWith('wss://')
-    )
-      context.addIssue({
-        code: 'custom',
-        path: ['LIVEKIT_WS_URL'],
-        message: 'Production video requires WSS.',
-      });
-
     if (
       settings.LOCAL_DEBUG_LOGIN &&
       (settings.APP_ENV === 'production' ||

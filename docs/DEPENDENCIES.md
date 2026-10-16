@@ -8,6 +8,7 @@
 | React Router                            | Навигация                                        | MIT                |
 | Vite / React plugin                     | Сборка клиента                                   | MIT                |
 | Fastify / Cors / Helmet / Static        | Сервер, заголовки и статика                      | MIT                |
+| Fastify WebSocket / ws                  | Авторизованная сигнализация видеовстреч          | MIT                |
 | node-postgres (`pg`)                    | Сетевой доступ к PostgreSQL                      | MIT                |
 | PGlite                                  | PostgreSQL для локальной разработки и тестов     | Apache-2.0         |
 | LiveKit server / SDK / React components | Собственная видеосвязь WebRTC, медиа и модерация | Apache-2.0         |

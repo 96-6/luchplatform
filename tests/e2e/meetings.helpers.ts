@@ -163,21 +163,32 @@ export async function connected(p: Page) {
     timeout: 30000,
   });
 }
-export async function signalAccepted(token: string) {
-  return new Promise<boolean>((resolve) => {
-    const ws = new WebSocket(
-      `ws://127.0.0.1:7880/rtc?access_token=${encodeURIComponent(token)}&auto_subscribe=1&sdk=js&version=2.23.0&protocol=16`,
-    );
-    let done = false;
-    const finish = (value: boolean) => {
-      if (done) return;
-      done = true;
-      clearTimeout(timer);
-      ws.close();
-      resolve(value);
-    };
-    const timer = setTimeout(() => finish(false), 5000);
-    ws.addEventListener('open', () => finish(true));
-    ws.addEventListener('error', () => finish(false));
-  });
+export async function signalAccepted(page: Page, serverUrl: string, token: string) {
+  return page.evaluate(
+    ({ serverUrl, token }) =>
+      new Promise<boolean>((resolve) => {
+        const url = new URL(`${serverUrl.replace(/\/$/, '')}/rtc`);
+        url.search = new URLSearchParams({
+          access_token: token,
+          auto_subscribe: '1',
+          sdk: 'js',
+          version: '2.23.0',
+          protocol: '16',
+        }).toString();
+        const ws = new WebSocket(url);
+        let done = false;
+        const finish = (value: boolean) => {
+          if (done) return;
+          done = true;
+          clearTimeout(timer);
+          ws.close();
+          resolve(value);
+        };
+        const timer = setTimeout(() => finish(false), 5000);
+        ws.addEventListener('message', () => finish(true));
+        ws.addEventListener('error', () => finish(false));
+        ws.addEventListener('close', () => finish(false));
+      }),
+    { serverUrl, token },
+  );
 }

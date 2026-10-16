@@ -1,3 +1,5 @@
+import { WebSocket, WebSocketServer } from 'ws';
+import { TokenVerifier } from 'livekit-server-sdk';
 import { randomUUID, randomBytes } from 'node:crypto';
 import { beforeAll, beforeEach, afterAll, describe, it, expect } from 'vitest';
 import { meetingSchema, roomStateSchema, joinMeetingSchema } from '@luch/contracts';
@@ -41,13 +43,18 @@ class Video implements MeetingVideo {
   async token(_r: string, identity: string, _n: string, policy: MediaPolicy) {
     if (this.fail) throw Error('planned outage');
     this.calls.push({ kind: 'token', identity, policy });
-    return 'fixture-token';
+    return new LiveKitVideo(f.settings).token(_r, identity, _n, policy);
   }
 }
 let f: Awaited<ReturnType<typeof learningFixture>>;
 const video = new Video();
 beforeAll(async () => {
-  f = await learningFixture(undefined, video);
+  f = await learningFixture(undefined, video, {
+    LIVEKIT_URL: 'http://127.0.0.1:7880',
+    LIVEKIT_WS_URL: 'ws://127.0.0.1:7880',
+    LIVEKIT_API_KEY: 'fixture_gateway',
+    LIVEKIT_API_SECRET: randomBytes(32).toString('hex'),
+  });
 });
 beforeEach(async () => {
   await f.reset();
@@ -630,5 +637,149 @@ describe('scheduler account lookup scale', () => {
       headers: teacher.headers,
     });
     expect(denied.statusCode).toBe(403);
+  });
+});
+
+describe('authenticated signalling admission', () => {
+  async function ticket(user: Login, sid: string, room: string) {
+    return new LiveKitVideo(f.settings).token(room, sid, user.actor.user.name, {
+      audioAllowed: true,
+      videoAllowed: true,
+      screenAllowed: true,
+    });
+  }
+  const validate = (user: Login | null, token: string, origin?: string) =>
+    f.app.inject({
+      url: `/api/v1/video/rtc/validate?access_token=${encodeURIComponent(token)}`,
+      headers: { ...user?.headers, ...(origin ? { origin } : {}) },
+    });
+  it('checks the signed token, current login, session owner, room and origin', async () => {
+    const g = await entered(),
+      roomName = (
+        await f.db.query<{ room_name: string }>(
+          'SELECT room_name FROM scheduled_meetings WHERE id=$1',
+          [g.m.id],
+        )
+      ).rows[0]!.room_name,
+      token = await ticket(g.student, g.s.session.id, roomName);
+    expect((await validate(g.student, token)).statusCode).toBe(200);
+    expect((await validate(null, token)).statusCode).toBe(401);
+    expect((await validate(g.peer, token)).statusCode).toBe(404);
+    expect((await validate(g.student, token, 'https://other.example.test')).statusCode).toBe(403);
+    expect((await validate(g.student, `${token}tampered`)).statusCode).toBe(401);
+    expect(
+      (await validate(g.student, await ticket(g.student, g.s.session.id, 'another-room')))
+        .statusCode,
+    ).toBe(403);
+    expect(
+      (await validate(g.student, await ticket(g.student, randomUUID(), roomName))).statusCode,
+    ).toBe(403);
+    const url = new LiveKitVideo(f.settings).browserUrl;
+    expect(new URL(url).pathname).toBe('/api/v1/video');
+    expect(new URL(url).host).toBe(new URL(f.settings.APP_URL).host);
+  });
+  it('proxies real signalling frames with fresh policy and rejects a kicked session before the upstream', async () => {
+    const g = await entered(),
+      roomName = (
+        await f.db.query<{ room_name: string }>(
+          'SELECT room_name FROM scheduled_meetings WHERE id=$1',
+          [g.m.id],
+        )
+      ).rows[0]!.room_name,
+      token = await ticket(g.student, g.s.session.id, roomName),
+      upstream = new WebSocketServer({ host: '127.0.0.1', port: 0 }),
+      originalUrl = f.settings.LIVEKIT_WS_URL;
+    let receivedUrl = '',
+      connections = 0,
+      client: WebSocket | undefined;
+    await new Promise<void>((resolve) => upstream.once('listening', resolve));
+    const address = upstream.address();
+    if (typeof address === 'string') throw Error('Unexpected address');
+    f.settings.LIVEKIT_WS_URL = `ws://127.0.0.1:${address.port}`;
+    upstream.on('connection', (socket, request) => {
+      receivedUrl = request.url!;
+      connections++;
+      socket.on('message', (data, binary) => socket.send(data, { binary }));
+    });
+    try {
+      await mod(g.teacher, g.m.id, 'mute_audio', { targetId: g.s.session.id });
+      const base = await f.app.listen({ host: '127.0.0.1', port: 0 }),
+        url = `${base.replace(/^http/, 'ws')}/api/v1/video/rtc/v1?access_token=${encodeURIComponent(token)}&protocol=16`;
+      const options = {
+        headers: { cookie: g.student.headers.cookie, origin: new URL(f.settings.APP_URL).origin },
+      };
+      client = new WebSocket(url, options);
+      const echoed = new Promise<Buffer>((resolve, reject) => {
+        client!.once('error', reject);
+        client!.once('message', (data) => resolve(Buffer.from(data as Buffer)));
+      });
+      await new Promise<void>((resolve, reject) => {
+        client!.once('open', resolve);
+        client!.once('error', reject);
+      });
+      client.send(Buffer.from([0, 1, 2, 255]));
+      expect(await echoed).toEqual(Buffer.from([0, 1, 2, 255]));
+      const target = new URL(receivedUrl, 'http://internal');
+      expect(target.pathname).toBe('/rtc/v1');
+      expect(target.searchParams.get('protocol')).toBe('16');
+      const grants = await new TokenVerifier(
+        f.settings.LIVEKIT_API_KEY,
+        f.settings.LIVEKIT_API_SECRET,
+      ).verify(target.searchParams.get('access_token')!);
+      expect(grants.video!.canPublishSources).not.toContain('microphone');
+      expect(grants.video!.canPublishSources).toContain('camera');
+      await mod(g.teacher, g.m.id, 'kick', { targetId: g.s.session.id });
+      const status = await new Promise<number>((resolve, reject) => {
+        const retry = new WebSocket(url, options);
+        retry.on('error', () => {});
+        retry.once('unexpected-response', (_r, response) => {
+          resolve(response.statusCode!);
+          response.destroy();
+          retry.terminate();
+        });
+        retry.once('open', () => {
+          retry.close();
+          reject(Error('Removed session admitted'));
+        });
+      });
+      expect(status).toBe(403);
+      expect(connections).toBe(1);
+    } finally {
+      client?.terminate();
+      for (const socket of upstream.clients) socket.terminate();
+      await new Promise<void>((resolve) => upstream.close(() => resolve()));
+      f.settings.LIVEKIT_WS_URL = originalUrl;
+    }
+  });
+  it('rejects a still-valid old JWT after kick, restore, explicit leave or end and reapplies current permissions', async () => {
+    const g = await entered(),
+      service = new MeetingsService(f.db, video),
+      roomName = (
+        await f.db.query<{ room_name: string }>(
+          'SELECT room_name FROM scheduled_meetings WHERE id=$1',
+          [g.m.id],
+        )
+      ).rows[0]!.room_name,
+      token = await ticket(g.student, g.s.session.id, roomName);
+    await mod(g.teacher, g.m.id, 'mute_audio', { targetId: g.s.session.id });
+    await service.signal(g.student.actor, g.s.session.id, roomName, true);
+    expect(video.calls.filter((c) => c.kind === 'permissions').at(-1)!.policy!.audioAllowed).toBe(
+      false,
+    );
+    expect(video.calls.filter((c) => c.kind === 'token').at(-1)!.policy!.audioAllowed).toBe(false);
+    await mod(g.teacher, g.m.id, 'kick', { targetId: g.s.session.id });
+    expect((await validate(g.student, token)).statusCode).toBe(403);
+    await mod(g.teacher, g.m.id, 'restore', { targetId: g.student.actor.user.id });
+    const replacement = await join(g.student, g.m.id);
+    await mod(g.teacher, g.m.id, 'admit', { targetId: replacement.session.id });
+    expect(replacement.session.id).not.toBe(g.s.session.id);
+    expect((await validate(g.student, token)).statusCode).toBe(403);
+    const replacementToken = await ticket(g.student, replacement.session.id, roomName);
+    expect((await validate(g.student, replacementToken)).statusCode).toBe(200);
+    await post(g.student, `/meetings/${g.m.id}/sessions/${replacement.session.id}/leave`, {});
+    expect((await validate(g.student, replacementToken)).statusCode).toBe(403);
+    const host = await ticket(g.teacher, g.t.session.id, roomName);
+    await mod(g.teacher, g.m.id, 'end', { revision: 2 });
+    expect((await validate(g.teacher, host)).statusCode).toBe(403);
   });
 });

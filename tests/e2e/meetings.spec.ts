@@ -369,14 +369,14 @@ test('real screen share, moderation, permission failure, locked reconnect, root 
     await studentPage.reload();
     await studentPage.getByRole('button', { name: 'Войти во встречу', exact: true }).click();
     await connected(studentPage);
-    const token = (
+    const ticket = (
       await (
         await studentPage.request.post(`/api/v1/meetings/${id}/sessions/${s.id}/token`, {
           headers: await csrf(studentPage),
           data: {},
         })
       ).json()
-    ).data.token;
+    ).data;
     if (!(await rootTile.locator('details').evaluate((e) => (e as HTMLDetailsElement).open)))
       await rootTile.getByText('Управление участником', { exact: true }).click();
     await rootTile.getByRole('button', { name: 'Удалить из встречи', exact: true }).click();
@@ -388,7 +388,7 @@ test('real screen share, moderation, permission failure, locked reconnect, root 
       data: { operationId: crypto.randomUUID() },
     });
     expect(denied.status()).toBe(403);
-    expect(await signalAccepted(token)).toBe(false);
+    expect(await signalAccepted(studentPage, ticket.serverUrl, ticket.token)).toBe(false);
     const serverState = (
       await (await teacher.request.get(`/api/v1/meetings/${id}/room-state`)).json()
     ).data;
