@@ -121,6 +121,68 @@ async function count(table: string) {
   );
 }
 describe('teacher workspace and shared student results', () => {
+  it('shows saved integrity observations only to the assigned teacher and superadmin in attempt lists and details', async () => {
+    const { student, teacher } = await group(),
+      run = await lesson(student);
+    const packet = await f.app.inject({
+      method: 'POST',
+      url: `/api/v1/engine/runs/${run.run.id}/integrity`,
+      headers: student.headers,
+      payload: {
+        turnId: run.current!.turn.id,
+        batchId: randomUUID(),
+        stats: {
+          durationMilliseconds: 5000,
+          hiddenMilliseconds: 1000,
+          tabHides: 1,
+          focusLosses: 1,
+          pasteEvents: 1,
+          inputEvents: 1,
+        },
+      },
+    });
+    expect(packet.statusCode, packet.body).toBe(200);
+    expect(packet.json().data.accepted).toBe(true);
+    const submitted = await f.app.inject({
+      method: 'POST',
+      url: `/api/v1/engine/runs/${run.run.id}/answer`,
+      headers: student.headers,
+      payload: {
+        turnId: run.current!.turn.id,
+        operationId: randomUUID(),
+        answer: f.answerFor(run, true),
+      },
+    });
+    expect(submitted.statusCode, submitted.body).toBe(200);
+    const id = submitted.json().data.attempt.id;
+    const owner = await detail(student, id),
+      reviewer = await detail(teacher, id);
+    expect(owner.attempt.integrity).toBeNull();
+    expect(reviewer.attempt.integrity).toMatchObject({
+      requiresReview: true,
+      stats: { tabHides: 1, focusLosses: 1 },
+    });
+    expect(reviewer.attempt.evaluation).toEqual(owner.attempt.evaluation);
+    const list = await f.app.inject({
+      url: `/api/v1/learning/attempts?userId=${student.actor.user.id}`,
+      headers: teacher.headers,
+    });
+    expect(
+      attemptsPageSchema.parse(list.json().data).items[0]!.attempt.integrity?.requiresReview,
+    ).toBe(true);
+    const ownList = await f.app.inject({
+      url: '/api/v1/learning/attempts',
+      headers: student.headers,
+    });
+    expect(attemptsPageSchema.parse(ownList.json().data).items[0]!.attempt.integrity).toBeNull();
+    const root = await f.active('superadmin');
+    expect((await detail(root, id)).attempt.integrity?.requiresReview).toBe(true);
+    const stranger = await f.active('teacher');
+    expect(
+      (await f.app.inject({ url: `/api/v1/learning/attempts/${id}`, headers: stranger.headers }))
+        .statusCode,
+    ).toBe(404);
+  });
   it('keeps the diagnostic and original plan snapshot while exposing subsequent teacher assessment', async () => {
     const { student, teacher } = await group(),
       p = await f.preparedPlan(student);

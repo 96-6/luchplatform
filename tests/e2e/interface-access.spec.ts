@@ -213,7 +213,8 @@ test('direct links and client navigation reject forged context while valid saved
     ] as const) {
       const response = await page.goto(path);
       expect(response?.status(), path).toBe(status);
-      await expect(page.getByRole('heading', { name: new RegExp(`^${status} ·`) })).toBeVisible();
+      await expect(page.locator('.status')).toHaveText(String(status));
+      await expect(page.getByRole('heading', { level: 1 })).toBeVisible();
     }
     await page.goto(`/plan/${plan}`);
     await ready(page);
