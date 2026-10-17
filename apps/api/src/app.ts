@@ -1,3 +1,5 @@
+import { registerReportRoutes } from './modules/reports/routes.js';
+import { ReportsService } from './modules/reports/service.js';
 import websocket from '@fastify/websocket';
 import { registerMeetingSignalling } from './modules/meetings/signalling.js';
 import { registerMeetingRoutes } from './modules/meetings/routes.js';
@@ -240,6 +242,7 @@ export async function buildApp(
   await registerAuthRoutes(app, auth, captcha);
   await registerAccountRoutes(app, auth);
   await registerTeacherRoutes(app, auth);
+  await registerReportRoutes(app, auth, new ReportsService(database));
   const meetings = new MeetingsService(
     database,
     options.meetingVideo ?? new LiveKitVideo(settings),

@@ -1326,3 +1326,55 @@ button.danger {
     min-width: 8rem;
   }
 }
+
+.report-toolbar {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: flex-end;
+  gap: 1rem;
+  margin-bottom: 1rem;
+}
+.report-toolbar label {
+  min-width: 12rem;
+}
+.report-public {
+  min-width: 0;
+}
+.report-history li {
+  overflow-wrap: anywhere;
+}
+.report-history .account-list {
+  margin: 0;
+}
+.report-diagnostic {
+  margin-top: 1.5rem;
+}
+.report-reviewer {
+  border-color: #cc993f;
+}
+.report-table-wrap {
+  overflow-x: auto;
+  margin: 1rem 0;
+}
+.report-table-wrap table {
+  width: 100%;
+  border-collapse: collapse;
+}
+.report-table-wrap th,
+.report-table-wrap td {
+  text-align: left;
+  padding: 0.65rem;
+  border-bottom: 1px solid var(--border, #d9dedb);
+}
+.report-reviewer details {
+  margin: 1rem 0;
+}
+@media (max-width: 650px) {
+  .report-toolbar {
+    align-items: stretch;
+    flex-direction: column;
+  }
+  .report-toolbar label {
+    min-width: 0;
+  }
+}

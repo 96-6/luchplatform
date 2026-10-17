@@ -62,6 +62,7 @@ export function TeacherPage() {
                 <Link className="text-link" to={`/teacher/students/${user.id}`}>
                   Открыть карточку →
                 </Link>
+                <Link to={`/progress?userId=${user.id}`}>Учебный отчёт →</Link>
               </li>
             ))}
           </ul>
@@ -87,6 +88,9 @@ export function TeacherStudentPage() {
       <section className="panel">
         <UserSummary user={state.data} />
         <p>Ниже доступны сохранённые прохождения и ответы ученика.</p>
+        <Link className="button-link" to={`/progress?userId=${id}`}>
+          Открыть учебный отчёт →
+        </Link>
       </section>
       <p>
         <Link to={`/assistant?userId=${id}`}>Персонаж и переписка помощника →</Link>
