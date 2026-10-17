@@ -8,7 +8,7 @@ import {
   adminAuthenticatorResetSchema,
 } from '@luch/contracts';
 import type { AuthService, Actor } from '../auth/service.js';
-import { audit, publicUser, type UserRow } from './repository.js';
+import { audit, publicUser, managementUser, type UserRow } from './repository.js';
 import { getPolicy, ipAllowed, normalizeIp, validateRanges } from '../security/policy.js';
 import { AppError } from '../../errors.js';
 import { learningProgress } from '../engine/repository.js';
@@ -61,7 +61,10 @@ export async function registerAccountRoutes(app: FastifyInstance, auth: AuthServ
     const row = await readUser(actor, idOf(request.params));
     if (actor.user.role === 'superadmin')
       await audit(db, actor.user.id, 'account.debug_view', row.id);
-    return { data: publicUser(row), requestId: request.id };
+    return {
+      data: actor.user.role === 'superadmin' ? managementUser(row) : publicUser(row),
+      requestId: request.id,
+    };
   });
   app.get('/api/v1/teacher/students', async (request) => {
     const actor = await auth.requireActor(request, 'teacher');
@@ -84,7 +87,7 @@ export async function registerAccountRoutes(app: FastifyInstance, auth: AuthServ
       [`%${search}%`, role ?? null],
     );
     await audit(db, actor.user.id, 'accounts.list_view');
-    return { data: result.rows.map(publicUser), requestId: request.id };
+    return { data: result.rows.map(managementUser), requestId: request.id };
   });
   app.get('/api/v1/admin/accounts/:id', async (request) => {
     const actor = await auth.requireActor(request, 'superadmin');
@@ -111,7 +114,7 @@ export async function registerAccountRoutes(app: FastifyInstance, auth: AuthServ
     await audit(db, actor.user.id, 'account.debug_view', id);
     return {
       data: {
-        user: publicUser(user),
+        user: managementUser(user),
         teachers: teachers.rows.map(publicUser),
         students: students.rows.map(publicUser),
         progress: await learningProgress(db, id),
@@ -158,7 +161,7 @@ export async function registerAccountRoutes(app: FastifyInstance, auth: AuthServ
       )
         await tx.query('UPDATE auth_sessions SET revoked_at=now() WHERE user_id=$1', [id]);
       await audit(tx, actor.user.id, 'account.access_changed', id);
-      return publicUser(result.rows[0]!);
+      return managementUser(result.rows[0]!);
     });
     return { data: user, requestId: request.id };
   });

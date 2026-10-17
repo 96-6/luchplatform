@@ -119,6 +119,27 @@ describe('account access status', () => {
       payload: { isBlocked: true, accessVerified: true },
     });
     expect(legacyBan.json().data.blockReason).toBe(reason);
+    const tutor = await create(admin, 'teacher');
+    const linked = await app.inject({
+      method: 'POST',
+      url: '/api/v1/admin/teacher-students',
+      headers: admin,
+      payload: { teacherId: tutor.setup.user.id, studentId: setup.user.id },
+    });
+    expect(linked.statusCode).toBe(200);
+    const tutorSession = await login(tutor.input.email, tutor.setup.manualKey);
+    expect(tutorSession.statusCode).toBe(200);
+    const teacherRead = await app.inject({
+      url: `/api/v1/users/${setup.user.id}`,
+      headers: headers(tutorSession),
+    });
+    expect(teacherRead.statusCode).toBe(200);
+    expect(teacherRead.json().data.blockReason).toBe('');
+    const rootRead = await app.inject({
+      url: `/api/v1/admin/accounts/${setup.user.id}`,
+      headers: admin,
+    });
+    expect(rootRead.json().data.user.blockReason).toBe(reason);
     const expired = await app.inject({ url: '/api/v1/auth/session', headers: student });
     expect(expired.json().data.user).toBeNull();
     denied = await login(input.email, setup.manualKey);

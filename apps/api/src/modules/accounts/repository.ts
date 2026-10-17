@@ -29,10 +29,14 @@ export function publicUser(row: UserRow): User {
     isDemo: row.is_demo,
     isBlocked: row.is_blocked,
     isActive: row.is_active,
-    blockReason: row.block_reason,
+    blockReason: '',
     accessVerified: row.access_verified,
     createdAt: new Date(row.created_at).toISOString(),
   };
+}
+// Ban reasons belong to account management and the authenticated sign-in refusal.
+export function managementUser(row: UserRow): User {
+  return { ...publicUser(row), blockReason: row.block_reason };
 }
 export const dashboardPath = (role: User['role']) =>
   role === 'superadmin'

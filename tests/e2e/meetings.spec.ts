@@ -202,10 +202,22 @@ for (const language of ['ru', 'en'] as const)
       await chat.getByRole('button', { name: 'Отправить в чат', exact: true }).click();
       await expect(teacher.getByRole('log')).toContainText('Можно повторить последний пример?');
       await teacher.getByRole('button', { name: 'Закрыть чат', exact: true }).click();
+      await tile.getByRole('button', { name: 'Закрыть сведения', exact: true }).click();
+      await teacher.screenshot({
+        path: `test-results/meeting-grid-${language}.png`,
+        fullPage: true,
+      });
       await teacher.setViewportSize({ width: 390, height: 844 });
       expect(await teacher.evaluate(() => document.documentElement.scrollWidth <= innerWidth)).toBe(
         true,
       );
+      await tile
+        .getByRole('button', { name: 'Предупреждение о виртуальной камере', exact: true })
+        .click();
+      await teacher.screenshot({
+        path: `test-results/meeting-room-mobile-${language}.png`,
+        fullPage: true,
+      });
       await tile.screenshot({ path: `test-results/meeting-warning-${language}.png` });
       await teacher.setViewportSize({ width: 1280, height: 900 });
       if ((await teacher.locator('.conference-manage').getAttribute('open')) === null)

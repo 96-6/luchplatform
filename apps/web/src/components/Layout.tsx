@@ -110,7 +110,7 @@ export function Layout({ children, devTools }: { children: ReactNode; devTools: 
             </NavLink>
           )}
         </nav>
-        <div className="sidebar-note">
+        <div className={open ? 'sidebar-note menu-open' : 'sidebar-note'}>
           <LanguageSelector />
         </div>
       </aside>

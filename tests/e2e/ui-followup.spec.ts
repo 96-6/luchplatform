@@ -84,6 +84,14 @@ test('browser locale, persistent choice and styled HTTP error pages work without
     expect(await page.evaluate(() => document.documentElement.scrollWidth <= innerWidth)).toBe(
       true,
     );
+    await page.getByRole('link', { name: 'На главную', exact: true }).click();
+    await page.getByRole('button', { name: 'Открыть меню', exact: true }).click();
+    await expect(page.getByLabel('Язык интерфейса')).toBeVisible();
+    await page.getByLabel('Язык интерфейса').selectOption('en');
+    await expect(page.locator('html')).toHaveAttribute('lang', 'en');
+    await page.getByRole('button', { name: 'Open menu', exact: true }).click();
+    await expect(page.getByLabel('Interface language')).toBeVisible();
+    await page.screenshot({ path: 'test-results/language-menu-mobile.png', fullPage: true });
     expect(failures).toEqual([]);
   } finally {
     await context.close();
