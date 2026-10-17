@@ -2,7 +2,7 @@
 
 Follow the user's numbered tasks in `docs/ROADMAP.md` from top to bottom. Complete subtasks in order, verify the stated acceptance result, and record evidence before starting the next task. This repository implements tasks 1–13. Tasks 1–13 are verified; task 13 is complete. Do not begin task 14 without a new user instruction.
 
-The current authorized follow-up is the interface/access audit requested on 17 October 2026: remove unused placeholders, make routine role workflows usable without a console, retain operator CLI recovery, and enforce page/resource/link preconditions. This does not authorize deployment under task 14. Record evidence in `docs/ACCEPTANCE_INTERFACE_ACCESS.md`.
+The interface/access follow-up requested on 17 October 2026 is complete and verified: unused placeholders removed, routine role workflows available without a console, operator CLI recovery retained, and page/resource/link preconditions enforced. Evidence is recorded in `docs/ACCEPTANCE_INTERFACE_ACCESS.md`. This does not authorize deployment under task 14.
 
 - Read `README.md`, `docs/ARCHITECTURE.md`, and the current task's acceptance record before changes.
 - Keep the React client, Fastify API, and shared validation contracts integrated. Only the server reads database credentials or provider keys.
