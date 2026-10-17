@@ -239,7 +239,8 @@ test('teacher and superadmin see the same plan; peers are denied and empty/error
     );
     await login(otherPage, 'plan-other');
     expect((await otherPage.request.get(`/api/v1/plans/${plan.plan.id}`)).status()).toBe(404);
-    await otherPage.goto(`/plan/${plan.plan.id}`);
+    const denied = await otherPage.goto(`/plan/${plan.plan.id}`);
+    expect(denied?.status()).toBe(404);
     await expect(otherPage.getByRole('alert')).toContainText('Прохождение не найдено.');
     let fail = true;
     await page.route('**/api/v1/plans?**', async (route) => {

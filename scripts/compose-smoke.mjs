@@ -5,7 +5,10 @@ const input = {
   operationId: '00000000-0000-4000-8000-000000000002',
 };
 assert.equal((await fetch(`${base}/api/v1/health/ready`)).status, 200);
-assert.equal((await fetch(`${base}/plan`)).status, 200);
+assert.equal((await fetch(`${base}/`)).status, 200);
+assert.equal((await fetch(`${base}/login`)).status, 200);
+assert.equal((await fetch(`${base}/plan`)).status, 401);
+assert.equal((await fetch(`${base}/temporary/private.json`)).status, 404);
 const captcha = await (await fetch(`${base}/api/v1/auth/captcha?purpose=login`)).json();
 assert.ok(captcha.data.imageDataUrl.startsWith('data:image/png;base64,'));
 if (process.argv[2] !== 'verify') {

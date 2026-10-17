@@ -2,7 +2,7 @@ import { Link, Navigate } from 'react-router-dom';
 import { useAuth } from '../auth/AuthContext';
 export function HomePage() {
   const { session } = useAuth();
-  if (session.user?.role === 'student') return <Navigate to="/student" replace />;
+  if (session.user) return <Navigate to={session.dashboardPath ?? '/student'} replace />;
   return (
     <>
       <p className="eyebrow">Начните с вашей цели</p>
@@ -16,17 +16,13 @@ export function HomePage() {
         преподавателя — в одном месте.
       </p>
       <div className="notice">
-        <strong>
-          {session.user
-            ? `С возвращением, ${session.user.name}.`
-            : 'Ваш аккаунт — первый шаг к обучению.'}
-        </strong>
+        <strong>Ваш аккаунт — первый шаг к обучению.</strong>
         <p>
           Подтвердите почту и подключите Authenticator. В кабинете доступны демонстрационные
           маршруты РКИ и английского: мини-уроки, упражнения и сохранённые результаты.
         </p>
-        <Link className="text-link" to={session.dashboardPath ?? '/register'}>
-          {session.user ? 'Открыть кабинет →' : 'Создать аккаунт →'}
+        <Link className="text-link" to="/register">
+          Создать аккаунт →
         </Link>
       </div>
       <h2 className="section-title">Два направления</h2>

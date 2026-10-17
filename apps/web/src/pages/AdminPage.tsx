@@ -28,6 +28,11 @@ export function AdminPage() {
       <p className="eyebrow">Управление платформой</p>
       <h1>Кабинет суперадмина</h1>
       <p>
+        <Link className="button-link" to="/operations">
+          Состояние и обслуживание платформы →
+        </Link>
+      </p>
+      <p>
         <Link to="/admin/content">Учебный контент: импорт и экспорт →</Link>
       </p>
       <p>
@@ -120,7 +125,9 @@ function Accounts() {
                       ? 'Ученик'
                       : user.role === 'teacher'
                         ? 'Преподаватель'
-                        : 'Суперадмин'}
+                        : user.role === 'admin'
+                          ? 'Администратор'
+                          : 'Суперадмин'}
                     {user.isBlocked ? ' · заблокирован' : ''}
                   </span>
                   <button
@@ -200,6 +207,22 @@ function AccountDetail({
       setBusy(false);
     }
   }
+  async function unassign(teacherId: string, studentId: string) {
+    setBusy(true);
+    setError(null);
+    try {
+      const result = await api('/admin/teacher-students/remove', messageSchema, {
+        body: { teacherId, studentId },
+      });
+      setMessage(result.message);
+      refresh();
+      onSaved();
+    } catch (failure) {
+      setError(failure as Error);
+    } finally {
+      setBusy(false);
+    }
+  }
   if (state.status === 'loading') return <LoadingState />;
   if (state.status === 'error') return <ErrorState error={state.error} retry={refresh} />;
   return (
@@ -213,12 +236,14 @@ function AccountDetail({
         Попыток: {state.data.progress.attempts} · Верных: {state.data.progress.correctAttempts} · С
         помощью: {state.data.progress.assistedAttempts}
       </p>
-      <p>
-        <Link to={`/assistant?userId=${id}`}>Персонаж и переписка помощника →</Link>
-      </p>
-      <RunList userId={id} />
       {state.data.user.role === 'student' && (
         <>
+          <p>
+            <Link to={`/assistant?userId=${id}`}>Персонаж и переписка помощника →</Link> ·{' '}
+            <Link to={`/progress?userId=${id}`}>Учебный отчёт →</Link> ·{' '}
+            <Link to={`/onboarding?userId=${id}`}>Анкета и диагностика →</Link>
+          </p>
+          <RunList userId={id} />
           <ProfileOverview userId={id} />
           <PlanOverview userId={id} />
           <DiagnosticHistory userId={id} />
@@ -229,6 +254,30 @@ function AccountDetail({
         Преподаватели: {state.data.teachers.map((user) => user.name).join(', ') || 'не назначены'}
       </p>
       <p>Ученики: {state.data.students.map((user) => user.name).join(', ') || 'не назначены'}</p>
+      {(state.data.teachers.length > 0 || state.data.students.length > 0) && (
+        <ul className="account-list">
+          {[
+            ...state.data.teachers.map((user) => ({ user, teacherId: user.id, studentId: id })),
+            ...state.data.students.map((user) => ({ user, teacherId: id, studentId: user.id })),
+          ].map(({ user, teacherId, studentId }) => (
+            <li key={user.id}>
+              <strong>{user.name}</strong>
+              <span>{user.email}</span>
+              {user.role === 'student' && (
+                <Link to={`/teacher/students/${user.id}`}>Карточка ученика →</Link>
+              )}
+              <button
+                className="secondary"
+                disabled={busy}
+                onClick={() => void unassign(teacherId, studentId)}
+                aria-label={`Снять закрепление ${user.email}`}
+              >
+                Снять закрепление
+              </button>
+            </li>
+          ))}
+        </ul>
+      )}
       <form
         onSubmit={(event) => {
           void save(event);

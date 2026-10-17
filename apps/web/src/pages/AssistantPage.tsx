@@ -5,9 +5,23 @@ import type { z } from 'zod';
 import { api } from '../lib/api';
 import { useResource } from '../lib/useResource';
 import { LoadingState, ErrorState } from '../components/States';
+import { StudentDirectory } from '../components/StudentDirectory';
+import { useAuth } from '../auth/AuthContext';
 
 type Profile = z.infer<typeof assistantProfileSchema>;
 export function AssistantPage() {
+  const { session } = useAuth();
+  const [search] = useSearchParams();
+  if (session.user?.role !== 'student' && !search.get('userId'))
+    return (
+      <>
+        <h1>Помощник ученика</h1>
+        <StudentDirectory path="/assistant" />
+      </>
+    );
+  return <AssistantProfile key={search.get('userId') ?? session.user?.id} />;
+}
+function AssistantProfile() {
   const [params] = useSearchParams(),
     userId = params.get('userId');
   const [saved, setSaved] = useState(false);

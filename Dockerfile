@@ -27,6 +27,7 @@ COPY --from=build /app/scripts/speech-smoke.mjs ./scripts/speech-smoke.mjs
 COPY --from=build /app/scripts/teacher-smoke.mjs ./scripts/teacher-smoke.mjs
 COPY --from=build /app/scripts/meeting-smoke.mjs ./scripts/meeting-smoke.mjs
 COPY --from=build /app/scripts/report-smoke.mjs ./scripts/report-smoke.mjs
+COPY --from=build /app/scripts/operations-smoke.mjs ./scripts/operations-smoke.mjs
 COPY --from=build /app/apps/web/package.json ./apps/web/package.json
 COPY --from=build /app/apps/web/dist ./apps/web/dist
 COPY --from=build /app/packages/contracts ./packages/contracts

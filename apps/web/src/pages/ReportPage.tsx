@@ -1,3 +1,4 @@
+import { StudentDirectory } from '../components/StudentDirectory';
 import { useEffect, useRef, useState, type ReactNode } from 'react';
 import { Link, useSearchParams } from 'react-router-dom';
 import type { z } from 'zod';
@@ -6,7 +7,6 @@ import {
   reportAttemptsPageSchema,
   reportChangesPageSchema,
   reportIntegrityPageSchema,
-  usersSchema,
   type LearningReport,
   type ReportIntegrity,
   type ReportAttempt,
@@ -80,55 +80,10 @@ export function ReportPage() {
   );
 }
 function ReportDirectory() {
-  const { session } = useAuth(),
-    [search, setSearch] = useState('');
-  const root = session.user!.role === 'superadmin';
-  const { state, refresh } = useResource(
-    root
-      ? `/admin/accounts?role=student&search=${encodeURIComponent(search)}`
-      : '/teacher/students',
-    usersSchema,
-  );
   return (
     <>
-      <p className="eyebrow">По фактическим результатам</p>
       <h1>Учебный отчёт</h1>
-      <section className="panel">
-        <h2>Выберите ученика</h2>
-        <label>
-          Поиск ученика
-          <input
-            value={search}
-            onChange={(e) => setSearch(e.target.value)}
-            placeholder="Имя или почта"
-          />
-        </label>
-        {root && (
-          <p className="muted">
-            Если ученика нет среди первых результатов, уточните имя или почту.
-          </p>
-        )}
-        {state.status === 'loading' ? (
-          <LoadingState />
-        ) : state.status === 'error' ? (
-          <ErrorState error={state.error} retry={refresh} />
-        ) : (
-          <ul className="account-list">
-            {state.data
-              .filter(
-                (u) => root || `${u.name} ${u.email}`.toLowerCase().includes(search.toLowerCase()),
-              )
-              .map((u) => (
-                <li key={u.id}>
-                  <strong>{u.name}</strong>
-                  <span>{u.email}</span>
-                  <Link to={`/progress?userId=${u.id}`}>Открыть учебный отчёт →</Link>
-                </li>
-              ))}
-            {!state.data.length && <li>Доступных учеников пока нет.</li>}
-          </ul>
-        )}
-      </section>
+      <StudentDirectory path="/progress" />
     </>
   );
 }

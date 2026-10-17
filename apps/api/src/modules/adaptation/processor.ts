@@ -381,13 +381,19 @@ export async function processRunLearningEvents(tx: QueryExecutor, runId: string,
     await tx.query('UPDATE engine_events SET processed_at=$2 WHERE id=$1', [e.id, new Date(now)]);
   }
 }
-export async function recoverLearningEvents(db: Database, now: () => number = Date.now) {
+export const learningEventsReady =
+  "(r.status='completed' OR (r.purpose='practice' AND r.assignment_id IS NULL))";
+export async function recoverLearningEvents(
+  db: Database,
+  now: () => number = Date.now,
+  maximumRuns = Number.POSITIVE_INFINITY,
+) {
   let processedRuns = 0;
-  for (;;) {
+  while (processedRuns < maximumRuns) {
     const processed = await db.transaction(async (tx) => {
       const run = (
         await tx.query<{ id: string }>(`SELECT r.id FROM engine_runs r
-        WHERE (r.status='completed' OR (r.purpose='practice' AND r.assignment_id IS NULL)) AND EXISTS (SELECT 1 FROM engine_events v JOIN engine_attempts a ON a.id=v.attempt_id WHERE a.run_id=r.id AND v.processed_at IS NULL)
+        WHERE ${learningEventsReady} AND EXISTS (SELECT 1 FROM engine_events v JOIN engine_attempts a ON a.id=v.attempt_id WHERE a.run_id=r.id AND v.processed_at IS NULL)
         ORDER BY r.created_at,r.id LIMIT 1 FOR UPDATE OF r SKIP LOCKED`)
       ).rows[0];
       if (!run) return false;
@@ -397,4 +403,5 @@ export async function recoverLearningEvents(db: Database, now: () => number = Da
     if (!processed) return processedRuns;
     processedRuns++;
   }
+  return processedRuns;
 }

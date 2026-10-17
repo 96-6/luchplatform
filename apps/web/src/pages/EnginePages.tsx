@@ -123,6 +123,7 @@ export function StartLessonButton({
   lessonId: string;
   purpose: 'practice' | 'diagnostic' | 'control';
 }) {
+  const { session } = useAuth();
   const navigate = useNavigate();
   const [busy, setBusy] = useState(false),
     [error, setError] = useState('');
@@ -140,14 +141,28 @@ export function StartLessonButton({
       setBusy(false);
     }
   }
+  if (!['student', 'superadmin'].includes(session.user?.role ?? ''))
+    return (
+      <p className="muted">
+        Предварительный просмотр материалов.
+        {session.user?.role !== 'admin' && (
+          <>
+            {' '}
+            <Link to="/plan">Открыть планы учеников →</Link>
+          </>
+        )}
+      </p>
+    );
   return (
     <div className="start-lesson">
       <button disabled={busy} onClick={() => void start()}>
         {busy
           ? 'Открываем…'
-          : purpose === 'practice'
-            ? 'Начать или продолжить тренировку'
-            : 'Начать или продолжить проверку'}
+          : session.user?.role === 'superadmin'
+            ? 'Проверить учебный движок'
+            : purpose === 'practice'
+              ? 'Начать или продолжить тренировку'
+              : 'Начать или продолжить проверку'}
       </button>
       {error && (
         <p role="alert" className="error">

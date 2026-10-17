@@ -1,3 +1,4 @@
+import { StudentDirectory } from '../components/StudentDirectory';
 import { TeacherAssignExercise, TeacherEditAssignment } from '../components/TeacherPlanControls';
 import { useEffect, useState } from 'react';
 import { Link, useNavigate, useParams, useSearchParams } from 'react-router-dom';
@@ -108,14 +109,7 @@ export function PlansPage() {
   return (
     <>
       <h1>Индивидуальные планы</h1>
-      {userId ? (
-        <PlanHistory key={userId} userId={userId} />
-      ) : (
-        <section className="panel">
-          <p>Откройте карточку ученика, чтобы увидеть его планы.</p>
-          <Link to={session.dashboardPath ?? '/student'}>Кабинет →</Link>
-        </section>
-      )}
+      {userId ? <PlanHistory key={userId} userId={userId} /> : <StudentDirectory path="/plan" />}
     </>
   );
 }

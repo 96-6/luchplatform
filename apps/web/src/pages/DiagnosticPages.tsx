@@ -1,3 +1,4 @@
+import { StudentDirectory } from '../components/StudentDirectory';
 import { useEffect, useState, type FormEvent } from 'react';
 import { Link, useNavigate, useParams, useSearchParams } from 'react-router-dom';
 import {
@@ -43,7 +44,15 @@ export function ProfileOverview({ userId }: { userId: string }) {
 export function OnboardingPage() {
   const { session } = useAuth();
   const [params] = useSearchParams();
-  const userId = params.get('userId') ?? session.user!.id;
+  const userId =
+    params.get('userId') ?? (session.user!.role === 'student' ? session.user!.id : null);
+  if (!userId)
+    return (
+      <>
+        <h1>Анкеты и диагностика учеников</h1>
+        <StudentDirectory path="/onboarding" />
+      </>
+    );
   return <ProfileEditor key={userId} userId={userId} />;
 }
 function ProfileEditor({ userId }: { userId: string }) {

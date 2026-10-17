@@ -78,8 +78,9 @@ export async function readSpeech(
   return { run, row };
 }
 export async function expireSpeechAudio(tx: QueryExecutor, now: number) {
-  await tx.query(
-    'UPDATE speech_inputs SET audio=NULL WHERE audio IS NOT NULL AND audio_expires_at<=$1',
+  const result = await tx.query(
+    'UPDATE speech_inputs SET audio=NULL WHERE audio IS NOT NULL AND audio_expires_at<=$1 RETURNING id',
     [new Date(now)],
   );
+  return result.rows.length;
 }
