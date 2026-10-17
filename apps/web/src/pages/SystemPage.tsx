@@ -1,3 +1,4 @@
+import { t, dateLocale } from '../i18n';
 import { useRef, useState, type FormEvent } from 'react';
 import {
   createProbeSchema,
@@ -17,7 +18,7 @@ export function SystemPage({ enabled }: { enabled: boolean }) {
 function SystemCheck() {
   const health = useResource('/health/ready', healthSchema);
   const records = useResource('/dev/records', probesSchema);
-  const [label, setLabel] = useState('Проверка сохранения');
+  const [label, setLabel] = useState(t('Проверка сохранения'));
   const [saving, setSaving] = useState(false);
   const [error, setError] = useState<Error | null>(null);
   const [success, setSuccess] = useState('');
@@ -29,7 +30,7 @@ function SystemCheck() {
       pending.current ?? { label, operationId: crypto.randomUUID() },
     );
     if (!input.success) {
-      setError(new Error(input.error.issues[0]?.message ?? 'Проверьте данные.'));
+      setError(new Error(input.error.issues[0]?.message ?? t('Проверьте данные.')));
       return;
     }
     pending.current = input.data;
@@ -38,7 +39,7 @@ function SystemCheck() {
     setSuccess('');
     try {
       const saved = await api('/dev/records', probeSchema, { body: input.data });
-      setSuccess(`Запись «${saved.label}» сохранена в базе.`);
+      setSuccess(t('Запись «{0}» сохранена в базе.', [saved.label]));
       pending.current = null;
       records.refresh();
       health.refresh();
@@ -50,31 +51,31 @@ function SystemCheck() {
   }
   return (
     <>
-      <p className="eyebrow">Для разработки и проверки</p>
-      <h1>Проверка системы</h1>
+      <p className="eyebrow">{t('Для разработки и проверки')}</p>
+      <h1>{t('Проверка системы')}</h1>
       <p className="lead">
-        Создайте тестовую запись, затем обновите страницу. Запись должна остаться в списке.
+        {t('Создайте тестовую запись, затем обновите страницу. Запись должна остаться в списке.')}
       </p>
-      <section className="panel" aria-label="Состояние базы">
-        <h2>Соединение с базой</h2>
-        {health.state.status === 'loading' && <LoadingState text="Проверяем соединение…" />}
+      <section className="panel" aria-label={t('Состояние базы')}>
+        <h2>{t('Соединение с базой')}</h2>
+        {health.state.status === 'loading' && <LoadingState text={t('Проверяем соединение…')} />}
         {health.state.status === 'error' && (
           <ErrorState error={health.state.error} retry={health.refresh} />
         )}
         {health.state.status === 'ready' && (
           <p className="success" role="status">
-            Сервер и база данных готовы.
+            {t('Сервер и база данных готовы.')}
           </p>
         )}
       </section>
       <section className="panel">
-        <h2>Тестовая запись</h2>
+        <h2>{t('Тестовая запись')}</h2>
         <form
           onSubmit={(event) => {
             void save(event);
           }}
         >
-          <label htmlFor="probe-label">Текст записи</label>
+          <label htmlFor="probe-label">{t('Текст записи')}</label>
           <div className="form-row">
             <input
               id="probe-label"
@@ -90,15 +91,15 @@ function SystemCheck() {
               }}
             />
             <button type="submit" disabled={saving}>
-              {saving ? 'Сохраняем…' : 'Сохранить в базу'}
+              {saving ? t('Сохраняем…') : t('Сохранить в базу')}
             </button>
           </div>
-          <p className="muted">До 120 символов. Используйте только тестовые данные.</p>
+          <p className="muted">{t('До 120 символов. Используйте только тестовые данные.')}</p>
         </form>
-        {saving && <LoadingState text="Сохраняем запись…" />}
+        {saving && <LoadingState text={t('Сохраняем запись…')} />}
         {error && (
           <div className="error inline-message" role="alert">
-            {error.message} Повторите сохранение.
+            {t(error.message)} {t(' Повторите сохранение.')}
           </div>
         )}
         {success && (
@@ -109,13 +110,13 @@ function SystemCheck() {
       </section>
       <section className="panel">
         <div className="section-heading">
-          <h2>Последние записи</h2>
+          <h2>{t('Последние записи')}</h2>
           <button
             className="secondary"
             onClick={records.refresh}
             disabled={records.state.status === 'loading'}
           >
-            Обновить список
+            {t('Обновить список')}
           </button>
         </div>
         {records.state.status === 'loading' && <LoadingState />}
@@ -125,8 +126,8 @@ function SystemCheck() {
         {records.state.status === 'ready' &&
           (records.state.data.length === 0 ? (
             <EmptyState
-              title="Записей пока нет"
-              description="Сохраните первую тестовую запись с помощью формы выше."
+              title={t('Записей пока нет')}
+              description={t('Сохраните первую тестовую запись с помощью формы выше.')}
             />
           ) : (
             <ul className="record-list">
@@ -134,7 +135,7 @@ function SystemCheck() {
                 <li key={record.id}>
                   <strong>{record.label}</strong>
                   <time dateTime={record.createdAt}>
-                    {new Date(record.createdAt).toLocaleString('ru-RU')}
+                    {new Date(record.createdAt).toLocaleString(dateLocale)}
                   </time>
                   <code>{record.id}</code>
                 </li>

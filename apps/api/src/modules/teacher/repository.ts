@@ -1,10 +1,16 @@
-import { teacherReviewSchema, exerciseSchema, reviewedAttemptSchema } from '@luch/contracts';
+import {
+  teacherReviewSchema,
+  exerciseSchema,
+  reviewedAttemptSchema,
+  integrityAssessmentSchema,
+} from '@luch/contracts';
 import type { QueryExecutor } from '../../db/database.js';
 import { AppError } from '../../errors.js';
 import type { Actor } from '../auth/service.js';
 import { studentAccess } from '../diagnostics/profile.js';
 import { attemptSelect, attemptView, iso, type AttemptRow } from '../engine/repository.js';
 export type ReviewedRow = AttemptRow & {
+  integrity_assessment: unknown | null;
   run_title: string;
   run_purpose: 'practice' | 'control' | 'diagnostic';
   run_status: 'active' | 'completed';
@@ -12,7 +18,7 @@ export type ReviewedRow = AttemptRow & {
   package_version: number;
   route_id: string;
 };
-export const reviewedSelect = `SELECT a.*,r.title AS run_title,r.purpose AS run_purpose,r.status AS run_status,r.package_id,r.package_version,r.route_id FROM (${attemptSelect}) a JOIN engine_runs r ON r.id=a.run_id`;
+export const reviewedSelect = `SELECT a.*,i.assessment AS integrity_assessment,r.title AS run_title,r.purpose AS run_purpose,r.status AS run_status,r.package_id,r.package_version,r.route_id FROM (${attemptSelect}) a JOIN engine_runs r ON r.id=a.run_id LEFT JOIN engine_integrity_assessments i ON i.attempt_id=a.id`;
 export function canReview(actor: Actor) {
   return actor.user.role === 'teacher' || actor.user.role === 'superadmin';
 }
@@ -36,7 +42,13 @@ export async function teacherAccess(tx: QueryExecutor, actor: Actor, userId: str
 export function reviewedView(actor: Actor, row: ReviewedRow) {
   const reveal = row.run_purpose === 'practice' || row.run_status === 'completed';
   return reviewedAttemptSchema.parse({
-    attempt: attemptView(row, reveal),
+    attempt: {
+      ...attemptView(row, reveal),
+      integrity:
+        canReview(actor) && row.integrity_assessment
+          ? integrityAssessmentSchema.parse(row.integrity_assessment)
+          : null,
+    },
     runId: row.run_id,
     runTitle: row.run_title,
     purpose: row.run_purpose,

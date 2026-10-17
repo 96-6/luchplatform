@@ -147,7 +147,7 @@ test('superadmin exports, reimports without duplicates and publishes a new versi
   await expect(
     page.getByRole('button', { name: 'Импортировать пакет', exact: true }),
   ).toBeDisabled();
-  const context = await browser.newContext({ baseURL: 'http://127.0.0.1:3200' });
+  const context = await browser.newContext({ locale: 'ru-RU', baseURL: 'http://127.0.0.1:3200' });
   try {
     const student = await context.newPage();
     await enroll(student, `content-update-${Date.now()}@example.test`);

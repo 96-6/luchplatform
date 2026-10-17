@@ -34,7 +34,7 @@ export class NavigationService {
     if (target.kind === 'verification') {
       const row = (
         await db.query(
-          "SELECT 1 FROM auth_tokens t JOIN users u ON u.id=t.user_id WHERE t.token_hash=$1 AND t.kind='email' AND t.consumed_at IS NULL AND t.expires_at>now() AND NOT u.is_blocked AND u.totp_enabled_at IS NULL",
+          "SELECT 1 FROM auth_tokens t JOIN users u ON u.id=t.user_id WHERE t.token_hash=$1 AND t.kind='email' AND t.consumed_at IS NULL AND t.expires_at>now() AND NOT u.is_blocked AND u.is_active AND u.totp_enabled_at IS NULL",
           [hashToken(String(target.query.token))],
         )
       ).rows[0];

@@ -1,3 +1,5 @@
+import { t, dateLocale } from '../i18n';
+import { IntegrityFlag } from '../components/IntegrityFlag';
 import { StudentDirectory } from '../components/StudentDirectory';
 import { useEffect, useRef, useState, type FormEvent } from 'react';
 import { Link, useParams, useSearchParams } from 'react-router-dom';
@@ -18,10 +20,10 @@ type AttemptPage = z.infer<typeof attemptsPageSchema>;
 type Updates = z.infer<typeof teacherActionsPageSchema>;
 const outcome = (value: boolean | null | undefined) =>
   value === null || value === undefined
-    ? 'Оценка после завершения'
+    ? t('Оценка после завершения')
     : value
-      ? 'Верно'
-      : 'Есть ошибка';
+      ? t('Верно')
+      : t('Есть ошибка');
 export function answerText(a: EngineAttempt) {
   return a.answer.type === 'short_text'
     ? a.answer.text
@@ -68,31 +70,34 @@ export function RecentAttempts({ userId }: { userId: string }) {
   }
   return (
     <section className="panel">
-      <h2>Последние ответы ученика</h2>
+      <h2>{t('Последние ответы ученика')}</h2>
       {!page && !error && <LoadingState />}
       {error && (
         <ErrorState error={error} retry={() => (page ? void more() : setReload((v) => v + 1))} />
       )}{' '}
       {page &&
         (!page.items.length ? (
-          <p>Ученик ещё не отправлял ответы.</p>
+          <p>{t('Ученик ещё не отправлял ответы.')}</p>
         ) : (
           <ul className="account-list">
             {page.items.map((r) => (
               <li key={r.attempt.id} data-testid="teacher-attempt">
-                <strong>{r.runTitle}</strong>
+                <strong>{r.runTitle}</strong> <IntegrityFlag assessment={r.attempt.integrity} />
                 <p>{r.attempt.instruction}</p>
-                <p>Ответ: {answerText(r.attempt)}</p>
+                <p>
+                  {t('Ответ: ')}
+                  {answerText(r.attempt)}
+                </p>
                 <span>
                   {outcome(r.attempt.evaluation?.correct)}
-                  {r.attempt.teacherReview ? ' · Проверено преподавателем' : ''} ·{' '}
-                  {r.attempt.independent ? 'Самостоятельно' : 'С помощью'}
+                  {r.attempt.teacherReview ? t(' · Проверено преподавателем') : ''} ·{' '}
+                  {r.attempt.independent ? t('Самостоятельно') : t('С помощью')}
                 </span>
                 <time dateTime={r.attempt.evaluatedAt}>
-                  {new Date(r.attempt.evaluatedAt).toLocaleString('ru-RU')}
+                  {new Date(r.attempt.evaluatedAt).toLocaleString(dateLocale)}
                 </time>
                 <Link to={`/learning/attempts/${r.attempt.id}`}>
-                  Проверить ответ и комментарии →
+                  {t('Проверить ответ и комментарии →')}
                 </Link>
               </li>
             ))}
@@ -100,7 +105,7 @@ export function RecentAttempts({ userId }: { userId: string }) {
         ))}
       {page?.nextCursor && (
         <button className="secondary" disabled={busy} onClick={() => void more()}>
-          Предыдущие ответы
+          {t('Предыдущие ответы')}
         </button>
       )}
     </section>
@@ -156,33 +161,56 @@ function AttemptReview({ id }: { id: string }) {
     reviewer = session.user?.role === 'teacher' || session.user?.role === 'superadmin';
   return (
     <>
-      <h1>Ответ и проверка преподавателя</h1>
+      <h1>{t('Ответ и проверка преподавателя')}</h1>
       <p>
-        <Link to={`/learning/runs/${view.runId}`}>{view.runTitle} — прохождение →</Link>
+        <Link to={`/learning/runs/${view.runId}`}>
+          {view.runTitle} {t(' — прохождение →')}
+        </Link>
       </p>
       {reviewer && (
         <p>
-          <Link to={`/teacher/students/${a.submittedFor}`}>Карточка ученика →</Link>
+          <Link to={`/teacher/students/${a.submittedFor}`}>{t('Карточка ученика →')}</Link>
         </p>
       )}
-      <section className="panel" aria-label="Сохранённый ответ">
+      <section className="panel" aria-label={t('Сохранённый ответ')}>
         <h2>{a.instruction}</h2>
+        {reviewer && <IntegrityFlag assessment={a.integrity} />}
+        {reviewer && a.integrity && (
+          <details className="integrity-review">
+            <summary>{t('Наблюдения по выполнению')}</summary>
+            <p>
+              {t('Уходов с вкладки: ')}
+              {a.integrity.stats.tabHides} {t(' · Потерь фокуса: ')}
+              {a.integrity.stats.focusLosses}
+            </p>
+            <ul>
+              {a.integrity.signals.map((signal) => (
+                <li key={signal.code}>
+                  {t(signal.label)}: {t(signal.context)}
+                </li>
+              ))}
+            </ul>
+          </details>
+        )}
         <p className="content-text">
-          <strong>Ответ ученика:</strong> {answerText(a)}
+          <strong>{t('Ответ ученика:')}</strong> {answerText(a)}
         </p>
         <p>
-          {a.independent ? 'Самостоятельный ответ' : 'Ответ с помощью или после обратной связи'}
-          {a.adminAssistance ? ' · Участие суперадмина' : ''}
-          {a.assistantHelp ? ' · Помощь ассистента' : ''}
+          {a.independent
+            ? t('Самостоятельный ответ')
+            : t('Ответ с помощью или после обратной связи')}
+          {a.adminAssistance ? t(' · Участие суперадмина') : ''}
+          {a.assistantHelp ? t(' · Помощь ассистента') : ''}
         </p>
         <p>
-          Активное время: {(a.activeMilliseconds / 1000).toFixed(1)} с · Всего:{' '}
-          {(a.elapsedMilliseconds / 1000).toFixed(1)} с
+          {t('Активное время: ')}
+          {(a.activeMilliseconds / 1000).toFixed(1)} {t(' с · Всего:')}{' '}
+          {(a.elapsedMilliseconds / 1000).toFixed(1)} {t(' с')}
         </p>
         <p>
-          <time dateTime={a.evaluatedAt}>{new Date(a.evaluatedAt).toLocaleString('ru-RU')}</time>
+          <time dateTime={a.evaluatedAt}>{new Date(a.evaluatedAt).toLocaleString(dateLocale)}</time>
         </p>
-        <h3>Использованные подсказки</h3>
+        <h3>{t('Использованные подсказки')}</h3>
         {a.usedHints.length ? (
           <ul>
             {a.usedHints.map((h) => (
@@ -190,24 +218,30 @@ function AttemptReview({ id }: { id: string }) {
             ))}
           </ul>
         ) : (
-          <p>Подсказки задания не использованы.</p>
+          <p>{t('Подсказки задания не использованы.')}</p>
         )}
         {view.speechInput && (
           <div>
-            <h3>Голосовая реплика</h3>
-            <p>Распознано: {view.speechInput.transcript}</p>
-            <p>Подтверждено: {view.speechInput.confirmedText}</p>
+            <h3>{t('Голосовая реплика')}</h3>
+            <p>
+              {t('Распознано: ')}
+              {view.speechInput.transcript}
+            </p>
+            <p>
+              {t('Подтверждено: ')}
+              {view.speechInput.confirmedText}
+            </p>
             {view.speechInput.edited && (
-              <p>Ученик исправил распознанный текст перед подтверждением.</p>
+              <p>{t('Ученик исправил распознанный текст перед подтверждением.')}</p>
             )}
           </div>
         )}
-        <h3>Автоматическая оценка</h3>
+        <h3>{t('Автоматическая оценка')}</h3>
         <p>{outcome(a.automaticEvaluation?.correct)}</p>
         {a.automaticEvaluation && <p>{a.automaticEvaluation.explanation}</p>}
         {a.teacherReview && (
           <div className="notice" data-testid="current-teacher-grade">
-            <h3>Текущая оценка преподавателя</h3>
+            <h3>{t('Текущая оценка преподавателя')}</h3>
             <p>
               {outcome(a.teacherReview.correct)} · {a.teacherReview.author.name}
             </p>
@@ -216,7 +250,7 @@ function AttemptReview({ id }: { id: string }) {
         )}
         {view.solution && (
           <details>
-            <summary>Критерий закреплённого задания</summary>
+            <summary>{t('Критерий закреплённого задания')}</summary>
             <p>
               {view.solution.type === 'short_text'
                 ? view.solution.accepted.join(' / ')
@@ -239,11 +273,11 @@ function AttemptReview({ id }: { id: string }) {
           <ReviewForm view={view} saved={setView} refresh={load} />
         ) : (
           <p className="notice">
-            Проверка преподавателя доступна после завершения диагностики или контроля.
+            {t('Проверка преподавателя доступна после завершения диагностики или контроля.')}
           </p>
         ))}
       <section className="panel">
-        <h2>Комментарии и история проверки</h2>
+        <h2>{t('Комментарии и история проверки')}</h2>
         {error && (
           <ErrorState
             error={error}
@@ -251,19 +285,21 @@ function AttemptReview({ id }: { id: string }) {
           />
         )}{' '}
         {!view.reviews.length ? (
-          <p>Преподаватель ещё не оставил комментариев.</p>
+          <p>{t('Преподаватель ещё не оставил комментариев.')}</p>
         ) : (
           <ol className="change-list">
             {view.reviews.map((r) => (
               <li key={r.id} data-testid="teacher-review">
                 <strong>{r.author.name}</strong> ·{' '}
-                <time dateTime={r.createdAt}>{new Date(r.createdAt).toLocaleString('ru-RU')}</time>
+                <time dateTime={r.createdAt}>
+                  {new Date(r.createdAt).toLocaleString(dateLocale)}
+                </time>
                 <p>
                   {r.decision === 'comment'
-                    ? 'Комментарий'
+                    ? t('Комментарий')
                     : r.decision === 'confirm'
-                      ? 'Оценка подтверждена'
-                      : 'Оценка исправлена'}
+                      ? t('Оценка подтверждена')
+                      : t('Оценка исправлена')}
                   {r.correct === null ? '' : ` · ${outcome(r.correct)}`}
                 </p>
                 <p className="content-text">{r.comment}</p>
@@ -273,11 +309,11 @@ function AttemptReview({ id }: { id: string }) {
         )}
         {view.nextReviewCursor && (
           <button className="secondary" disabled={busy} onClick={() => void older()}>
-            Предыдущие проверки
+            {t('Предыдущие проверки')}
           </button>
         )}
       </section>
-      <Link to={`/feedback?userId=${a.submittedFor}`}>Комментарии и назначения →</Link>
+      <Link to={`/feedback?userId=${a.submittedFor}`}>{t('Комментарии и назначения →')}</Link>
     </>
   );
 }
@@ -321,7 +357,7 @@ function ReviewForm({
       setComment('');
       setDone(true);
     } catch (e) {
-      setError((e as Error).message);
+      setError(t((e as Error).message));
       if (e instanceof ApiError && e.status && e.status < 500) {
         pending.current = null;
         if (e.code === 'REVIEW_CHANGED') await refresh();
@@ -331,38 +367,39 @@ function ReviewForm({
     }
   }
   return (
-    <section className="panel" aria-label="Проверка ответа">
-      <h2>Проверить ответ</h2>
+    <section className="panel" aria-label={t('Проверка ответа')}>
+      <h2>{t('Проверить ответ')}</h2>
       <p>
-        Решение обновит текущую оценку. Исходная автоматическая оценка и история комментариев
-        сохранятся. При необходимости измените назначения в плане.
+        {t(
+          'Решение обновит текущую оценку. Исходная автоматическая оценка и история комментариев сохранятся. При необходимости измените назначения в плане.',
+        )}
       </p>
       <form onSubmit={(e) => void submit(e)}>
         <fieldset disabled={busy || Boolean(pending.current)}>
-          <label htmlFor="review-decision">Решение преподавателя</label>
+          <label htmlFor="review-decision">{t('Решение преподавателя')}</label>
           <select
             id="review-decision"
             value={decision}
             onChange={(e) => setDecision(e.target.value as typeof decision)}
           >
-            <option value="comment">Оставить комментарий</option>
-            <option value="confirm">Подтвердить текущую оценку</option>
-            <option value="correct">Исправить оценку</option>
+            <option value="comment">{t('Оставить комментарий')}</option>
+            <option value="confirm">{t('Подтвердить текущую оценку')}</option>
+            <option value="correct">{t('Исправить оценку')}</option>
           </select>
           {decision === 'correct' && (
             <>
-              <label htmlFor="review-correct">Исправленная оценка</label>
+              <label htmlFor="review-correct">{t('Исправленная оценка')}</label>
               <select
                 id="review-correct"
                 value={correct}
                 onChange={(e) => setCorrect(e.target.value)}
               >
-                <option value="true">Верно</option>
-                <option value="false">Есть ошибка</option>
+                <option value="true">{t('Верно')}</option>
+                <option value="false">{t('Есть ошибка')}</option>
               </select>
             </>
           )}
-          <label htmlFor="review-comment">Комментарий преподавателя</label>
+          <label htmlFor="review-comment">{t('Комментарий преподавателя')}</label>
           <textarea
             id="review-comment"
             rows={4}
@@ -374,10 +411,10 @@ function ReviewForm({
         </fieldset>
         <button disabled={busy || !comment.trim()}>
           {busy
-            ? 'Сохраняем проверку…'
+            ? t('Сохраняем проверку…')
             : pending.current
-              ? 'Повторить сохранение проверки'
-              : 'Сохранить проверку'}
+              ? t('Повторить сохранение проверки')
+              : t('Сохранить проверку')}
         </button>
       </form>
       {error && (
@@ -385,7 +422,9 @@ function ReviewForm({
           {error}
         </p>
       )}
-      {done && <p role="status">Проверка сохранена. Ученик увидит комментарий и текущую оценку.</p>}
+      {done && (
+        <p role="status">{t('Проверка сохранена. Ученик увидит комментарий и текущую оценку.')}</p>
+      )}
     </section>
   );
 }
@@ -427,46 +466,49 @@ export function TeacherUpdates({
     }
   }
   const labels = {
-    review: 'Проверка ответа',
-    assignment_added: 'Назначено упражнение',
-    assignment_rescheduled: 'Изменён срок задания',
-    assignment_cancelled: 'Назначение отменено',
+    review: t('Проверка ответа'),
+    assignment_added: t('Назначено упражнение'),
+    assignment_rescheduled: t('Изменён срок задания'),
+    assignment_cancelled: t('Назначение отменено'),
   };
   return (
-    <section className="panel" aria-label="Комментарии и назначения">
-      <h2>Комментарии и назначения преподавателя</h2>
+    <section className="panel" aria-label={t('Комментарии и назначения')}>
+      <h2>{t('Комментарии и назначения преподавателя')}</h2>
       {state.status === 'loading' && <LoadingState />}
       {state.status === 'error' && <ErrorState error={state.error} retry={refresh} />}{' '}
       {error && <ErrorState error={error} retry={() => void more()} />}{' '}
       {page &&
         (!page.items.length ? (
-          <p>Здесь появятся комментарии и изменения учебного плана.</p>
+          <p>{t('Здесь появятся комментарии и изменения учебного плана.')}</p>
         ) : (
           <ul className="change-list">
             {page.items.map((a) => (
               <li key={a.id} data-testid="teacher-update">
-                <strong>{labels[a.kind]}</strong> · {a.language === 'ru' ? 'РКИ' : 'Английский'}
+                <strong>{labels[a.kind]}</strong> ·{' '}
+                {a.language === 'ru' ? t('РКИ') : t('Английский')}
                 <p>
                   {a.author.name} ·{' '}
                   <time dateTime={a.createdAt}>
-                    {new Date(a.createdAt).toLocaleString('ru-RU')}
+                    {new Date(a.createdAt).toLocaleString(dateLocale)}
                   </time>
                 </p>
                 {a.correct !== null && (
                   <p>
-                    {a.decision === 'confirm' ? 'Оценка подтверждена' : 'Оценка исправлена'}:{' '}
+                    {a.decision === 'confirm' ? t('Оценка подтверждена') : t('Оценка исправлена')}:{' '}
                     {outcome(a.correct)}
                   </p>
                 )}
                 <p className="content-text">{a.comment}</p>
                 {a.attemptId && (
-                  <Link to={`/learning/attempts/${a.attemptId}`}>Ответ и история проверки →</Link>
+                  <Link to={`/learning/attempts/${a.attemptId}`}>
+                    {t('Ответ и история проверки →')}
+                  </Link>
                 )}
                 {a.planId && (
                   <Link
                     to={`/plan/${a.planId}${a.assignmentId ? `#assignment-${a.assignmentId}` : ''}`}
                   >
-                    Открыть назначение в плане →
+                    {t('Открыть назначение в плане →')}
                   </Link>
                 )}
               </li>
@@ -475,13 +517,13 @@ export function TeacherUpdates({
         ))}{' '}
       {!compact && page?.nextCursor && (
         <button className="secondary" disabled={busy} onClick={() => void more()}>
-          Предыдущие комментарии и назначения
+          {t('Предыдущие комментарии и назначения')}
         </button>
       )}
       {compact && (
         <p>
           <Link to={`/feedback${userId ? `?userId=${userId}` : ''}`}>
-            Все комментарии и назначения →
+            {t('Все комментарии и назначения →')}
           </Link>
         </p>
       )}
@@ -494,13 +536,13 @@ export function TeacherFeedbackPage() {
   if (session.user?.role !== 'student' && !params.get('userId'))
     return (
       <>
-        <h1>Комментарии и назначения</h1>
+        <h1>{t('Комментарии и назначения')}</h1>
         <StudentDirectory path="/feedback" />
       </>
     );
   return (
     <>
-      <h1>Комментарии и назначения</h1>
+      <h1>{t('Комментарии и назначения')}</h1>
       <TeacherUpdates userId={params.get('userId') ?? undefined} />
     </>
   );

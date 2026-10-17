@@ -62,7 +62,7 @@ async function token(page: Page) {
   };
 }
 async function configure(browser: Browser) {
-  const ctx = await browser.newContext({ baseURL: 'http://127.0.0.1:3200' }),
+  const ctx = await browser.newContext({ locale: 'ru-RU', baseURL: 'http://127.0.0.1:3200' }),
     root = await ctx.newPage();
   try {
     const k = await keys();

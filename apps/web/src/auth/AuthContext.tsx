@@ -1,3 +1,4 @@
+import { t } from '../i18n';
 import { createContext, useContext, useEffect, useState, type ReactNode } from 'react';
 import { sessionSchema, messageSchema, type Session, type User } from '@luch/contracts';
 import { api, setCsrfToken } from '../lib/api';
@@ -71,11 +72,13 @@ export function Protected({
   if (auth.loading) return <LoadingState />;
   if (auth.error) return <ErrorState error={auth.error} retry={auth.refresh} />;
   if (!auth.session.user)
-    return <StatusState status={401} message="Войдите в аккаунт, чтобы открыть этот раздел." />;
+    return (
+      <StatusState status={401} message={t('Войдите в аккаунт, чтобы открыть этот раздел.')} />
+    );
   if (
     (role && auth.session.user.role !== role) ||
     (roles && !roles.includes(auth.session.user.role))
   )
-    return <StatusState status={403} message="Этот раздел недоступен вашей роли." />;
+    return <StatusState status={403} message={t('Этот раздел недоступен вашей роли.')} />;
   return children;
 }

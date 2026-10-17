@@ -56,9 +56,18 @@ test('email, Authenticator, three roles, shared assignments and security setting
   browser,
 }) => {
   test.setTimeout(60000);
-  const studentContext = await browser.newContext({ baseURL: 'http://127.0.0.1:3200' });
-  const teacherContext = await browser.newContext({ baseURL: 'http://127.0.0.1:3200' });
-  const adminContext = await browser.newContext({ baseURL: 'http://127.0.0.1:3200' });
+  const studentContext = await browser.newContext({
+    locale: 'ru-RU',
+    baseURL: 'http://127.0.0.1:3200',
+  });
+  const teacherContext = await browser.newContext({
+    locale: 'ru-RU',
+    baseURL: 'http://127.0.0.1:3200',
+  });
+  const adminContext = await browser.newContext({
+    locale: 'ru-RU',
+    baseURL: 'http://127.0.0.1:3200',
+  });
   const student = await studentContext.newPage();
   const teacher = await teacherContext.newPage();
   const admin = await adminContext.newPage();
@@ -125,7 +134,10 @@ test('email, Authenticator, three roles, shared assignments and security setting
     await admin.getByLabel('Капча на страницах авторизации').uncheck();
     await saveSettings(admin);
     await expect(admin.getByLabel('Капча на страницах авторизации')).not.toBeChecked();
-    const anonymous = await browser.newContext({ baseURL: 'http://127.0.0.1:3200' });
+    const anonymous = await browser.newContext({
+      locale: 'ru-RU',
+      baseURL: 'http://127.0.0.1:3200',
+    });
     const loginPage = await anonymous.newPage();
     await loginPage.goto('/login');
     await expect(loginPage.getByRole('heading', { name: 'Вход в аккаунт' })).toBeVisible();
@@ -146,9 +158,9 @@ test('email, Authenticator, three roles, shared assignments and security setting
       403,
     );
     await student.reload();
-    await expect(
-      student.getByRole('heading', { name: 'вы используете VPN - сервис недоступен', exact: true }),
-    ).toBeVisible();
+    await expect(student.getByRole('alert')).toContainText(
+      'вы используете VPN - сервис недоступен',
+    );
     await admin.getByLabel('Проверка доступа пользователей с VPN').uncheck();
     await saveSettings(admin);
     await expect(admin.getByLabel('Проверка доступа пользователей с VPN')).not.toBeChecked();
@@ -156,9 +168,29 @@ test('email, Authenticator, three roles, shared assignments and security setting
     await expect(student.getByRole('heading', { name: 'Кабинет ученика' })).toBeVisible();
     expect(failures).toEqual([]);
   } finally {
-    await studentContext.close();
-    await teacherContext.close();
-    await adminContext.close();
+    // Each scenario restores the global policy even when an assertion fails.
+    try {
+      const current = await admin.request.get('/api/v1/admin/security');
+      if (current.ok()) {
+        const policy = (await current.json()).data;
+        const account = await session(admin);
+        const restored = await admin.request.post('/api/v1/admin/security', {
+          headers: { 'x-csrf-token': account.csrfToken },
+          data: {
+            captchaEnabled: true,
+            vpnCheckEnabled: false,
+            ipAllowlist: policy.ipAllowlist,
+            sessionHours: policy.sessionHours,
+            revision: policy.revision,
+          },
+        });
+        expect(restored.status()).toBe(200);
+      }
+    } finally {
+      await studentContext.close();
+      await teacherContext.close();
+      await adminContext.close();
+    }
   }
 });
 
@@ -168,9 +200,7 @@ test('unauthenticated direct cabinet links return HTTP 401 without a redirect by
   for (const path of ['/student', '/teacher', '/admin', '/plan', '/courses', '/admin/content']) {
     const response = await page.goto(path);
     expect(response?.status()).toBe(401);
-    await expect(
-      page.getByRole('heading', { name: '401 · Требуется вход', exact: true }),
-    ).toBeVisible();
+    await expect(page.getByRole('heading', { name: 'Требуется вход', exact: true })).toBeVisible();
     await expect(page.getByRole('link', { name: 'Войти в аккаунт' })).toBeVisible();
     expect(new URL(page.url()).pathname).toBe(path);
   }

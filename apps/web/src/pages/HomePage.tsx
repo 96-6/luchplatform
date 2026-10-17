@@ -1,3 +1,4 @@
+import { t } from '../i18n';
 import { Link, Navigate } from 'react-router-dom';
 import { useAuth } from '../auth/AuthContext';
 export function HomePage() {
@@ -5,66 +6,54 @@ export function HomePage() {
   if (session.user) return <Navigate to={session.dashboardPath ?? '/student'} replace />;
   return (
     <>
-      <p className="eyebrow">Начните с вашей цели</p>
-      <h1>
-        Больше уверенности.
-        <br />
-        Больше возможностей.
-      </h1>
-      <p className="lead">
-        Русский и английский для учёбы, работы и повседневной жизни. Ваш план, практика и поддержка
-        преподавателя — в одном месте.
-      </p>
+      <h1>{t('ЛУЧ')}</h1>
+      <p className="lead">{t('Учебные маршруты РКИ и английского языка.')}</p>
       <div className="notice">
-        <strong>Ваш аккаунт — первый шаг к обучению.</strong>
+        <strong>{t('Вход и регистрация')}</strong>
         <p>
-          Подтвердите почту и подключите Authenticator. В кабинете доступны демонстрационные
-          маршруты РКИ и английского: мини-уроки, упражнения и сохранённые результаты.
+          {t(
+            'Подтвердите почту и подключите Authenticator. В кабинете доступны демонстрационные маршруты РКИ и английского: мини-уроки, упражнения и сохранённые результаты.',
+          )}
         </p>
         <Link className="text-link" to="/register">
-          Создать аккаунт →
+          {t('Создать аккаунт →')}
         </Link>
       </div>
-      <h2 className="section-title">Два направления</h2>
+      <h2 className="section-title">{t('Два направления')}</h2>
       <div className="route-grid">
         <article className="route-card">
-          <span className="language-mark">Ру</span>
-          <span className="muted">Русский как иностранный</span>
-          <h2>
-            Для учёбы и жизни
-            <br />в новой среде
-          </h2>
-          <p>Знакомство, повседневные ситуации и общение на русском.</p>
+          <span className="language-mark">{t('Ру')}</span>
+          <span className="muted">{t('Русский как иностранный')}</span>
+          <h2>{t('Русский как иностранный')}</h2>
+          <p>{t('Знакомство, повседневные ситуации и общение на русском.')}</p>
           <Link className="text-link" to="/courses">
-            Посмотреть маршруты <span aria-hidden="true">→</span>
+            {t('Посмотреть маршруты ')}
+            <span aria-hidden="true">→</span>
           </Link>
         </article>
         <article className="route-card">
           <span className="language-mark blue">En</span>
-          <span className="muted">Английский язык</span>
-          <h2>
-            Для общения
-            <br />
-            без лишних барьеров
-          </h2>
-          <p>Понятные шаги к языку для работы, поездок и жизни.</p>
+          <span className="muted">{t('Английский язык')}</span>
+          <h2>{t('Английский язык')}</h2>
+          <p>{t('Мини-уроки и упражнения английского языка.')}</p>
           <Link className="text-link" to="/courses">
-            Посмотреть маршруты <span aria-hidden="true">→</span>
+            {t('Посмотреть маршруты ')}
+            <span aria-hidden="true">→</span>
           </Link>
         </article>
       </div>
       <div className="next-grid">
         <Link to="/assistant">
-          <strong>Помощник</strong>
-          <span>Объяснения и языковая практика →</span>
+          <strong>{t('Помощник')}</strong>
+          <span>{t('Объяснения и языковая практика →')}</span>
         </Link>
         <Link to="/schedule">
-          <strong>Расписание</strong>
-          <span>Занятия с преподавателем →</span>
+          <strong>{t('Расписание')}</strong>
+          <span>{t('Занятия с преподавателем →')}</span>
         </Link>
         <Link to="/progress">
-          <strong>Прогресс</strong>
-          <span>Ваши результаты и следующие шаги →</span>
+          <strong>{t('Прогресс')}</strong>
+          <span>{t('Ваши результаты и следующие шаги →')}</span>
         </Link>
       </div>
     </>

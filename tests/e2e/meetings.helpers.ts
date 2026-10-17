@@ -44,7 +44,7 @@ export async function root(p: Page) {
   return (await (await p.request.get('/api/v1/auth/session')).json()).data;
 }
 export async function link(browser: Browser, tutor: string, students: string[]) {
-  const c = await browser.newContext({ baseURL: 'http://127.0.0.1:3200' });
+  const c = await browser.newContext({ locale: 'ru-RU', baseURL: 'http://127.0.0.1:3200' });
   try {
     const p = await c.newPage();
     await root(p);

@@ -1,3 +1,4 @@
+import { t as tr, dateLocale } from '../../i18n';
 import { useCallback, useEffect, useRef, useState, type FormEvent } from 'react';
 import { Link, useParams } from 'react-router-dom';
 import {
@@ -52,7 +53,7 @@ function RoomEntry({ id }: { id: string }) {
       setJoined(result.session);
       pending.current = null;
     } catch (e) {
-      setError((e as Error).message);
+      setError(tr((e as Error).message));
       if (e instanceof ApiError && e.status && e.status < 500) pending.current = null;
     } finally {
       setBusy(false);
@@ -74,38 +75,38 @@ function RoomEntry({ id }: { id: string }) {
   const m = state.data;
   return (
     <>
-      <Link to={`/meetings/${id}`}>← Карточка занятия</Link>
+      <Link to={`/meetings/${id}`}>{tr('← Карточка занятия')}</Link>
       <h1>{m.title}</h1>
       <section className="panel meeting-prejoin">
-        <h2>Присоединение к видеозанятию</h2>
+        <h2>{tr('Присоединение к видеозанятию')}</h2>
         <p>
           {meetingTime(m)} · {m.timeZone}
         </p>
         <p>
-          Камера и микрофон при входе выключены. Вы сможете включить их и выбрать устройства в
-          комнате.
+          {tr(
+            'Камера и микрофон при входе выключены. Вы сможете включить их и выбрать устройства в комнате.',
+          )}
         </p>
-        <p>
-          Организаторы и суперадмин видят признаки виртуальных активных устройств. Это
-          предварительные сигналы по названию устройства, которые не влияют на оценку.
-        </p>
-        {m.lobbyEnabled && !m.canManage && <p>Организатор допустит вас из зала ожидания.</p>}
+        {m.lobbyEnabled && !m.canManage && (
+          <p>{tr('Организатор допустит вас из зала ожидания.')}</p>
+        )}
         <button disabled={busy || !m.canJoin || !m.videoConfigured} onClick={() => void enter()}>
           {busy
-            ? 'Подключаем…'
+            ? tr('Подключаем…')
             : pending.current
-              ? 'Повторить подключение'
+              ? tr('Повторить подключение')
               : m.canManage && m.status === 'scheduled'
-                ? 'Начать встречу'
-                : 'Войти во встречу'}
+                ? tr('Начать встречу')
+                : tr('Войти во встречу')}
         </button>
         {!m.videoConfigured && (
           <p role="status">
-            Видеосвязь пока не подключена администратором. Расписание и учебные результаты
-            сохранены.
+            {tr(
+              'Видеосвязь пока не подключена администратором. Расписание и учебные результаты сохранены.',
+            )}
           </p>
         )}
-        {!m.canJoin && <p>Вход недоступен: проверьте срок и статус занятия.</p>}
+        {!m.canJoin && <p>{tr('Вход недоступен: проверьте срок и статус занятия.')}</p>}
         {error && (
           <p role="alert" className="error">
             {error}
@@ -187,7 +188,7 @@ function JoinedRoom({
     return state.error ? (
       <ErrorState error={state.error} retry={() => void state.refresh()} />
     ) : (
-      <LoadingState text="Проверяем допуск во встречу…" />
+      <LoadingState text={tr('Проверяем допуск во встречу…')} />
     );
   const data = state.data;
   const finished = ['completed', 'cancelled'].includes(data.meeting.status);
@@ -195,33 +196,36 @@ function JoinedRoom({
     <>
       <div className="meeting-title">
         <div>
-          <Link to={`/meetings/${id}`}>← Карточка занятия</Link>
+          <Link to={`/meetings/${id}`}>{tr('← Карточка занятия')}</Link>
           <h1>{data.meeting.title}</h1>
         </div>
-        <button className="secondary danger" disabled={leaving} onClick={() => void leave()}>
-          {leaving ? 'Выходим…' : 'Покинуть встречу'}
-        </button>
+        {!(token && admitted) && (
+          <button className="secondary danger" disabled={leaving} onClick={() => void leave()}>
+            {leaving ? tr('Выходим…') : tr('Покинуть встречу')}
+          </button>
+        )}
       </div>
       {state.error && (
         <p role="alert" className="error">
-          Состояние встречи не обновлено. {state.error.message}
+          {tr('Состояние встречи не обновлено. ')}
+          {tr(state.error.message)}
         </p>
       )}
       {finished || self?.state === 'removed' || self?.state === 'left' ? (
         <section className="panel">
           <h2>
             {finished
-              ? 'Встреча завершена'
+              ? tr('Встреча завершена')
               : self?.state === 'removed'
-                ? 'Организатор удалил вас из встречи'
-                : 'Вы вышли из встречи'}
+                ? tr('Организатор удалил вас из встречи')
+                : tr('Вы вышли из встречи')}
           </h2>
-          <Link to={`/meetings/${id}`}>Итоги и домашняя работа →</Link>
+          <Link to={`/meetings/${id}`}>{tr('Итоги и домашняя работа →')}</Link>
         </section>
       ) : self?.state === 'waiting' ? (
         <section className="panel" role="status">
-          <h2>Зал ожидания</h2>
-          <p>Ожидайте допуска организатора. Камера и микрофон выключены.</p>
+          <h2>{tr('Зал ожидания')}</h2>
+          <p>{tr('Ожидайте допуска организатора. Камера и микрофон выключены.')}</p>
         </section>
       ) : token && admitted ? (
         <LiveKitRoom
@@ -239,24 +243,39 @@ function JoinedRoom({
           onDisconnected={() => setDisconnected(true)}
           onError={(e) => setTokenError(e)}
         >
-          <Conference data={data} refresh={state.refresh} />
+          <Conference
+            data={data}
+            refresh={state.refresh}
+            leave={() => void leave()}
+            leaving={leaving}
+          />
           <RoomAudioRenderer />
-          <StartAudio label="Включить звук встречи" />
+          <StartAudio label={tr('Включить звук встречи')} />
         </LiveKitRoom>
       ) : !tokenError ? (
-        <LoadingState text="Подключаем видеосвязь…" />
+        <LoadingState text={tr('Подключаем видеосвязь…')} />
       ) : null}
       {tokenError && <ErrorState error={tokenError} retry={() => void fetchToken()} />}{' '}
       {disconnected && admitted && (
         <p role="alert">
-          Соединение разорвано.{' '}
-          <button onClick={() => void fetchToken()}>Подключиться снова</button>
+          {tr('Соединение разорвано.')}{' '}
+          <button onClick={() => void fetchToken()}>{tr('Подключиться снова')}</button>
         </p>
       )}
     </>
   );
 }
-function Conference({ data, refresh }: { data: MeetingRoomState; refresh: () => Promise<void> }) {
+function Conference({
+  data,
+  refresh,
+  leave,
+  leaving,
+}: {
+  data: MeetingRoomState;
+  refresh: () => Promise<void>;
+  leave: () => void;
+  leaving: boolean;
+}) {
   const room = useRoomContext(),
     peers = useParticipants(),
     tracks = useTracks(
@@ -268,6 +287,7 @@ function Conference({ data, refresh }: { data: MeetingRoomState; refresh: () => 
     );
   const connection = useConnectionState(),
     { session } = useAuth();
+  const [chatOpen, setChatOpen] = useState(false);
   const [pinned, setPinned] = useState<string | null>(null),
     [error, setError] = useState(''),
     [busy, setBusy] = useState(false),
@@ -295,7 +315,7 @@ function Conference({ data, refresh }: { data: MeetingRoomState; refresh: () => 
       setEnding(false);
       await refresh();
     } catch (e) {
-      setError((e as Error).message);
+      setError(tr((e as Error).message));
       if (e instanceof ApiError && e.status && e.status < 500) {
         pending.current = null;
         await refresh();
@@ -315,38 +335,48 @@ function Conference({ data, refresh }: { data: MeetingRoomState; refresh: () => 
     <div className="conference" data-testid="video-conference">
       <p className="meeting-connection" role="status">
         {connection === ConnectionState.Connected
-          ? 'Соединение установлено'
+          ? tr('Соединение установлено')
           : connection === ConnectionState.Reconnecting ||
               connection === ConnectionState.SignalReconnecting
-            ? 'Восстанавливаем соединение…'
-            : 'Подключение…'}{' '}
-        · Участников: {peers.length}
+            ? tr('Восстанавливаем соединение…')
+            : tr('Подключение…')}{' '}
+        {tr('· Участников: ')}
+        {peers.length}
       </p>
       {!data.available && (
         <p role="alert" className="error">
-          Состояние видеосервиса временно недоступно. Управление будет повторено после
-          восстановления.
+          {tr(
+            'Состояние видеосервиса временно недоступно. Управление будет повторено после восстановления.',
+          )}
         </p>
       )}
       {data.pendingCommands > 0 && (
         <p role="status" className="warning">
-          Команд ожидает доставки: {data.pendingCommands}. Не считайте отключение подтверждённым до
-          доставки.
+          {tr('Команд ожидает доставки: ')}
+          {data.pendingCommands}
+          {tr('. Не считайте отключение подтверждённым до доставки.')}
         </p>
       )}
       <DeviceReporter id={data.meeting.id} sid={self.id} initialRevision={self.deviceRevision} />
-      <MediaControls id={data.meeting.id} self={self} refresh={refresh} />
+
       {screens.length > 0 && (
-        <section className="screen-stage" aria-label="Демонстрации экрана">
+        <section className="screen-stage" aria-label={tr('Демонстрации экрана')}>
           {screens.map((t) => (
             <div key={t.participant.identity} className="screen-share">
-              <p>Экран: {t.participant.name}</p>
+              <p>
+                {tr('Экран: ')}
+                {t.participant.name}
+              </p>
               {isTrackReference(t) && <VideoTrack trackRef={t} />}
             </div>
           ))}
         </section>
       )}
-      <div className="participant-grid" aria-label="Участники видеовстречи">
+      <div
+        className="participant-grid"
+        aria-label={tr('Участники видеовстречи')}
+        data-count={peers.length}
+      >
         {peers.map((p) => {
           const info = data.participants.find((x) => x.identity === p.identity),
             track = tracks.find(
@@ -354,17 +384,18 @@ function Conference({ data, refresh }: { data: MeetingRoomState; refresh: () => 
             );
           return (
             <article
-              className={`participant-tile ${pinned === p.identity ? 'pinned' : ''} ${p.isSpeaking ? 'speaking' : ''}`}
+              className={`participant-tile tile-tone-${peers.indexOf(p) % 6} ${pinned === p.identity ? 'pinned' : ''} ${p.isSpeaking ? 'speaking' : ''}`}
               key={p.identity}
               data-testid="meeting-participant"
               data-identity={p.identity}
             >
               <div className="participant-top">
                 <strong>
-                  {info?.name ?? p.name ?? 'Участник'} {p.isLocal ? '(вы)' : ''}
+                  <CallIcon name={p.isMicrophoneEnabled ? 'mic' : 'muted'} />{' '}
+                  {info?.name ?? p.name ?? tr('Участник')} {p.isLocal ? tr('(вы)') : ''}
                 </strong>
                 {info?.handRaisedAt && (
-                  <span className="raised-hand" aria-label="Рука поднята">
+                  <span className="raised-hand" aria-label={tr('Рука поднята')}>
                     ✋
                   </span>
                 )}
@@ -376,28 +407,31 @@ function Conference({ data, refresh }: { data: MeetingRoomState; refresh: () => 
               !track.publication.isMuted ? (
                 <VideoTrack trackRef={track} />
               ) : (
-                <div className="participant-placeholder" aria-label="Камера выключена">
+                <div className="participant-placeholder" aria-label={tr('Камера выключена')}>
                   {(info?.name ?? p.name ?? '?').slice(0, 1)}
                 </div>
               )}
               <p className="participant-caption">
                 {info?.role === 'organizer'
-                  ? 'Организатор'
+                  ? tr('Организатор')
                   : info?.role === 'superadmin'
-                    ? 'Суперадмин'
+                    ? tr('Суперадмин')
                     : info?.role === 'admin'
-                      ? 'Администратор'
-                      : 'Участник'}{' '}
-                · {p.isMicrophoneEnabled ? 'Микрофон включён' : 'Микрофон выключен'}{' '}
-                {p.isSpeaking ? '· Говорит' : ''}
+                      ? tr('Администратор')
+                      : tr('Участник')}{' '}
+                · {p.isMicrophoneEnabled ? tr('Микрофон включён') : tr('Микрофон выключен')}{' '}
+                {p.isSpeaking ? tr('· Говорит') : ''}
               </p>
               <div className="participant-tools">
                 <button
                   className="secondary"
                   onClick={() => setPinned((v) => (v === p.identity ? null : p.identity))}
-                  aria-label={`${pinned === p.identity ? 'Открепить' : 'Закрепить'}: ${info?.name ?? p.name}`}
+                  aria-label={`${pinned === p.identity ? tr('Открепить') : tr('Закрепить')}: ${info?.name ?? p.name}`}
                 >
-                  {pinned === p.identity ? 'Открепить' : 'Закрепить'}
+                  <CallIcon name="pin" />
+                  <span className="sr-only">
+                    {pinned === p.identity ? tr('Открепить') : tr('Закрепить')}
+                  </span>
                 </button>
                 <button
                   className="secondary"
@@ -405,10 +439,11 @@ function Conference({ data, refresh }: { data: MeetingRoomState; refresh: () => 
                     void e.currentTarget
                       .closest('article')
                       ?.requestFullscreen()
-                      .catch(() => setError('Полноэкранный режим недоступен в этом браузере.'))
+                      .catch(() => setError(tr('Полноэкранный режим недоступен в этом браузере.')))
                   }
                 >
-                  На весь экран
+                  <CallIcon name="expand" />
+                  <span className="sr-only">{tr('На весь экран')}</span>
                 </button>
               </div>
               {data.meeting.canManage &&
@@ -416,7 +451,7 @@ function Conference({ data, refresh }: { data: MeetingRoomState; refresh: () => 
                 info &&
                 (info.role !== 'superadmin' || session.user!.role === 'superadmin') && (
                   <details className="participant-moderation">
-                    <summary>Управление участником</summary>
+                    <summary>{tr('Управление участником')}</summary>
                     <div className="button-row">
                       <button
                         disabled={busy}
@@ -427,7 +462,7 @@ function Conference({ data, refresh }: { data: MeetingRoomState; refresh: () => 
                           )
                         }
                       >
-                        {info.audioAllowed ? 'Отключить микрофон' : 'Разрешить микрофон'}
+                        {info.audioAllowed ? tr('Отключить микрофон') : tr('Разрешить микрофон')}
                       </button>
                       <button
                         disabled={busy}
@@ -438,7 +473,7 @@ function Conference({ data, refresh }: { data: MeetingRoomState; refresh: () => 
                           )
                         }
                       >
-                        {info.videoAllowed ? 'Отключить камеру' : 'Разрешить камеру'}
+                        {info.videoAllowed ? tr('Отключить камеру') : tr('Разрешить камеру')}
                       </button>
                       <button
                         disabled={busy}
@@ -449,14 +484,16 @@ function Conference({ data, refresh }: { data: MeetingRoomState; refresh: () => 
                           )
                         }
                       >
-                        {info.screenAllowed ? 'Запретить демонстрацию' : 'Разрешить демонстрацию'}
+                        {info.screenAllowed
+                          ? tr('Запретить демонстрацию')
+                          : tr('Разрешить демонстрацию')}
                       </button>
                       {info.handRaisedAt && (
                         <button
                           disabled={busy}
                           onClick={() => void moderate('lower_hand', p.identity)}
                         >
-                          Опустить руку участника
+                          {tr('Опустить руку участника')}
                         </button>
                       )}
                       <button
@@ -464,7 +501,7 @@ function Conference({ data, refresh }: { data: MeetingRoomState; refresh: () => 
                         disabled={busy}
                         onClick={() => void moderate('kick', p.identity)}
                       >
-                        Удалить из встречи
+                        {tr('Удалить из встречи')}
                       </button>
                     </div>
                   </details>
@@ -474,71 +511,84 @@ function Conference({ data, refresh }: { data: MeetingRoomState; refresh: () => 
         })}
       </div>
       {data.meeting.canManage && (
-        <section className="panel meeting-moderation" aria-label="Управление встречей">
-          <h2>Управление встречей</h2>
-          <div className="button-row">
-            <button disabled={busy} onClick={() => void moderate('mute_all')}>
-              Отключить микрофоны учеников
-            </button>
-            <button
-              disabled={busy}
-              onClick={() => void moderate(data.meeting.locked ? 'unlock' : 'lock')}
-            >
-              {data.meeting.locked ? 'Открыть вход' : 'Закрыть вход'}
-            </button>
-            <button className="danger" disabled={busy} onClick={() => setEnding((v) => !v)}>
-              Завершить встречу для всех
-            </button>
-          </div>
-          {ending && (
-            <div className="inline-message">
-              <p>
-                Все участники будут отключены. Итог и домашние задания сохраняются в карточке
-                занятия.
-              </p>
-              <button className="danger" disabled={busy} onClick={() => void moderate('end')}>
-                Подтвердить завершение для всех
+        <details className="conference-manage" open={data.waiting.length > 0 ? true : undefined}>
+          <summary>
+            {tr('Управление встречей · ')}
+            {data.waiting.length}
+          </summary>
+          <section className="panel meeting-moderation" aria-label={tr('Управление встречей')}>
+            <h2>{tr('Управление встречей')}</h2>
+            <div className="button-row">
+              <button disabled={busy} onClick={() => void moderate('mute_all')}>
+                {tr('Отключить микрофоны учеников')}
+              </button>
+              <button
+                disabled={busy}
+                onClick={() => void moderate(data.meeting.locked ? 'unlock' : 'lock')}
+              >
+                {data.meeting.locked ? tr('Открыть вход') : tr('Закрыть вход')}
+              </button>
+              <button className="danger" disabled={busy} onClick={() => setEnding((v) => !v)}>
+                {tr('Завершить встречу для всех')}
               </button>
             </div>
-          )}
-          <h3>Зал ожидания · {data.waiting.length}</h3>
-          {data.waiting.length ? (
-            <ul className="meeting-agenda">
-              {data.waiting.map((p) => (
-                <li key={p.identity}>
-                  <strong>{p.name}</strong>
-                  <button disabled={busy} onClick={() => void moderate('admit', p.identity)}>
-                    Допустить: {p.name}
-                  </button>
-                  <button
-                    className="secondary danger"
-                    disabled={busy}
-                    onClick={() => void moderate('kick', p.identity)}
-                  >
-                    Отказать: {p.name}
-                  </button>
-                </li>
-              ))}
-            </ul>
-          ) : (
-            <p>Ожидающих участников нет.</p>
-          )}
-          {data.meeting.members.some((m) => m.blocked) && (
-            <details>
-              <summary>Удалённые участники</summary>
-              {data.meeting.members
-                .filter((m) => m.blocked)
-                .map((m) => (
-                  <p key={m.id}>
-                    {m.name}{' '}
-                    <button disabled={busy} onClick={() => void moderate('restore', m.id)}>
-                      Разрешить возврат: {m.name}
+            {ending && (
+              <div className="inline-message">
+                <p>
+                  {tr(
+                    'Все участники будут отключены. Итог и домашние задания сохраняются в карточке занятия.',
+                  )}
+                </p>
+                <button className="danger" disabled={busy} onClick={() => void moderate('end')}>
+                  {tr('Подтвердить завершение для всех')}
+                </button>
+              </div>
+            )}
+            <h3>
+              {tr('Зал ожидания · ')}
+              {data.waiting.length}
+            </h3>
+            {data.waiting.length ? (
+              <ul className="meeting-agenda">
+                {data.waiting.map((p) => (
+                  <li key={p.identity}>
+                    <strong>{p.name}</strong>
+                    <button disabled={busy} onClick={() => void moderate('admit', p.identity)}>
+                      {tr('Допустить: ')}
+                      {p.name}
                     </button>
-                  </p>
+                    <button
+                      className="secondary danger"
+                      disabled={busy}
+                      onClick={() => void moderate('kick', p.identity)}
+                    >
+                      {tr('Отказать: ')}
+                      {p.name}
+                    </button>
+                  </li>
                 ))}
-            </details>
-          )}
-        </section>
+              </ul>
+            ) : (
+              <p>{tr('Ожидающих участников нет.')}</p>
+            )}
+            {data.meeting.members.some((m) => m.blocked) && (
+              <details>
+                <summary>{tr('Удалённые участники')}</summary>
+                {data.meeting.members
+                  .filter((m) => m.blocked)
+                  .map((m) => (
+                    <p key={m.id}>
+                      {m.name}{' '}
+                      <button disabled={busy} onClick={() => void moderate('restore', m.id)}>
+                        {tr('Разрешить возврат: ')}
+                        {m.name}
+                      </button>
+                    </p>
+                  ))}
+              </details>
+            )}
+          </section>
+        </details>
       )}
       {error && (
         <p role="alert" className="error">
@@ -548,12 +598,33 @@ function Conference({ data, refresh }: { data: MeetingRoomState; refresh: () => 
               disabled={busy}
               onClick={() => void moderate(pending.current!.action, pending.current!.targetId)}
             >
-              Повторить команду
+              {tr('Повторить команду')}
             </button>
           )}
         </p>
       )}
-      <MeetingChat id={data.meeting.id} />
+      <aside className="meeting-chat-panel" hidden={!chatOpen}>
+        <div className="chat-panel-title">
+          <strong>{tr('Чат встречи')}</strong>
+          <button
+            className="secondary"
+            aria-label={tr('Закрыть чат')}
+            onClick={() => setChatOpen(false)}
+          >
+            ×
+          </button>
+        </div>
+        <MeetingChat id={data.meeting.id} />
+      </aside>
+      <MediaControls
+        id={data.meeting.id}
+        self={self}
+        refresh={refresh}
+        chatOpen={chatOpen}
+        toggleChat={() => setChatOpen((v) => !v)}
+        leave={leave}
+        leaving={leaving}
+      />
     </div>
   );
 }
@@ -568,13 +639,13 @@ function DeviceWarnings({ info }: { info: MeetingRoomState['participants'][numbe
             className="device-warning"
             title={
               w.kind === 'camera'
-                ? 'Возможно, виртуальная камера'
-                : 'Возможно, виртуальный микрофон'
+                ? tr('Возможно, виртуальная камера')
+                : tr('Возможно, виртуальный микрофон')
             }
             aria-label={
               w.kind === 'camera'
-                ? 'Предупреждение о виртуальной камере'
-                : 'Предупреждение о виртуальном микрофоне'
+                ? tr('Предупреждение о виртуальной камере')
+                : tr('Предупреждение о виртуальном микрофоне')
             }
             aria-expanded={opened === w.kind}
             onClick={() => setOpened((v) => (v === w.kind ? null : w.kind))}
@@ -606,19 +677,23 @@ function DeviceWarnings({ info }: { info: MeetingRoomState['participants'][numbe
           {opened === w.kind && (
             <div role="note" className="device-warning-detail">
               <strong>
-                Возможно, участник использует{' '}
-                {w.kind === 'camera' ? 'виртуальную камеру' : 'виртуальный микрофон'} — «{w.label}».
+                {tr('Возможно, участник использует')}{' '}
+                {w.kind === 'camera' ? tr('виртуальную камеру') : tr('виртуальный микрофон')} — «
+                {w.label}».
               </strong>
               <p>
-                Совпадение: {w.match}. Название сообщено браузером и может быть изменено. Это не
-                доказательство нарушения и не влияет на оценку.
+                {tr('Совпадение: ')}
+                {w.match}
+                {tr(
+                  '. Название сообщено браузером и может быть изменено. Это не доказательство нарушения.',
+                )}
               </p>
               <small>
-                Доступно организаторам и суперадмину ·{' '}
-                {new Date(w.reportedAt).toLocaleTimeString('ru')}
+                {tr('Доступно организаторам и суперадмину ·')}{' '}
+                {new Date(w.reportedAt).toLocaleTimeString(dateLocale)}
               </small>
               <button className="secondary" onClick={() => setOpened(null)}>
-                Закрыть сведения
+                {tr('Закрыть сведения')}
               </button>
             </div>
           )}
@@ -631,10 +706,18 @@ function MediaControls({
   id,
   self,
   refresh,
+  chatOpen,
+  toggleChat,
+  leave,
+  leaving,
 }: {
   id: string;
   self: MeetingSession;
   refresh: () => Promise<void>;
+  chatOpen: boolean;
+  toggleChat: () => void;
+  leave: () => void;
+  leaving: boolean;
 }) {
   const room = useRoomContext(),
     { localParticipant, isCameraEnabled, isMicrophoneEnabled, isScreenShareEnabled } =
@@ -649,7 +732,7 @@ function MediaControls({
     try {
       setDevices(await navigator.mediaDevices.enumerateDevices());
     } catch {
-      setError('Список устройств недоступен. Проверьте разрешения браузера.');
+      setError(tr('Список устройств недоступен. Проверьте разрешения браузера.'));
     }
   }, []);
   useEffect(() => {
@@ -692,8 +775,12 @@ function MediaControls({
     } catch {
       setError(
         kind === 'screen'
-          ? 'Демонстрация не началась. Выберите экран или окно; при отказе разрешения можно повторить.'
-          : 'Не удалось включить устройство. Проверьте разрешения камеры/микрофона и повторите. Учебная оценка не меняется.',
+          ? tr(
+              'Демонстрация не началась. Выберите экран или окно; при отказе разрешения можно повторить.',
+            )
+          : tr(
+              'Не удалось включить устройство. Проверьте разрешения камеры/микрофона и повторите. Учебная оценка не меняется.',
+            ),
       );
     } finally {
       setBusy(false);
@@ -706,32 +793,37 @@ function MediaControls({
       else if (kind === 'audioinput') setMic(value);
       else setSpeaker(value);
     } catch {
-      setError('Не удалось переключить устройство. Попробуйте другое.');
+      setError(tr('Не удалось переключить устройство. Попробуйте другое.'));
     }
   }
   return (
-    <section className="meeting-controls" aria-label="Камера, звук и демонстрация">
+    <section className="meeting-controls" aria-label={tr('Камера, звук и демонстрация')}>
       <div className="button-row">
         <button
           aria-pressed={isMicrophoneEnabled}
           disabled={busy || !self.audioAllowed}
           onClick={() => void act('audio')}
         >
-          {isMicrophoneEnabled ? 'Выключить микрофон' : 'Включить микрофон'}
+          <CallIcon name={isMicrophoneEnabled ? 'mic' : 'muted'} />
+          <span>{isMicrophoneEnabled ? tr('Выключить микрофон') : tr('Включить микрофон')}</span>
         </button>
         <button
           aria-pressed={isCameraEnabled}
           disabled={busy || !self.videoAllowed}
           onClick={() => void act('video')}
         >
-          {isCameraEnabled ? 'Выключить камеру' : 'Включить камеру'}
+          <CallIcon name={isCameraEnabled ? 'camera' : 'camera-off'} />
+          <span>{isCameraEnabled ? tr('Выключить камеру') : tr('Включить камеру')}</span>
         </button>
         <button
           aria-pressed={isScreenShareEnabled}
           disabled={busy || !self.screenAllowed}
           onClick={() => void act('screen')}
         >
-          {isScreenShareEnabled ? 'Остановить демонстрацию' : 'Демонстрация экрана'}
+          <CallIcon name="screen" />
+          <span>
+            {isScreenShareEnabled ? tr('Остановить демонстрацию') : tr('Демонстрация экрана')}
+          </span>
         </button>
         <button
           className="secondary"
@@ -743,77 +835,86 @@ function MediaControls({
               body: { raised: !self.handRaisedAt },
             })
               .then(refresh)
-              .catch((e) => setError((e as Error).message))
+              .catch((e) => setError(tr((e as Error).message)))
               .finally(() => setBusy(false));
           }}
         >
-          {self.handRaisedAt ? 'Опустить руку' : 'Поднять руку'}
+          <CallIcon name="hand" />
+          <span>{self.handRaisedAt ? tr('Опустить руку') : tr('Поднять руку')}</span>
+        </button>
+        <button className="secondary" aria-pressed={chatOpen} onClick={toggleChat}>
+          <CallIcon name="chat" />
+          <span>{tr('Чат')}</span>
+        </button>
+        <button className="danger leave-call" disabled={leaving} onClick={leave}>
+          <CallIcon name="leave" />
+          <span>{leaving ? tr('Выходим…') : tr('Покинуть встречу')}</span>
         </button>
       </div>
       {(!self.audioAllowed || !self.videoAllowed || !self.screenAllowed) && (
         <p role="status">
-          Организатор ограничил:{' '}
+          {tr('Организатор ограничил:')}{' '}
           {[
-            !self.audioAllowed && 'микрофон',
-            !self.videoAllowed && 'камеру',
-            !self.screenAllowed && 'демонстрацию экрана',
+            !self.audioAllowed && tr('микрофон'),
+            !self.videoAllowed && tr('камеру'),
+            !self.screenAllowed && tr('демонстрацию экрана'),
           ]
             .filter(Boolean)
             .join(', ')}
-          . Для включения нужно разрешение.
+          {tr('. Для включения нужно разрешение.')}
         </p>
       )}
-      <details>
-        <summary>Устройства и звук</summary>
+      <details className="call-device-settings">
+        <summary>{tr('Устройства и звук')}</summary>
         <div className="form-grid">
           <label>
-            Камера
+            {tr('Камера')}
             <select
-              aria-label="Камера"
+              aria-label={tr('Камера')}
               value={camera}
               onChange={(e) => void switchDevice('videoinput', e.target.value)}
             >
-              <option value="">По умолчанию</option>
+              <option value="">{tr('По умолчанию')}</option>
               {devices
                 .filter((d) => d.kind === 'videoinput' && d.deviceId)
                 .map((d, i) => (
                   <option key={d.deviceId} value={d.deviceId}>
-                    {d.label || `Камера ${i + 1}`}
+                    {d.label || tr('Камера {0}', [i + 1])}
                   </option>
                 ))}
             </select>
           </label>
           <label>
-            Микрофон
+            {tr('Микрофон')}
             <select
-              aria-label="Микрофон"
+              aria-label={tr('Микрофон')}
               value={mic}
               onChange={(e) => void switchDevice('audioinput', e.target.value)}
             >
-              <option value="">По умолчанию</option>
+              <option value="">{tr('По умолчанию')}</option>
               {devices
                 .filter((d) => d.kind === 'audioinput' && d.deviceId)
                 .map((d, i) => (
                   <option key={d.deviceId} value={d.deviceId}>
-                    {d.label || `Микрофон ${i + 1}`}
+                    {d.label || tr('Микрофон {0}', [i + 1])}
                   </option>
                 ))}
             </select>
           </label>
           {'setSinkId' in HTMLMediaElement.prototype && (
             <label>
-              Динамики
+              {tr('Динамики')}
               <select
-                aria-label="Динамики"
+                aria-label={tr('Динамики')}
                 value={speaker}
                 onChange={(e) => void switchDevice('audiooutput', e.target.value)}
               >
-                <option value="">По умолчанию</option>
+                <option value="">{tr('По умолчанию')}</option>
                 {devices
                   .filter((d) => d.kind === 'audiooutput' && d.deviceId)
                   .map((d, i) => (
                     <option key={d.deviceId} value={d.deviceId}>
-                      {d.label || `Динамики ${i + 1}`}
+                      {d.label || tr('Динамики {0}', [i + 1])}
                     </option>
                   ))}
               </select>
@@ -821,11 +922,12 @@ function MediaControls({
           )}
         </div>
         <button className="secondary" onClick={() => void enumerate()}>
-          Обновить список устройств
+          {tr('Обновить список устройств')}
         </button>
         <p className="muted">
-          Названия могут появиться после разрешения доступа. Звук экрана доступен, если браузер
-          предлагает его при выборе источника.
+          {tr(
+            'Названия могут появиться после разрешения доступа. Звук экрана доступен, если браузер предлагает его при выборе источника.',
+          )}
         </p>
       </details>
       {error && (
@@ -916,7 +1018,7 @@ function MeetingChat({ id }: { id: string }) {
       setText('');
       await refresh();
     } catch (e) {
-      setSendError((e as Error).message);
+      setSendError(tr((e as Error).message));
       if (e instanceof ApiError && e.status && e.status < 500) pending.current = null;
     } finally {
       setBusy(false);
@@ -933,34 +1035,36 @@ function MeetingChat({ id }: { id: string }) {
       setOlder((v) => [...v, ...page.items]);
       setCursor(page.nextCursor);
     } catch (e) {
-      setSendError((e as Error).message);
+      setSendError(tr((e as Error).message));
     }
   }
   const items = [
     ...new Map([...(data?.items ?? []), ...older].map((m) => [m.id, m])).values(),
   ].sort((a, b) => a.createdAt.localeCompare(b.createdAt) || a.id.localeCompare(b.id));
   return (
-    <section className="panel meeting-chat" aria-label="Чат видеовстречи">
-      <h2>Чат встречи</h2>
+    <section className="panel meeting-chat" aria-label={tr('Чат видеовстречи')}>
+      <h2>{tr('Чат встречи')}</h2>
       {error && <ErrorState error={error} retry={() => void refresh()} />}
       <div role="log" aria-live="polite">
         {items.map((m) => (
           <article key={m.id}>
             <strong>{m.name}</strong>{' '}
-            <time dateTime={m.createdAt}>{new Date(m.createdAt).toLocaleTimeString('ru')}</time>
+            <time dateTime={m.createdAt}>
+              {new Date(m.createdAt).toLocaleTimeString(dateLocale)}
+            </time>
             <p className="content-text">{m.text}</p>
           </article>
         ))}
-        {!items.length && <p>Сообщений пока нет.</p>}
+        {!items.length && <p>{tr('Сообщений пока нет.')}</p>}
       </div>
       {(cursor === undefined ? data?.nextCursor : cursor) && (
         <button className="secondary" onClick={() => void more()}>
-          Предыдущие сообщения
+          {tr('Предыдущие сообщения')}
         </button>
       )}
       <form onSubmit={(e) => void send(e)}>
         <label>
-          Сообщение в чат
+          {tr('Сообщение в чат')}
           <textarea
             required
             maxLength={2000}
@@ -971,10 +1075,10 @@ function MeetingChat({ id }: { id: string }) {
         </label>
         <button disabled={busy || !text.trim()}>
           {busy
-            ? 'Отправляем…'
+            ? tr('Отправляем…')
             : pending.current
-              ? 'Повторить отправку сообщения'
-              : 'Отправить в чат'}
+              ? tr('Повторить отправку сообщения')
+              : tr('Отправить в чат')}
         </button>
       </form>
       {sendError && (
@@ -983,5 +1087,35 @@ function MeetingChat({ id }: { id: string }) {
         </p>
       )}
     </section>
+  );
+}
+
+function CallIcon({ name }: { name: string }) {
+  const paths: Record<string, string> = {
+    mic: 'M9 5a3 3 0 0 1 6 0v7a3 3 0 0 1-6 0ZM5 10v2a7 7 0 0 0 14 0v-2M12 19v3M8 22h8',
+    muted: 'M9 5a3 3 0 0 1 6 0v7M5 10v2a7 7 0 0 0 12 5M12 19v3M8 22h8M3 3l18 18',
+    camera: 'M3 5h12v14H3ZM15 10l6-4v12l-6-4',
+    'camera-off': 'M3 5h12v14H3ZM15 10l6-4v12l-6-4M2 2l20 20',
+    screen: 'M2 3h20v14H2ZM8 21h8M12 17v4M8 10l4-4 4 4M12 6v8',
+    hand: 'M7 12V5a2 2 0 0 1 4 0v7-9a2 2 0 0 1 4 0v9-7a2 2 0 0 1 4 0v9-4a2 2 0 0 1 4 0v6a7 7 0 0 1-13 4L3 13a2 2 0 0 1 3-2Z',
+    chat: 'M3 3h18v14H9l-6 4Z',
+    leave: 'M3 15v-4c5-5 13-5 18 0v4l-5-1v-3H8v3Z',
+    pin: 'm8 3 8 0-1 6 4 4v2H5v-2l4-4ZM12 15v7',
+    expand: 'M3 9V3h6M15 3h6v6M21 15v6h-6M9 21H3v-6',
+  };
+  return (
+    <svg
+      width="22"
+      height="22"
+      viewBox="0 0 24 24"
+      fill="none"
+      stroke="currentColor"
+      strokeWidth="1.7"
+      strokeLinecap="round"
+      strokeLinejoin="round"
+      aria-hidden="true"
+    >
+      <path d={paths[name] ?? paths.camera} />
+    </svg>
   );
 }

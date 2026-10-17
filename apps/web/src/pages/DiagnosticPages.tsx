@@ -1,3 +1,4 @@
+import { t, dateLocale } from '../i18n';
 import { StudentDirectory } from '../components/StudentDirectory';
 import { useEffect, useState, type FormEvent } from 'react';
 import { Link, useNavigate, useParams, useSearchParams } from 'react-router-dom';
@@ -26,17 +27,20 @@ export function ProfileOverview({ userId }: { userId: string }) {
   if (state.status === 'error') return <ErrorState error={state.error} retry={refresh} />;
   return (
     <section className="panel">
-      <h2>Учебная анкета</h2>
+      <h2>{t('Учебная анкета')}</h2>
       {state.data.profile ? (
         <>
           <QuestionnaireSummary data={state.data.profile} />
-          <p className="muted">Версия анкеты: {state.data.profile.revision}</p>
+          <p className="muted">
+            {t('Версия анкеты: ')}
+            {state.data.profile.revision}
+          </p>
         </>
       ) : (
-        <p>Анкета ещё не заполнена.</p>
+        <p>{t('Анкета ещё не заполнена.')}</p>
       )}
       {state.data.writable && (
-        <Link to={`/onboarding?userId=${userId}`}>Анкета и входная диагностика →</Link>
+        <Link to={`/onboarding?userId=${userId}`}>{t('Анкета и входная диагностика →')}</Link>
       )}
     </section>
   );
@@ -49,7 +53,7 @@ export function OnboardingPage() {
   if (!userId)
     return (
       <>
-        <h1>Анкеты и диагностика учеников</h1>
+        <h1>{t('Анкеты и диагностика учеников')}</h1>
         <StudentDirectory path="/onboarding" />
       </>
     );
@@ -98,7 +102,7 @@ function ProfileEditor({ userId }: { userId: string }) {
           },
         }),
       );
-      setMessage('Анкета сохранена.');
+      setMessage(t('Анкета сохранена.'));
     } catch (failure) {
       setError(failure as Error);
     } finally {
@@ -132,16 +136,16 @@ function ProfileEditor({ userId }: { userId: string }) {
     );
   return (
     <>
-      <p className="eyebrow">Первый шаг обучения</p>
-      <h1>Анкета и входная диагностика</h1>
+      <p className="eyebrow">{t('Первый шаг обучения')}</p>
+      <h1>{t('Анкета и входная диагностика')}</h1>
       <p>
         {view.user.name} · {view.user.email}
       </p>
       <section className="panel">
-        <h2>Ваши цели и время</h2>
+        <h2>{t('Ваши цели и время')}</h2>
         <form onSubmit={(event) => void save(event)}>
           <fieldset disabled={!view.writable || busy}>
-            <label htmlFor="profile-language">Язык обучения</label>
+            <label htmlFor="profile-language">{t('Язык обучения')}</label>
             <select
               id="profile-language"
               value={data.language}
@@ -155,7 +159,7 @@ function ProfileEditor({ userId }: { userId: string }) {
                 </option>
               ))}
             </select>
-            <label htmlFor="profile-goal">Учебная цель</label>
+            <label htmlFor="profile-goal">{t('Учебная цель')}</label>
             <select
               id="profile-goal"
               value={data.goal}
@@ -167,7 +171,7 @@ function ProfileEditor({ userId }: { userId: string }) {
                 </option>
               ))}
             </select>
-            <label htmlFor="profile-experience">Опыт изучения языка</label>
+            <label htmlFor="profile-experience">{t('Опыт изучения языка')}</label>
             <select
               id="profile-experience"
               value={data.experience}
@@ -181,7 +185,7 @@ function ProfileEditor({ userId }: { userId: string }) {
                 </option>
               ))}
             </select>
-            <label htmlFor="profile-minutes">Доступное время в день, минуты</label>
+            <label htmlFor="profile-minutes">{t('Доступное время в день, минуты')}</label>
             <input
               id="profile-minutes"
               type="number"
@@ -192,7 +196,7 @@ function ProfileEditor({ userId }: { userId: string }) {
               value={data.minutesPerDay}
               onChange={(e) => setData({ ...data, minutesPerDay: Number(e.target.value) })}
             />
-            {view.writable && <button>Сохранить анкету</button>}
+            {view.writable && <button>{t('Сохранить анкету')}</button>}
           </fieldset>
         </form>
         {message && (
@@ -202,29 +206,31 @@ function ProfileEditor({ userId }: { userId: string }) {
         )}
         {view.profile && (
           <p className="muted">
-            Сохранённая версия: {view.profile.revision}. Изменение анкеты сохраняет прежние
-            результаты диагностики.
+            {t('Сохранённая версия: ')}
+            {view.profile.revision}
+            {t('. Изменение анкеты сохраняет прежние результаты диагностики.')}
           </p>
         )}
       </section>
       <section className="panel">
-        <h2>Короткая диагностика</h2>
+        <h2>{t('Короткая диагностика')}</h2>
         <p>
-          Шесть заданий из отдельного банка выбранного языка. Можно сохранить ответ и вернуться
-          после перерыва. Подсказки отключены, результаты откроются после завершения.
+          {t(
+            'Шесть заданий из отдельного банка выбранного языка. Можно сохранить ответ и вернуться после перерыва. Подсказки отключены, результаты откроются после завершения.',
+          )}
         </p>
-        <p className="muted">Оценка предварительная; она не подтверждает уровень языка.</p>
+        <p className="muted">{t('Оценка предварительная; она не подтверждает уровень языка.')}</p>
         {view.writable && (
           <div className="form-actions">
             <button disabled={busy || dirty} onClick={() => void start()}>
-              Начать или продолжить диагностику
+              {t('Начать или продолжить диагностику')}
             </button>
             <button className="secondary" disabled={busy || dirty} onClick={() => void start(true)}>
-              Пройти диагностику ещё раз
+              {t('Пройти диагностику ещё раз')}
             </button>
           </div>
         )}
-        {dirty && view.writable && <p>Сначала сохраните анкету.</p>}
+        {dirty && view.writable && <p>{t('Сначала сохраните анкету.')}</p>}
       </section>
       {error && <ErrorState error={error} retry={resource.refresh} />}
       <DiagnosticHistory userId={userId} />
@@ -270,28 +276,29 @@ export function DiagnosticHistory({ userId }: { userId: string }) {
   }
   return (
     <section className="panel">
-      <h2>Сохранённые диагностики</h2>
+      <h2>{t('Сохранённые диагностики')}</h2>
       {!page && !error && <LoadingState />}
       {page &&
         (!page.items.length ? (
-          <p>Диагностика ещё не начата.</p>
+          <p>{t('Диагностика ещё не начата.')}</p>
         ) : (
           <ul className="account-list">
             {page.items.map((d) => (
               <li key={d.id}>
                 <strong>{languageLabels[d.questionnaire.language]}</strong>
                 <span>
-                  {d.answeredQuestions}/{d.totalQuestions} ответов · анкета v{d.profileRevision}
+                  {d.answeredQuestions}/{d.totalQuestions} {t(' ответов · анкета v')}
+                  {d.profileRevision}
                 </span>
-                <span>{new Date(d.createdAt).toLocaleString('ru-RU')}</span>
+                <span>{new Date(d.createdAt).toLocaleString(dateLocale)}</span>
                 <Link
                   to={
                     d.status === 'completed' ? `/diagnostics/${d.id}` : `/learning/runs/${d.runId}`
                   }
                 >
                   {d.status === 'completed'
-                    ? 'Предварительный результат →'
-                    : 'Продолжить диагностику →'}
+                    ? t('Предварительный результат →')
+                    : t('Продолжить диагностику →')}
                 </Link>
               </li>
             ))}
@@ -300,7 +307,7 @@ export function DiagnosticHistory({ userId }: { userId: string }) {
       {error && <ErrorState error={error} retry={() => setRevision((value) => value + 1)} />}
       {page?.nextCursor && (
         <button disabled={busy} className="secondary" onClick={() => void more()}>
-          Показать предыдущие диагностики
+          {t('Показать предыдущие диагностики')}
         </button>
       )}
     </section>
@@ -315,51 +322,60 @@ export function DiagnosticResultPage() {
   return (
     <>
       <p className="eyebrow">
-        Входная диагностика{diagnostic.isDemo ? ' · демонстрационный контент' : ''}
+        {t('Входная диагностика')}
+        {diagnostic.isDemo ? t(' · демонстрационный контент') : ''}
       </p>
-      <h1>Предварительный результат диагностики</h1>
+      <h1>{t('Предварительный результат диагностики')}</h1>
       <p>
         {diagnostic.user.name} · {diagnostic.user.email}
       </p>
       <QuestionnaireSummary data={diagnostic.questionnaire} />
       <p className="muted">
-        Анкета v{diagnostic.profileRevision} · пакет {diagnostic.packageId} v
-        {diagnostic.packageVersion}
+        {t('Анкета v')}
+        {diagnostic.profileRevision} {t(' · пакет ')}
+        {diagnostic.packageId} v{diagnostic.packageVersion}
       </p>
       {diagnostic.teacherReviewedAttempts > 0 && (
         <aside className="notice">
           <p>
-            Преподаватель проверил ответов: {diagnostic.teacherReviewedAttempts}. Ниже сохранён
-            исходный снимок автоматической диагностики, по которому был создан план.
+            {t('Преподаватель проверил ответов: ')}
+            {diagnostic.teacherReviewedAttempts}
+            {t(
+              '. Ниже сохранён исходный снимок автоматической диагностики, по которому был создан план.',
+            )}
           </p>
           <Link to={`/learning/runs/${diagnostic.runId}`}>
-            Текущие оценки и комментарии к ответам →
+            {t('Текущие оценки и комментарии к ответам →')}
           </Link>
         </aside>
       )}
       {!result ? (
         <section className="panel">
-          <h2>Диагностика не завершена</h2>
+          <h2>{t('Диагностика не завершена')}</h2>
           <p>
-            Сохранено {diagnostic.answeredQuestions} из {diagnostic.totalQuestions} ответов.
+            {t('Сохранено ')}
+            {diagnostic.answeredQuestions} {t(' из ')}
+            {diagnostic.totalQuestions} {t(' ответов.')}
           </p>
           <Link to={`/learning/runs/${diagnostic.runId}`}>
-            {writable ? 'Продолжить диагностику →' : 'Посмотреть прохождение →'}
+            {writable ? t('Продолжить диагностику →') : t('Посмотреть прохождение →')}
           </Link>
         </section>
       ) : (
         <>
           <section className="notice">
-            <strong>Предварительная оценка</strong>
+            <strong>{t('Предварительная оценка')}</strong>
             <p>{result.notice}</p>
             <p>
-              Верных ответов: {result.correct} из {result.questions} · {result.percent}%
+              {t('Верных ответов: ')}
+              {result.correct} {t(' из ')}
+              {result.questions} · {result.percent}%
             </p>
           </section>
           <DiagnosticPlanLink diagnosticId={diagnostic.id} planId={planId} writable={writable} />
           <div className="diagnostic-columns">
             <section className="panel">
-              <h2>Сильные стороны в этом наборе</h2>
+              <h2>{t('Сильные стороны в этом наборе')}</h2>
               {result.strengthIds.length ? (
                 <ul>
                   {result.skills
@@ -369,11 +385,11 @@ export function DiagnosticResultPage() {
                     ))}
                 </ul>
               ) : (
-                <p>Пока не отмечены. Следующая практика поможет уточнить результат.</p>
+                <p>{t('Пока не отмечены. Следующая практика поможет уточнить результат.')}</p>
               )}
             </section>
             <section className="panel">
-              <h2>Что стоит потренировать</h2>
+              <h2>{t('Что стоит потренировать')}</h2>
               {result.difficultyIds.length ? (
                 <ul>
                   {result.skills
@@ -383,18 +399,19 @@ export function DiagnosticResultPage() {
                     ))}
                 </ul>
               ) : (
-                <p>В этом наборе затруднений не отмечено.</p>
+                <p>{t('В этом наборе затруднений не отмечено.')}</p>
               )}
             </section>
           </div>
-          <h2>Результаты по навыкам</h2>
+          <h2>{t('Результаты по навыкам')}</h2>
           <div className="skill-results">
             {result.skills.map((skill) => (
               <article className="panel" key={skill.skillId} data-testid="skill-result">
                 <h3>{skill.name}</h3>
                 <p>{skill.description}</p>
                 <p>
-                  {skill.correct}/{skill.questions} верно · {skill.percent}%
+                  {skill.correct}/{skill.questions} {t(' верно · ')}
+                  {skill.percent}%
                 </p>
                 <progress
                   max={100}
@@ -402,26 +419,31 @@ export function DiagnosticResultPage() {
                   aria-label={`${skill.name}: ${skill.percent}%`}
                 />
                 <p className="muted">
-                  Самостоятельно верно: {skill.independentCorrect} · С помощью или после обратной
-                  связи: {skill.assistedCorrect}
+                  {t('Самостоятельно верно: ')}
+                  {skill.independentCorrect} {t(' · С помощью или после обратной связи: ')}
+                  {skill.assistedCorrect}
                 </p>
                 <p className="muted">
-                  Короткий набор: {skill.questions} {skill.questions === 1 ? 'задание' : 'заданий'}{' '}
-                  по этому навыку.
+                  {t('Короткий набор: ')}
+                  {skill.questions} {skill.questions === 1 ? t('задание') : t('заданий')}{' '}
+                  {t('по этому навыку.')}
                 </p>
               </article>
             ))}
           </div>
-          <p>Результат сохранён: {new Date(result.evaluatedAt).toLocaleString('ru-RU')}</p>
+          <p>
+            {t('Результат сохранён: ')}
+            {new Date(result.evaluatedAt).toLocaleString(dateLocale)}
+          </p>
         </>
       )}
       <p>
-        <Link to={`/learning/runs/${diagnostic.runId}`}>Ответы и история прохождения →</Link>
+        <Link to={`/learning/runs/${diagnostic.runId}`}>{t('Ответы и история прохождения →')}</Link>
       </p>
       {writable && (
         <p>
           <Link to={`/onboarding?userId=${diagnostic.user.id}`}>
-            Анкета и повторная диагностика →
+            {t('Анкета и повторная диагностика →')}
           </Link>
         </p>
       )}

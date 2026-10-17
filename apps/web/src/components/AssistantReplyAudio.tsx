@@ -1,3 +1,4 @@
+import { t } from '../i18n';
 import { useEffect, useRef, useState } from 'react';
 import { z } from 'zod';
 import { assistantSpeechSchema } from '@luch/contracts';
@@ -31,7 +32,7 @@ export function AssistantReplyAudio({
       if (mounted.current) setUrl(result.url);
     } catch (e) {
       if (mounted.current) {
-        setError((e as Error).message);
+        setError(t((e as Error).message));
         if (e instanceof ApiError && e.code !== 'PROVIDER_IN_PROGRESS') operation.current = null;
       }
     } finally {
@@ -48,7 +49,7 @@ export function AssistantReplyAudio({
         else if (auto && editable) void prepare();
       })
       .catch((e) => {
-        if (!controller.signal.aborted) setError((e as Error).message);
+        if (!controller.signal.aborted) setError(t((e as Error).message));
       });
     return () => {
       mounted.current = false;
@@ -66,21 +67,23 @@ export function AssistantReplyAudio({
           controls
           preload="metadata"
           src={url}
-          aria-label="Голосовой ответ помощника"
+          aria-label={t('Голосовой ответ помощника')}
           onError={() =>
             setError(
-              'Не удалось воспроизвести аудио. Повторите воспроизведение; текст ответа сохранён.',
+              t(
+                'Не удалось воспроизвести аудио. Повторите воспроизведение; текст ответа сохранён.',
+              ),
             )
           }
         />
       ) : (
         editable && (
           <button className="secondary" disabled={busy} onClick={() => void prepare()}>
-            {busy ? 'Готовим голосовой ответ…' : 'Прослушать ответ помощника'}
+            {busy ? t('Готовим голосовой ответ…') : t('Прослушать ответ помощника')}
           </button>
         )
       )}
-      {busy && <p role="status">Озвучиваем ответ через ElevenLabs…</p>}
+      {busy && <p role="status">{t('Озвучиваем ответ через ElevenLabs…')}</p>}
       {error && (
         <div role="alert" className="error">
           <p>{error}</p>
@@ -95,13 +98,13 @@ export function AssistantReplyAudio({
               } else void prepare();
             }}
           >
-            Повторить озвучивание
+            {t('Повторить озвучивание')}
           </button>
         </div>
       )}
       {url && (
         <p className="muted">
-          Если звук не начался автоматически, нажмите воспроизведение. Текст доступен в чате.
+          {t('Если звук не начался автоматически, нажмите воспроизведение. Текст доступен в чате.')}
         </p>
       )}
     </div>

@@ -1,3 +1,4 @@
+import { t, dateLocale } from '../i18n';
 import { StudentDirectory } from '../components/StudentDirectory';
 import { useEffect, useRef, useState, type ReactNode } from 'react';
 import { Link, useSearchParams } from 'react-router-dom';
@@ -17,42 +18,42 @@ import { api } from '../lib/api';
 import { LoadingState, ErrorState, EmptyState } from '../components/States';
 import { goalLabels, languageLabels } from '../components/QuestionnaireSummary';
 
-const date = (value: string) => new Date(value).toLocaleString('ru-RU');
+const date = (value: string) => new Date(value).toLocaleString(dateLocale);
 const number = (value: number) =>
-  new Intl.NumberFormat('ru-RU', { maximumFractionDigits: 4 }).format(value);
+  new Intl.NumberFormat(dateLocale, { maximumFractionDigits: 4 }).format(value);
 const purposeLabels = {
-  practice: 'Тренировка',
-  diagnostic: 'Входная диагностика',
-  control: 'Контрольная проверка',
+  practice: t('Тренировка'),
+  diagnostic: t('Входная диагностика'),
+  control: t('Контрольная проверка'),
 };
 const helpLabels = {
-  hint: 'Подсказка',
-  prior_feedback: 'После обратной связи',
-  assistant: 'Помощник',
-  administrator: 'Помощь администратора',
-  other_actor: 'Ответил другой пользователь',
+  hint: t('Подсказка'),
+  prior_feedback: t('После обратной связи'),
+  assistant: t('Помощник'),
+  administrator: t('Помощь администратора'),
+  other_actor: t('Ответил другой пользователь'),
 };
 const skillLabels = {
-  learning: 'Первые наблюдения',
-  needs_practice: 'Нужна практика',
-  supported: 'Успех с помощью',
-  demonstrated: 'Самостоятельный успех',
-  confirmed: 'Подтверждён повторением',
+  learning: t('Первые наблюдения'),
+  needs_practice: t('Нужна практика'),
+  supported: t('Успех с помощью'),
+  demonstrated: t('Самостоятельный успех'),
+  confirmed: t('Подтверждён повторением'),
 };
 const changeLabels: Record<string, string> = {
-  correction_added: 'Добавлена коррекция',
-  correction_reused: 'Сохранена коррекция',
-  supported_practice_added: 'Добавлена самостоятельная практика',
-  supported_practice_reused: 'Сохранена самостоятельная практика',
-  review_scheduled: 'Назначено повторение',
-  review_reused: 'Сохранено повторение',
-  next_step_ready: 'Доступен следующий шаг',
-  review_confirmed: 'Повторение пройдено',
-  bank_unavailable: 'Нужно пополнить банк заданий',
-  teacher_assignment_added: 'Назначение преподавателя',
-  teacher_assignment_rescheduled: 'Перенос назначения',
-  teacher_assignment_cancelled: 'Отмена назначения',
-  assessment_reviewed: 'Проверка оценки преподавателем',
+  correction_added: t('Добавлена коррекция'),
+  correction_reused: t('Сохранена коррекция'),
+  supported_practice_added: t('Добавлена самостоятельная практика'),
+  supported_practice_reused: t('Сохранена самостоятельная практика'),
+  review_scheduled: t('Назначено повторение'),
+  review_reused: t('Сохранено повторение'),
+  next_step_ready: t('Доступен следующий шаг'),
+  review_confirmed: t('Повторение пройдено'),
+  bank_unavailable: t('Нужно пополнить банк заданий'),
+  teacher_assignment_added: t('Назначение преподавателя'),
+  teacher_assignment_rescheduled: t('Перенос назначения'),
+  teacher_assignment_cancelled: t('Отмена назначения'),
+  assessment_reviewed: t('Проверка оценки преподавателем'),
 };
 
 export function ReportPage() {
@@ -63,10 +64,10 @@ export function ReportPage() {
   if (user.role === 'admin')
     return (
       <>
-        <h1>Учебный отчёт</h1>
+        <h1>{t('Учебный отчёт')}</h1>
         <EmptyState
-          title="Нужен доступ к учебным данным"
-          description="Отчёт доступен ученику, его преподавателю и суперадмину."
+          title={t('Нужен доступ к учебным данным')}
+          description={t('Отчёт доступен ученику, его преподавателю и суперадмину.')}
         />
       </>
     );
@@ -82,7 +83,7 @@ export function ReportPage() {
 function ReportDirectory() {
   return (
     <>
-      <h1>Учебный отчёт</h1>
+      <h1>{t('Учебный отчёт')}</h1>
       <StudentDirectory path="/progress" />
     </>
   );
@@ -110,25 +111,25 @@ function ReportContent({ userId, language }: { userId: string; language: string 
   if (state.status === 'loading')
     return (
       <>
-        <h1>Учебный отчёт</h1>
-        <LoadingState text="Собираем сохранённые результаты…" />
+        <h1>{t('Учебный отчёт')}</h1>
+        <LoadingState text={t('Собираем сохранённые результаты…')} />
       </>
     );
   if (state.status === 'error')
     return (
       <>
-        <h1>Учебный отчёт</h1>
+        <h1>{t('Учебный отчёт')}</h1>
         <ErrorState error={state.error} retry={refresh} />
       </>
     );
   const { report: r, reviewer, refreshedAt } = state.data;
   return (
     <>
-      <p className="eyebrow">Прогресс и следующие шаги</p>
-      <h1>Учебный отчёт</h1>
+      <p className="eyebrow">{t('Прогресс и следующие шаги')}</p>
+      <h1>{t('Учебный отчёт')}</h1>
       <div className="report-toolbar">
         <div>
-          <label htmlFor="report-language">Язык отчёта</label>
+          <label htmlFor="report-language">{t('Язык отчёта')}</label>
           <select
             id="report-language"
             value={r.language}
@@ -138,16 +139,17 @@ function ReportContent({ userId, language }: { userId: string; language: string 
               setSearch(q);
             }}
           >
-            <option value="ru">РКИ</option>
-            <option value="en">Английский</option>
+            <option value="ru">{t('РКИ')}</option>
+            <option value="en">{t('Английский')}</option>
           </select>
         </div>
         <button className="secondary" onClick={refresh}>
-          Обновить отчёт
+          {t('Обновить отчёт')}
         </button>
       </div>
       <p className="muted" role="status">
-        Обновляется автоматически · Получен {date(refreshedAt)}
+        {t('Обновляется автоматически · Получен ')}
+        {date(refreshedAt)}
       </p>
       <div className="report-public" data-testid="report-public" data-revision={r.revision}>
         <section className="panel">
@@ -157,27 +159,28 @@ function ReportContent({ userId, language }: { userId: string; language: string 
           </p>
           {r.profile ? (
             <p>
-              Цель: <strong>{goalLabels[r.profile.goal]}</strong> · {r.profile.minutesPerDay} мин. в
-              день
+              {t('Цель: ')}
+              <strong>{goalLabels[r.profile.goal]}</strong> · {r.profile.minutesPerDay}{' '}
+              {t(' мин. в день')}
             </p>
           ) : (
-            <p>Анкета для этого языка ещё не сохранена.</p>
+            <p>{t('Анкета для этого языка ещё не сохранена.')}</p>
           )}
           <p className="muted">
             {r.updatedAt
-              ? `Последнее учебное действие: ${date(r.updatedAt)}`
-              : 'Учебных действий пока нет.'}
+              ? t('Последнее учебное действие: {0}', [date(r.updatedAt)])
+              : t('Учебных действий пока нет.')}
           </p>
           <Link to={`/progress?userId=${r.user.id}&language=${r.language}`}>
-            Ссылка на этот отчёт
+            {t('Ссылка на этот отчёт')}
           </Link>
         </section>
         <PublicSummary report={r} />
         <NextSteps report={r} />
         <section className="panel" aria-labelledby="report-skills">
-          <h2 id="report-skills">Состояние навыков</h2>
+          <h2 id="report-skills">{t('Состояние навыков')}</h2>
           {!r.skills.length ? (
-            <p>Навыки появятся после загрузки учебного контента.</p>
+            <p>{t('Навыки появятся после загрузки учебного контента.')}</p>
           ) : (
             <ul className="skill-state-list">
               {r.skills.map((s) => (
@@ -188,21 +191,26 @@ function ReportContent({ userId, language }: { userId: string; language: string 
                   <h3>{s.title}</h3>
                   <p>
                     <span className="badge">
-                      {s.state ? skillLabels[s.state.status] : 'Ещё нет наблюдений'}
+                      {s.state ? skillLabels[s.state.status] : t('Ещё нет наблюдений')}
                     </span>{' '}
                     · {s.packageId} v{s.packageVersion}
                   </p>
                   <p>{s.description}</p>
                   <p>
-                    Самостоятельно верно: {s.counts.independentCorrect} · С подсказкой:{' '}
-                    {s.counts.hintedCorrect} · С другой помощью: {s.counts.otherAssistedCorrect} ·
-                    Ошибки: {s.counts.incorrectAttempts}
+                    {t('Самостоятельно верно: ')}
+                    {s.counts.independentCorrect} {t(' · С подсказкой:')} {s.counts.hintedCorrect}{' '}
+                    {t(' · С другой помощью: ')}
+                    {s.counts.otherAssistedCorrect} {t(' · Ошибки: ')}
+                    {s.counts.incorrectAttempts}
                   </p>
-                  <p>Проверено преподавателем: {s.counts.teacherReviewedAttempts}</p>
+                  <p>
+                    {t('Проверено преподавателем: ')}
+                    {s.counts.teacherReviewedAttempts}
+                  </p>
                   {s.awaitingObservationAttempts > 0 && (
                     <p className="muted">
-                      {s.awaitingObservationAttempts} попыток ожидают завершения назначения для
-                      обновления состояния навыка.
+                      {s.awaitingObservationAttempts}{' '}
+                      {t(' попыток ожидают завершения назначения для обновления состояния навыка.')}
                     </p>
                   )}
                 </li>
@@ -211,24 +219,26 @@ function ReportContent({ userId, language }: { userId: string; language: string 
           )}
         </section>
         <section className="panel" aria-labelledby="report-errors">
-          <h2 id="report-errors">Повторяющиеся ошибки</h2>
+          <h2 id="report-errors">{t('Повторяющиеся ошибки')}</h2>
           <p className="muted">
-            Навыки с двумя и более ошибочными попытками по текущим оценкам. Исправления
-            преподавателя уже учтены.
+            {t(
+              'Навыки с двумя и более ошибочными попытками по текущим оценкам. Исправления преподавателя уже учтены.',
+            )}
           </p>
           {!r.repeatedErrors.length ? (
-            <p>Повторяющихся ошибок в доступных результатах пока нет.</p>
+            <p>{t('Повторяющихся ошибок в доступных результатах пока нет.')}</p>
           ) : (
             <ul className="account-list">
               {r.repeatedErrors.map((e) => (
                 <li key={`${e.packageId}:${e.packageVersion}:${e.skillId}`}>
                   <strong>{e.title}</strong>
                   <p>
-                    Ошибок: {e.mistakes} · Разных заданий: {e.exercises} · Последняя:{' '}
-                    {date(e.lastAt)}
+                    {t('Ошибок: ')}
+                    {e.mistakes} {t(' · Разных заданий: ')}
+                    {e.exercises} {t(' · Последняя:')} {date(e.lastAt)}
                   </p>
                   <Link to={`/learning/attempts/${e.lastAttemptId}`}>
-                    Посмотреть последний ответ →
+                    {t('Посмотреть последний ответ →')}
                   </Link>
                 </li>
               ))}
@@ -236,21 +246,21 @@ function ReportContent({ userId, language }: { userId: string; language: string 
           )}
         </section>
         <section className="panel" aria-labelledby="report-attempts">
-          <h2 id="report-attempts">Попытки и результаты</h2>
+          <h2 id="report-attempts">{t('Попытки и результаты')}</h2>
           <Pager
             key={`attempts:${r.revision}`}
             initial={r.recentAttempts}
             schema={reportAttemptsPageSchema}
             endpoint={`/reports/${r.user.id}/attempts?language=${r.language}`}
             getKey={(a) => a.id}
-            moreLabel="Предыдущие попытки"
+            moreLabel={t('Предыдущие попытки')}
             render={(a) => <Attempt item={a} />}
           />
         </section>
         <section className="panel" aria-labelledby="report-history">
-          <h2 id="report-history">Изменения плана</h2>
+          <h2 id="report-history">{t('Изменения плана')}</h2>
           <p>
-            Всего сохранённых изменений:{' '}
+            {t('Всего сохранённых изменений:')}{' '}
             <strong data-testid="report-change-count">{r.planChangesCount}</strong>
           </p>
           <Pager
@@ -259,21 +269,21 @@ function ReportContent({ userId, language }: { userId: string; language: string 
             schema={reportChangesPageSchema}
             endpoint={`/reports/${r.user.id}/changes?language=${r.language}`}
             getKey={(c) => c.id}
-            moreLabel="Предыдущие изменения"
+            moreLabel={t('Предыдущие изменения')}
             render={(c) => (
               <>
                 <strong>
                   {changeLabels[c.action] ?? c.action} · {c.skillName}
                 </strong>
-                <p>{c.reason}</p>
+                <p>{c.action.startsWith('teacher_') ? c.reason : t(c.reason)}</p>
                 <p className="muted">
-                  {date(c.createdAt)} · {c.createdByName ?? 'Сохранённое действие'}
+                  {date(c.createdAt)} · {c.createdByName ?? t('Сохранённое действие')}
                 </p>
-                <Link to={`/plan/${c.planId}`}>Открыть план →</Link>
+                <Link to={`/plan/${c.planId}`}>{t('Открыть план →')}</Link>
                 {c.attemptId && (
                   <>
                     {' '}
-                    · <Link to={`/learning/attempts/${c.attemptId}`}>Ответ-основание</Link>
+                    · <Link to={`/learning/attempts/${c.attemptId}`}>{t('Ответ-основание')}</Link>
                   </>
                 )}
               </>
@@ -290,8 +300,10 @@ function ReportContent({ userId, language }: { userId: string; language: string 
         />
       )}
       <p>
-        <Link to={`/feedback?userId=${r.user.id}`}>Комментарии и назначения преподавателя →</Link> ·{' '}
-        <Link to={`/learning?userId=${r.user.id}`}>История обучения →</Link>
+        <Link to={`/feedback?userId=${r.user.id}`}>
+          {t('Комментарии и назначения преподавателя →')}
+        </Link>{' '}
+        · <Link to={`/learning?userId=${r.user.id}`}>{t('История обучения →')}</Link>
       </p>
     </>
   );
@@ -300,79 +312,90 @@ function PublicSummary({ report: r }: { report: LearningReport }) {
   const c = r.counts;
   return (
     <section className="panel" aria-labelledby="report-summary">
-      <h2 id="report-summary">Учебные результаты</h2>
+      <h2 id="report-summary">{t('Учебные результаты')}</h2>
       <dl className="dashboard-stats">
         <div>
-          <dt>Самостоятельно верно</dt>
+          <dt>{t('Самостоятельно верно')}</dt>
           <dd data-testid="report-independent">{c.independentCorrect}</dd>
         </div>
         <div>
-          <dt>Верно с помощью</dt>
+          <dt>{t('Верно с помощью')}</dt>
           <dd data-testid="report-assisted">{c.assistedCorrect}</dd>
         </div>
         <div>
-          <dt>Попытки с ошибкой</dt>
+          <dt>{t('Попытки с ошибкой')}</dt>
           <dd data-testid="report-mistakes">{c.incorrectAttempts}</dd>
         </div>
         <div>
-          <dt>Проверено преподавателем</dt>
+          <dt>{t('Проверено преподавателем')}</dt>
           <dd data-testid="report-reviewed">{c.teacherReviewedAttempts}</dd>
         </div>
         <div>
-          <dt>Выполнено шагов</dt>
+          <dt>{t('Выполнено шагов')}</dt>
           <dd data-testid="report-steps">{r.completion.completedSteps}</dd>
         </div>
         <div>
-          <dt>Завершено назначений</dt>
+          <dt>{t('Завершено назначений')}</dt>
           <dd data-testid="report-assignments">{r.completion.completedAssignments}</dd>
         </div>
       </dl>
       <p>
-        Получено ответов: <strong data-testid="report-submitted">{c.submittedAttempts}</strong> ·
-        Доступно оценок: {c.evaluatedAttempts} · Разных выполненных заданий:{' '}
-        {r.completion.uniqueExercises}
+        {t('Получено ответов: ')}
+        <strong data-testid="report-submitted">{c.submittedAttempts}</strong>{' '}
+        {t(' · Доступно оценок: ')}
+        {c.evaluatedAttempts} {t(' · Разных выполненных заданий:')} {r.completion.uniqueExercises}
       </p>
       <p>
-        Успехи с подсказкой: {c.hintedCorrect} · С другой помощью или после обратной связи:{' '}
+        {t('Успехи с подсказкой: ')}
+        {c.hintedCorrect} {t(' · С другой помощью или после обратной связи:')}{' '}
         {c.otherAssistedCorrect}
       </p>
       <p>
-        Последние решения преподавателя: подтверждено {c.teacherConfirmedAttempts}, исправлено{' '}
-        {c.teacherCorrectedAttempts}. Исходных автоматических ошибок: {c.automaticIncorrectAttempts}
-        .
+        {t('Последние решения преподавателя: подтверждено ')}
+        {c.teacherConfirmedAttempts}
+        {t(', исправлено')} {c.teacherCorrectedAttempts}
+        {t('. Исходных автоматических ошибок: ')}
+        {c.automaticIncorrectAttempts}.
       </p>
       <p className="muted">
-        Проверка преподавателя учитывается дополнительно к самостоятельности и помощи. Повторные
-        попытки считаются отдельно; отменённые назначения не считаются выполненными.
+        {t(
+          'Проверка преподавателя учитывается дополнительно к самостоятельности и помощи. Повторные попытки считаются отдельно; отменённые назначения не считаются выполненными.',
+        )}
       </p>
       {c.pendingEvaluationAttempts > 0 && (
         <p className="notice" data-testid="report-pending">
-          Ожидают завершения диагностики или контроля: {c.pendingEvaluationAttempts}. Эти оценки ещё
-          не включены в результаты.
+          {t('Ожидают завершения диагностики или контроля: ')}
+          {c.pendingEvaluationAttempts}
+          {t('. Эти оценки ещё не включены в результаты.')}
         </p>
       )}
       {!c.evaluatedAttempts && (
         <p>
-          Пока нет доступных оценок. Отправленные ответы и завершение обучения сохраняются
-          автоматически.
+          {t(
+            'Пока нет доступных оценок. Отправленные ответы и завершение обучения сохраняются автоматически.',
+          )}
         </p>
       )}
       <details>
-        <summary>Подробности выполнения</summary>
+        <summary>{t('Подробности выполнения')}</summary>
         <p>
-          Завершено прохождений: {r.completion.completedRuns} · Уроков из каталога:{' '}
-          {r.completion.completedLessons} · Активных назначений: {r.completion.activeAssignments} ·
-          Ещё не начато: {r.completion.pendingAssignments} · Отменено:{' '}
-          {r.completion.cancelledAssignments}
+          {t('Завершено прохождений: ')}
+          {r.completion.completedRuns} {t(' · Уроков из каталога:')} {r.completion.completedLessons}{' '}
+          {t(' · Активных назначений: ')}
+          {r.completion.activeAssignments} {t(' · Ещё не начато: ')}
+          {r.completion.pendingAssignments} {t(' · Отменено:')} {r.completion.cancelledAssignments}
         </p>
-        <p>Активное время в оценённых попытках: {number(c.activeMilliseconds / 60000)} мин.</p>
+        <p>
+          {t('Активное время в оценённых попытках: ')}
+          {number(c.activeMilliseconds / 60000)} {t(' мин.')}
+        </p>
         <ul>
           {r.byPurpose.map((p) => (
             <li key={p.purpose}>
-              {purposeLabels[p.purpose]}: {p.counts.correctAttempts} верно из{' '}
-              {p.counts.evaluatedAttempts} оценённых попыток
+              {purposeLabels[p.purpose]}: {p.counts.correctAttempts} {t(' верно из')}{' '}
+              {p.counts.evaluatedAttempts} {t(' оценённых попыток')}
               {p.counts.pendingEvaluationAttempts > 0
-                ? ` · ещё ${p.counts.pendingEvaluationAttempts} ожидают завершения`
+                ? t(' · ещё {0} ожидают завершения', [p.counts.pendingEvaluationAttempts])
                 : ''}
             </li>
           ))}
@@ -380,25 +403,28 @@ function PublicSummary({ report: r }: { report: LearningReport }) {
       </details>
       {r.diagnostic && (
         <div className="report-diagnostic">
-          <h3>Входная диагностика</h3>
+          <h3>{t('Входная диагностика')}</h3>
           {r.diagnostic.result ? (
             <>
               <p>
-                Предварительный результат: {r.diagnostic.result.correct} из{' '}
-                {r.diagnostic.result.questions}. {r.diagnostic.result.notice}
+                {t('Предварительный результат: ')}
+                {r.diagnostic.result.correct} {t(' из')} {r.diagnostic.result.questions}.{' '}
+                {r.diagnostic.result.notice}
               </p>
               <p className="muted">
-                Снимок диагностики сохранён; последующие решения преподавателя учтены в текущих
-                результатах выше.
+                {t(
+                  'Снимок диагностики сохранён; последующие решения преподавателя учтены в текущих результатах выше.',
+                )}
               </p>
             </>
           ) : (
             <p>
-              Диагностика не завершена: {r.diagnostic.summary.answeredQuestions} из{' '}
-              {r.diagnostic.summary.totalQuestions} ответов.
+              {t('Диагностика не завершена: ')}
+              {r.diagnostic.summary.answeredQuestions} {t(' из')}{' '}
+              {r.diagnostic.summary.totalQuestions} {t(' ответов.')}
             </p>
           )}
-          <Link to={`/diagnostics/${r.diagnostic.summary.id}`}>Открыть диагностику →</Link>
+          <Link to={`/diagnostics/${r.diagnostic.summary.id}`}>{t('Открыть диагностику →')}</Link>
         </div>
       )}
     </section>
@@ -407,58 +433,65 @@ function PublicSummary({ report: r }: { report: LearningReport }) {
 function NextSteps({ report: r }: { report: LearningReport }) {
   return (
     <section className="panel" aria-labelledby="report-next">
-      <h2 id="report-next">Следующие учебные шаги</h2>
+      <h2 id="report-next">{t('Следующие учебные шаги')}</h2>
       {r.next.continueRun && (
         <p>
           <Link className="button-link" to={`/learning/runs/${r.next.continueRun.id}`}>
-            Открыть текущий урок: {r.next.continueRun.title}
+            {t('Открыть текущий урок: ')}
+            {r.next.continueRun.title}
           </Link>
         </p>
       )}
       {r.next.plan && (
         <p>
-          В текущем плане выполнено {r.next.plan.completedAssignments} из{' '}
-          {r.next.plan.totalAssignments} назначений.{' '}
-          <Link to={`/plan/${r.next.plan.id}`}>Открыть план →</Link>
+          {t('В текущем плане выполнено ')}
+          {r.next.plan.completedAssignments} {t(' из')} {r.next.plan.totalAssignments}{' '}
+          {t(' назначений.')} <Link to={`/plan/${r.next.plan.id}`}>{t('Открыть план →')}</Link>
         </p>
       )}
       {r.profile && r.next.plan && r.profile.revision !== r.next.plan.profileRevision && (
         <p className="notice">
-          Анкета обновлена после создания этого плана. Для нового плана можно пройти диагностику
-          заново.
+          {t(
+            'Анкета обновлена после создания этого плана. Для нового плана можно пройти диагностику заново.',
+          )}
         </p>
       )}
       <ul className="account-list">
         {r.next.assignments.map((a) => (
           <li key={a.id}>
             <strong>{a.title}</strong>
-            <p>{a.reason}</p>
+            <p>{a.kind === 'teacher' ? a.reason : t(a.reason)}</p>
             <p>
               {a.status === 'active'
-                ? 'Уже начато'
+                ? t('Уже начато')
                 : a.canStart
-                  ? 'Доступно'
+                  ? t('Доступно')
                   : a.dueAt
-                    ? `Откроется ${date(a.dueAt)}`
-                    : 'Ожидает начала'}
-              {a.kind === 'review' ? ' · Повторение' : ''}
+                    ? t('Откроется {0}', [date(a.dueAt)])
+                    : t('Ожидает начала')}
+              {a.kind === 'review' ? t(' · Повторение') : ''}
             </p>
-            <Link to={`/plan/${a.planId}`}>Открыть назначение в плане →</Link>
+            <Link to={`/plan/${a.planId}`}>{t('Открыть назначение в плане →')}</Link>
           </li>
         ))}
       </ul>
       {!r.next.assignments.length && !r.next.continueRun && (
         <p>
           {r.next.plan
-            ? 'Незавершённых назначений нет. Можно посмотреть пройденные задания или обновить диагностику.'
-            : 'Для индивидуальных назначений сохраните анкету и завершите входную диагностику.'}{' '}
-          <Link to={`/onboarding?userId=${r.user.id}`}>Анкета и диагностика →</Link>
+            ? t(
+                'Незавершённых назначений нет. Можно посмотреть пройденные задания или обновить диагностику.',
+              )
+            : t(
+                'Для индивидуальных назначений сохраните анкету и завершите входную диагностику.',
+              )}{' '}
+          <Link to={`/onboarding?userId=${r.user.id}`}>{t('Анкета и диагностика →')}</Link>
         </p>
       )}
       {r.next.outstandingAssignments > r.next.assignments.length && (
         <p>
-          Ещё назначений: {r.next.outstandingAssignments - r.next.assignments.length}. Они доступны
-          в планах.
+          {t('Ещё назначений: ')}
+          {r.next.outstandingAssignments - r.next.assignments.length}
+          {t('. Они доступны в планах.')}
         </p>
       )}
     </section>
@@ -471,30 +504,33 @@ function Attempt({ item: a }: { item: ReportAttempt }) {
       <p>{a.instruction}</p>
       <p>
         {a.correct === null
-          ? 'Оценка после завершения набора'
+          ? t('Оценка после завершения набора')
           : a.correct
-            ? 'Верно'
-            : 'Есть ошибка'}{' '}
+            ? t('Верно')
+            : t('Есть ошибка')}{' '}
         · {purposeLabels[a.purpose]} · {a.skillTitle}
       </p>
       {a.independent !== null && (
         <p>
           {a.independent
-            ? 'Самостоятельно'
-            : a.help.map((h) => helpLabels[h]).join(' · ') || 'С помощью'}
+            ? t('Самостоятельно')
+            : a.help.map((h) => helpLabels[h]).join(' · ') || t('С помощью')}
         </p>
       )}
       {a.teacherReview && (
         <p>
-          Проверено: {a.teacherReview.author.name} ·{' '}
-          {a.teacherReview.decision === 'confirm' ? 'Подтверждено' : 'Исправлена оценка'}.{' '}
-          {a.teacherReview.comment} · Исходная оценка: {a.automaticCorrect ? 'верно' : 'ошибка'}.
+          {t('Проверено: ')}
+          {a.teacherReview.author.name} ·{' '}
+          {a.teacherReview.decision === 'confirm' ? t('Подтверждено') : t('Исправлена оценка')}.{' '}
+          {a.teacherReview.comment} {t(' · Исходная оценка: ')}
+          {a.automaticCorrect ? t('верно') : t('ошибка')}.
         </p>
       )}
       <p className="muted">
-        {date(a.evaluatedAt)} · Попытка {a.number}
+        {date(a.evaluatedAt)} {t(' · Попытка ')}
+        {a.number}
       </p>
-      <Link to={`/learning/attempts/${a.id}`}>Ответ и история проверки →</Link>
+      <Link to={`/learning/attempts/${a.id}`}>{t('Ответ и история проверки →')}</Link>
     </>
   );
 }
@@ -514,58 +550,65 @@ function Reviewer({
       aria-labelledby="report-private"
       data-testid="report-reviewer"
     >
-      <p className="eyebrow">Только преподавателю и суперадмину</p>
-      <h2 id="report-private">Контекст честности и вес свидетельств</h2>
+      <p className="eyebrow">{t('Только преподавателю и суперадмину')}</p>
+      <h2 id="report-private">{t('Контекст честности и вес свидетельств')}</h2>
       <p>
-        Условные веса помогают оценить сохранённые наблюдения. Это не вероятность нарушения и не
-        учебный балл. Сигналы требуют проверки с учётом устройства, доступности и объяснения
-        ученика.
+        {t(
+          'Условные веса помогают оценить сохранённые наблюдения. Это не вероятность нарушения и не учебный балл. Сигналы требуют проверки с учётом устройства, доступности и объяснения ученика.',
+        )}
       </p>
       <dl className="dashboard-stats">
         <div>
-          <dt>Самостоятельных успехов</dt>
+          <dt>{t('Самостоятельных успехов')}</dt>
           <dd>{d.independentCorrect}</dd>
         </div>
         <div>
-          <dt>Вес этих свидетельств</dt>
+          <dt>{t('Вес этих свидетельств')}</dt>
           <dd data-testid="report-weighted">{number(d.weightedEvidenceUnits)}</dd>
         </div>
         <div>
-          <dt>Влияние наблюдений</dt>
+          <dt>{t('Влияние наблюдений')}</dt>
           <dd data-testid="report-weight-loss">−{number(d.evidenceReductionUnits)}</dd>
         </div>
       </dl>
       <p>
-        Попыток с данными: {d.assessedAttempts} · Без достаточных данных:{' '}
-        {d.insufficientDataAttempts} · С наблюдениями: {d.flaggedAttempts} · С сохранённым флагом
-        проверки: {d.requiresReviewAttempts}.
+        {t('Попыток с данными: ')}
+        {d.assessedAttempts} {t(' · Без достаточных данных:')} {d.insufficientDataAttempts}{' '}
+        {t(' · С наблюдениями: ')}
+        {d.flaggedAttempts} {t(' · С сохранённым флагом проверки: ')}
+        {d.requiresReviewAttempts}.
       </p>
       <p className="muted">
-        Для {d.independentCorrectWithoutData} самостоятельных успехов данных недостаточно: вес не
-        снижен, честность этим не подтверждена. Учебная проверка преподавателя показывается отдельно
-        и не удаляет исходные наблюдения.
+        {t('Для ')}
+        {d.independentCorrectWithoutData}{' '}
+        {t(
+          ' самостоятельных успехов данных недостаточно: вес не снижен, честность этим не подтверждена. Учебная проверка преподавателя показывается отдельно и не удаляет исходные наблюдения.',
+        )}
       </p>
       <details>
-        <summary>Как рассчитано влияние</summary>
+        <summary>{t('Как рассчитано влияние')}</summary>
         <p>
-          Базовый вес попытки — 1. Каждый вид наблюдения учитывается один раз; суммарное снижение
-          ограничено {d.policy.maxReductionBasisPoints / 100}%. При ограничении вклады
-          распределяются пропорционально. Версия правил: {d.version}.
+          {t(
+            'Базовый вес попытки — 1. Каждый вид наблюдения учитывается один раз; суммарное снижение ограничено ',
+          )}
+          {d.policy.maxReductionBasisPoints / 100}
+          {t('%. При ограничении вклады распределяются пропорционально. Версия правил: ')}
+          {d.version}.
         </p>
         <div className="report-table-wrap">
           <table>
             <thead>
               <tr>
-                <th>Наблюдение</th>
-                <th>Снижение веса попытки</th>
-                <th>Попыток</th>
-                <th>Вклад в снижение свидетельств</th>
+                <th>{t('Наблюдение')}</th>
+                <th>{t('Снижение веса попытки')}</th>
+                <th>{t('Попыток')}</th>
+                <th>{t('Вклад в снижение свидетельств')}</th>
               </tr>
             </thead>
             <tbody>
               {d.signalImpact.map((s) => (
                 <tr key={s.code}>
-                  <td>{s.label}</td>
+                  <td>{t(s.label)}</td>
                   <td>{s.reductionBasisPoints / 100}%</td>
                   <td>{s.attempts}</td>
                   <td>{number(s.evidenceReductionBasisPoints / 10000)}</td>
@@ -575,62 +618,72 @@ function Reviewer({
           </table>
         </div>
         <p>
-          В общую разницу входят только успешные самостоятельные ответы. Ошибки и ответы с помощью
-          сохраняют свой учебный результат. Неизвестным видам сигналов эта версия правил не
-          назначает снижение.
+          {t(
+            'В общую разницу входят только успешные самостоятельные ответы. Ошибки и ответы с помощью сохраняют свой учебный результат. Неизвестным видам сигналов эта версия правил не назначает снижение.',
+          )}
         </p>
       </details>
       <details>
-        <summary>Вес свидетельств по навыкам</summary>
+        <summary>{t('Вес свидетельств по навыкам')}</summary>
         <ul className="account-list">
           {d.skills.map((s) => (
             <li key={`${s.packageId}:${s.packageVersion}:${s.skillId}`}>
               <strong>{s.title}</strong>
               <span>
-                {s.packageId} v{s.packageVersion} · Самостоятельных успехов {s.independentCorrect} ·
-                Вес {number(s.weightedEvidenceUnits)} · Изменение −
+                {s.packageId} v{s.packageVersion} {t(' · Самостоятельных успехов ')}
+                {s.independentCorrect} {t(' · Вес ')}
+                {number(s.weightedEvidenceUnits)} {t(' · Изменение −')}
                 {number(s.evidenceReductionUnits)}
               </span>
             </li>
           ))}
         </ul>
       </details>
-      <h3>Попытки с наблюдениями</h3>
+      <h3>{t('Попытки с наблюдениями')}</h3>
       <Pager
         initial={d.attempts}
         schema={reportIntegrityPageSchema}
         endpoint={`/reports/${userId}/integrity?language=${language}`}
         getKey={(a) => a.id}
-        moreLabel="Предыдущие наблюдения"
+        moreLabel={t('Предыдущие наблюдения')}
         render={(a) => (
           <>
             <strong>
               {a.runTitle} · {a.skillTitle}
             </strong>
             <p>
-              {date(a.evaluatedAt)} · Вес попытки {a.weightBasisPoints / 100}% · Вклад в снижение
-              свидетельств {number(a.evidenceReductionBasisPoints / 10000)}
+              {date(a.evaluatedAt)} {t(' · Вес попытки ')}
+              {a.weightBasisPoints / 100}
+              {t('% · Вклад в снижение свидетельств ')}
+              {number(a.evidenceReductionBasisPoints / 10000)}
             </p>
             <p>
-              {a.correct ? 'Верно' : 'Есть ошибка'} ·{' '}
-              {a.independent ? 'Самостоятельно' : 'С помощью'}
-              {a.teacherReviewed ? ' · Учебная оценка проверена преподавателем' : ''}
+              {a.correct ? t('Верно') : t('Есть ошибка')} ·{' '}
+              {a.independent ? t('Самостоятельно') : t('С помощью')}
+              {a.teacherReviewed ? t(' · Учебная оценка проверена преподавателем') : ''}
             </p>
             <ul>
               {a.assessment.signals.map((s, i) => (
                 <li key={`${s.code}:${i}`}>
-                  <strong>{s.label}</strong>: {s.context} ·{' '}
-                  {s.source === 'server' ? 'Серверное наблюдение' : 'Сообщено браузером'}
+                  <strong>{t(s.label)}</strong>: {t(s.context)} ·{' '}
+                  {s.source === 'server' ? t('Серверное наблюдение') : t('Сообщено браузером')}
                 </li>
               ))}
             </ul>
             {a.unknownSignalCodes.length > 0 && (
-              <p>Без правила веса: {a.unknownSignalCodes.join(', ')}.</p>
+              <p>
+                {t('Без правила веса: ')}
+                {a.unknownSignalCodes.join(', ')}.
+              </p>
             )}
             <p className="muted">
-              Версия наблюдений {a.assessment.assessorVersion} · Пакетов {a.assessment.packetCount}
+              {t('Версия наблюдений ')}
+              {a.assessment.assessorVersion} {t(' · Пакетов ')}
+              {a.assessment.packetCount}
             </p>
-            <Link to={`/learning/attempts/${a.id}`}>Проверить ответ и оставить комментарий →</Link>
+            <Link to={`/learning/attempts/${a.id}`}>
+              {t('Проверить ответ и оставить комментарий →')}
+            </Link>
           </>
         )}
       />
@@ -684,7 +737,7 @@ function Pager<T>({
   return (
     <>
       {!page.items.length ? (
-        <p>Записей пока нет.</p>
+        <p>{t('Записей пока нет.')}</p>
       ) : (
         <ul className="account-list report-history">
           {page.items.map((item) => (
@@ -695,7 +748,7 @@ function Pager<T>({
       {error && <ErrorState error={error} retry={() => void more()} />}
       {page.nextCursor && (
         <button className="secondary" disabled={busy} onClick={() => void more()}>
-          {busy ? 'Загружаем…' : moreLabel}
+          {busy ? t('Загружаем…') : moreLabel}
         </button>
       )}
     </>

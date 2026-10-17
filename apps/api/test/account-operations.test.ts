@@ -392,7 +392,7 @@ describe('local account operations', () => {
           payload: { email: alias, code: '' },
         })
       ).statusCode,
-    ).toBe(401);
+    ).toBe(403);
     await db.query(
       'INSERT INTO users (id,email,full_name,role,is_demo) VALUES ($1,$2,$3,$4,false)',
       [randomUUID(), 'testuser1@example.test', 'Обычный аккаунт', 'teacher'],

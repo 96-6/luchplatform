@@ -138,7 +138,7 @@ jobs:
         if: always()
         run: docker compose --env-file .env.compose --profile video down || true
       - uses: actions/upload-artifact@v4
-        if: failure()
+        if: always()
         with:
           name: browser-traces
           path: test-results/

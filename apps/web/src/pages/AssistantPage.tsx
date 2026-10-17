@@ -1,3 +1,4 @@
+import { t } from '../i18n';
 import { useEffect, useState, type FormEvent } from 'react';
 import { Link, useSearchParams } from 'react-router-dom';
 import { assistantProfileSchema, runsPageSchema, type AssistantPreferences } from '@luch/contracts';
@@ -15,7 +16,7 @@ export function AssistantPage() {
   if (session.user?.role !== 'student' && !search.get('userId'))
     return (
       <>
-        <h1>Помощник ученика</h1>
+        <h1>{t('Помощник ученика')}</h1>
         <StudentDirectory path="/assistant" />
       </>
     );
@@ -29,15 +30,16 @@ function AssistantProfile() {
     `/assistant/profile${userId ? '?userId=' + encodeURIComponent(userId) : ''}`,
     assistantProfileSchema,
   );
-  if (resource.state.status === 'loading') return <LoadingState text="Загружаем помощника…" />;
+  if (resource.state.status === 'loading') return <LoadingState text={t('Загружаем помощника…')} />;
   if (resource.state.status === 'error')
     return <ErrorState error={resource.state.error} retry={resource.refresh} />;
   return (
     <>
-      <h1>Ваш помощник</h1>
+      <h1>{t('Ваш помощник')}</h1>
       <p>
-        Демо-помощник — сценарный учебный помощник. Он объясняет задания и предлагает короткие
-        диалоги по материалу урока.
+        {t(
+          'Демо-помощник — сценарный учебный помощник. Он объясняет задания и предлагает короткие диалоги по материалу урока.',
+        )}
       </p>
       <AssistantSelection
         key={resource.state.data.revision}
@@ -45,7 +47,7 @@ function AssistantProfile() {
         refresh={resource.refresh}
         notify={setSaved}
       />
-      {saved && <p role="status">Помощник сохранён.</p>}
+      {saved && <p role="status">{t('Помощник сохранён.')}</p>}
       <AssistantRuns userId={userId} />
     </>
   );
@@ -84,14 +86,15 @@ function AssistantSelection({
   }
   return (
     <section className="panel">
-      <h2>Выберите персонажа</h2>
+      <h2>{t('Выберите персонажа')}</h2>
       <p>
-        Рекомендация: {profile.avatars.find((a) => a.id === profile.recommendedAvatarId)?.style}.
-        Выбор можно изменить в любой момент.
+        {t('Рекомендация: ')}
+        {t(profile.avatars.find((a) => a.id === profile.recommendedAvatarId)?.style ?? '')}
+        {t('. Выбор можно изменить в любой момент.')}
       </p>
       <form onSubmit={submit}>
         <fieldset disabled={busy || !profile.writable}>
-          <legend>Три демонстрационных аватара</legend>
+          <legend>{t('Три демонстрационных аватара')}</legend>
           <div className="avatar-grid">
             {profile.avatars.map((a) => (
               <label
@@ -101,7 +104,7 @@ function AssistantSelection({
                 <img
                   className={preferences.animation ? 'avatar-animated' : ''}
                   src={a.image}
-                  alt={a.name}
+                  alt={t(a.name)}
                   width="160"
                   height="160"
                 />
@@ -112,16 +115,16 @@ function AssistantSelection({
                     checked={preferences.avatarId === a.id}
                     onChange={() => set('avatarId', a.id)}
                   />
-                  <strong>{a.name}</strong>
+                  <strong>{t(a.name)}</strong>
                 </span>
-                <span>{a.style}</span>
-                <small>{a.description}</small>
+                <span>{t(a.style)}</span>
+                <small>{t(a.description)}</small>
               </label>
             ))}
           </div>
           <div className="settings-grid">
             <div>
-              <label htmlFor="assistant-voice">Голос персонажа для видео</label>
+              <label htmlFor="assistant-voice">{t('Голос персонажа для видео')}</label>
               <select
                 id="assistant-voice"
                 value={preferences.voiceAvatarId}
@@ -131,43 +134,43 @@ function AssistantSelection({
               >
                 {profile.avatars.map((a) => (
                   <option key={a.id} value={a.id}>
-                    {a.name} — {a.style}
+                    {t(a.name)} — {t(a.style)}
                   </option>
                 ))}
               </select>
             </div>
             <div>
-              <label htmlFor="assistant-address">Обращение</label>
+              <label htmlFor="assistant-address">{t('Обращение')}</label>
               <select
                 id="assistant-address"
                 value={preferences.address}
                 onChange={(e) => set('address', e.target.value as AssistantPreferences['address'])}
               >
-                <option value="formal">На «вы»</option>
-                <option value="informal">На «ты»</option>
+                <option value="formal">{t('На «вы»')}</option>
+                <option value="informal">{t('На «ты»')}</option>
               </select>
             </div>
             <div>
-              <label htmlFor="assistant-pace">Темп видео</label>
+              <label htmlFor="assistant-pace">{t('Темп видео')}</label>
               <select
                 id="assistant-pace"
                 value={preferences.pace}
                 onChange={(e) => set('pace', e.target.value as AssistantPreferences['pace'])}
               >
-                <option value="slow">Спокойный</option>
-                <option value="normal">Обычный</option>
-                <option value="fast">Быстрый</option>
+                <option value="slow">{t('Спокойный')}</option>
+                <option value="normal">{t('Обычный')}</option>
+                <option value="fast">{t('Быстрый')}</option>
               </select>
             </div>
             <div>
-              <label htmlFor="assistant-detail">Объяснения</label>
+              <label htmlFor="assistant-detail">{t('Объяснения')}</label>
               <select
                 id="assistant-detail"
                 value={preferences.detail}
                 onChange={(e) => set('detail', e.target.value as AssistantPreferences['detail'])}
               >
-                <option value="brief">Краткие</option>
-                <option value="detailed">Подробные</option>
+                <option value="brief">{t('Краткие')}</option>
+                <option value="detailed">{t('Подробные')}</option>
               </select>
             </div>
           </div>
@@ -177,13 +180,14 @@ function AssistantSelection({
               checked={preferences.animation}
               onChange={(e) => set('animation', e.target.checked)}
             />
-            Простая анимация персонажа
+            {t('Простая анимация персонажа')}
           </label>
           <p className="muted">
-            Видео и озвученный голос доступны после настройки HeyGen суперадмином. Текстовые
-            объяснения работают сразу.
+            {t(
+              'Видео и озвученный голос доступны после настройки HeyGen суперадмином. Текстовые объяснения работают сразу.',
+            )}
           </p>
-          <button>{busy ? 'Сохраняем…' : 'Сохранить помощника'}</button>
+          <button>{busy ? t('Сохраняем…') : t('Сохранить помощника')}</button>
         </fieldset>
       </form>
       {error && <ErrorState error={error} retry={refresh} />}
@@ -200,13 +204,13 @@ function AssistantRuns({ userId }: { userId: string | null }) {
     return <ErrorState error={resource.state.error} retry={resource.refresh} />;
   return (
     <section className="panel">
-      <h2>Чаты по урокам</h2>
+      <h2>{t('Чаты по урокам')}</h2>
       {resource.state.data.items.length ? (
         <ul className="lesson-list">
           {resource.state.data.items.map((r) => (
             <li key={r.id}>
               <Link to={`/learning/runs/${r.id}`}>
-                {r.title} · {r.status === 'active' ? 'Продолжить' : 'История'}
+                {r.title} · {r.status === 'active' ? t('Продолжить') : t('История')}
               </Link>
               <span className="muted"> · {r.user.name}</span>
             </li>
@@ -214,8 +218,8 @@ function AssistantRuns({ userId }: { userId: string | null }) {
         </ul>
       ) : (
         <p>
-          Откройте первое упражнение — помощник получит его материал и сохранит разговор.{' '}
-          <Link to="/courses">Выбрать маршрут →</Link>
+          {t('Откройте первое упражнение — помощник получит его материал и сохранит разговор.')}{' '}
+          <Link to="/courses">{t('Выбрать маршрут →')}</Link>
         </p>
       )}
     </section>

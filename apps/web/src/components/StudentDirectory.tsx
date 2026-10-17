@@ -1,3 +1,4 @@
+import { t } from '../i18n';
 import { useState } from 'react';
 import { Link } from 'react-router-dom';
 import { usersSchema } from '@luch/contracts';
@@ -6,7 +7,7 @@ import { useResource } from '../lib/useResource';
 import { LoadingState, ErrorState, EmptyState } from './States';
 export function StudentDirectory({
   path,
-  title = 'Выберите ученика',
+  title = t('Выберите ученика'),
 }: {
   path: string;
   title?: string;
@@ -23,13 +24,13 @@ export function StudentDirectory({
   return (
     <section className="panel">
       <h2>{title}</h2>
-      <label htmlFor="directory-search">Найти ученика</label>
+      <label htmlFor="directory-search">{t('Найти ученика')}</label>
       <input
         id="directory-search"
         value={search}
         maxLength={100}
         onChange={(e) => setSearch(e.target.value)}
-        placeholder="Имя или почта"
+        placeholder={t('Имя или почта')}
       />
       {state.status === 'loading' ? (
         <LoadingState />
@@ -46,17 +47,17 @@ export function StudentDirectory({
                 <li key={u.id}>
                   <strong>{u.name}</strong>
                   <span>{u.email}</span>
-                  <Link to={`${path}?userId=${u.id}`}>Открыть →</Link>
+                  <Link to={`${path}?userId=${u.id}`}>{t('Открыть →')}</Link>
                 </li>
               ))}
             </ul>
           ) : (
             <EmptyState
-              title="Ученики не найдены"
+              title={t('Ученики не найдены')}
               description={
                 root
-                  ? 'Уточните поиск или создайте аккаунт в кабинете суперадмина.'
-                  : 'Уточните поиск. Закрепление учеников выполняется в кабинете суперадмина.'
+                  ? t('Уточните поиск или создайте аккаунт в кабинете суперадмина.')
+                  : t('Уточните поиск. Закрепление учеников выполняется в кабинете суперадмина.')
               }
             />
           );
@@ -64,7 +65,7 @@ export function StudentDirectory({
       )}
       {root && (
         <p>
-          <Link to="/admin">Аккаунты и закрепление преподавателей →</Link>
+          <Link to="/admin">{t('Аккаунты и закрепление преподавателей →')}</Link>
         </p>
       )}
     </section>

@@ -8,7 +8,7 @@ import {
   adminAuthenticatorResetSchema,
 } from '@luch/contracts';
 import type { AuthService, Actor } from '../auth/service.js';
-import { audit, publicUser, type UserRow } from './repository.js';
+import { audit, publicUser, managementUser, type UserRow } from './repository.js';
 import { getPolicy, ipAllowed, normalizeIp, validateRanges } from '../security/policy.js';
 import { AppError } from '../../errors.js';
 import { learningProgress } from '../engine/repository.js';
@@ -61,7 +61,10 @@ export async function registerAccountRoutes(app: FastifyInstance, auth: AuthServ
     const row = await readUser(actor, idOf(request.params));
     if (actor.user.role === 'superadmin')
       await audit(db, actor.user.id, 'account.debug_view', row.id);
-    return { data: publicUser(row), requestId: request.id };
+    return {
+      data: actor.user.role === 'superadmin' ? managementUser(row) : publicUser(row),
+      requestId: request.id,
+    };
   });
   app.get('/api/v1/teacher/students', async (request) => {
     const actor = await auth.requireActor(request, 'teacher');
@@ -84,7 +87,7 @@ export async function registerAccountRoutes(app: FastifyInstance, auth: AuthServ
       [`%${search}%`, role ?? null],
     );
     await audit(db, actor.user.id, 'accounts.list_view');
-    return { data: result.rows.map(publicUser), requestId: request.id };
+    return { data: result.rows.map(managementUser), requestId: request.id };
   });
   app.get('/api/v1/admin/accounts/:id', async (request) => {
     const actor = await auth.requireActor(request, 'superadmin');
@@ -111,7 +114,7 @@ export async function registerAccountRoutes(app: FastifyInstance, auth: AuthServ
     await audit(db, actor.user.id, 'account.debug_view', id);
     return {
       data: {
-        user: publicUser(user),
+        user: managementUser(user),
         teachers: teachers.rows.map(publicUser),
         students: students.rows.map(publicUser),
         progress: await learningProgress(db, id),
@@ -134,18 +137,31 @@ export async function registerAccountRoutes(app: FastifyInstance, auth: AuthServ
     const policy = await getPolicy(db);
     if (
       id === actor.user.id &&
-      (input.isBlocked || (policy.vpnCheckEnabled && !input.accessVerified))
+      (input.isActive === false ||
+        input.isBlocked ||
+        (policy.vpnCheckEnabled && !input.accessVerified))
     )
       throw new AppError(409, 'SELF_LOCKOUT', 'Нельзя отключить собственный доступ.');
     const user = await db.transaction(async (tx) => {
       const result = await tx.query<UserRow>(
-        'UPDATE users SET is_blocked=$1,access_verified=$2 WHERE id=$3 RETURNING *',
-        [input.isBlocked, input.accessVerified, id],
+        'UPDATE users SET is_blocked=$1,access_verified=$2,is_active=COALESCE($4,CASE WHEN $1 THEN true ELSE is_active END),block_reason=CASE WHEN $1 THEN COALESCE($5,block_reason) ELSE $6 END WHERE id=$3 RETURNING *',
+        [
+          input.isBlocked,
+          input.accessVerified,
+          id,
+          input.isActive ?? null,
+          input.blockReason ?? null,
+          '',
+        ],
       );
-      if (input.isBlocked || (policy.vpnCheckEnabled && !input.accessVerified))
+      if (
+        input.isActive === false ||
+        input.isBlocked ||
+        (policy.vpnCheckEnabled && !input.accessVerified)
+      )
         await tx.query('UPDATE auth_sessions SET revoked_at=now() WHERE user_id=$1', [id]);
       await audit(tx, actor.user.id, 'account.access_changed', id);
-      return publicUser(result.rows[0]!);
+      return managementUser(result.rows[0]!);
     });
     return { data: user, requestId: request.id };
   });

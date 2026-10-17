@@ -1,3 +1,4 @@
+import { t, dateLocale } from '../../i18n';
 import { useRef, useState, type FormEvent } from 'react';
 import { Link, useParams } from 'react-router-dom';
 import {
@@ -39,7 +40,7 @@ function MeetingDetail({ id }: { id: string }) {
       op.current = null;
       refresh();
     } catch (e) {
-      setError((e as Error).message);
+      setError(t((e as Error).message));
       if (e instanceof ApiError && e.status && e.status < 500) {
         op.current = null;
         refresh();
@@ -50,9 +51,9 @@ function MeetingDetail({ id }: { id: string }) {
   }
   return (
     <>
-      <Link to="/schedule">← Расписание</Link>
+      <Link to="/schedule">{t('← Расписание')}</Link>
       <p className="eyebrow">
-        {m.language === 'ru' ? 'РКИ' : 'Английский'} · {statusLabels[m.status]}
+        {m.language === 'ru' ? t('РКИ') : t('Английский')} · {statusLabels[m.status]}
       </p>
       <h1>{m.title}</h1>
       <p>
@@ -66,51 +67,55 @@ function MeetingDetail({ id }: { id: string }) {
       </p>
       {m.timeZone !== browserZone() && (
         <p className="muted">
-          У вас: {meetingTime(m, browserZone())} · {browserZone()}
+          {t('У вас: ')}
+          {meetingTime(m, browserZone())} · {browserZone()}
         </p>
       )}
       <p className="content-text">{m.description}</p>
       <p>
-        Преподаватель: <strong>{m.organizer.name}</strong>
+        {t('Преподаватель: ')}
+        <strong>{m.organizer.name}</strong>
       </p>
       <section className="panel">
-        <h2>Участники</h2>
+        <h2>{t('Участники')}</h2>
         <ul>
           {m.members.map((p) => (
             <li key={p.id}>
-              {p.name} {p.role === 'organizer' ? '· организатор' : ''}{' '}
-              {p.blocked ? '· вход закрыт организатором' : ''}
+              {p.name} {p.role === 'organizer' ? t('· организатор') : ''}{' '}
+              {p.blocked ? t('· вход закрыт организатором') : ''}
             </li>
           ))}
         </ul>
         <p>
           {m.lobbyEnabled
-            ? 'Ученики входят после допуска организатора.'
-            : 'Ученики входят после начала встречи.'}{' '}
-          {m.locked ? 'Новые подключения закрыты.' : ''}
+            ? t('Ученики входят после допуска организатора.')
+            : t('Ученики входят после начала встречи.')}{' '}
+          {m.locked ? t('Новые подключения закрыты.') : ''}
         </p>
         {['scheduled', 'live'].includes(m.status) && (
           <>
             <Link className="button" to={`/meetings/${id}/room`}>
               {m.canManage && m.status === 'scheduled'
-                ? 'Начать видеозанятие'
-                : 'Открыть видеовстречу'}
+                ? t('Начать видеозанятие')
+                : t('Открыть видеовстречу')}
             </Link>
             {!m.videoConfigured && (
-              <p>Видеосвязь пока не подключена администратором. Расписание сохранено.</p>
+              <p>{t('Видеосвязь пока не подключена администратором. Расписание сохранено.')}</p>
             )}
             {!m.canJoin && (
-              <p>Вход откроется за 15 минут до начала, если организатор не закрыл встречу.</p>
+              <p>
+                {t('Вход откроется за 15 минут до начала, если организатор не закрыл встречу.')}
+              </p>
             )}
           </>
         )}
         {m.canManage && m.status === 'scheduled' && (
           <div className="button-row">
             <button className="secondary" onClick={() => setEditing((v) => !v)}>
-              Изменить расписание
+              {t('Изменить расписание')}
             </button>
             <button className="secondary danger" disabled={busy} onClick={() => void cancel()}>
-              {busy ? 'Отменяем…' : op.current ? 'Повторить отмену' : 'Отменить занятие'}
+              {busy ? t('Отменяем…') : op.current ? t('Повторить отмену') : t('Отменить занятие')}
             </button>
           </div>
         )}
@@ -132,11 +137,11 @@ function MeetingDetail({ id }: { id: string }) {
         />
       )}
       <section className="panel">
-        <h2>Итоги и домашняя работа</h2>
+        <h2>{t('Итоги и домашняя работа')}</h2>
         {m.summaryComment ? (
           <p className="content-text">{m.summaryComment}</p>
         ) : (
-          <p>Преподаватель сохранит итог после завершения занятия.</p>
+          <p>{t('Преподаватель сохранит итог после завершения занятия.')}</p>
         )}
         {m.homework.length > 0 && (
           <ul className="meeting-agenda">
@@ -147,7 +152,7 @@ function MeetingDetail({ id }: { id: string }) {
                 </strong>
                 <p>{h.reason}</p>
                 <Link to={`/plan/${h.planId}#assignment-${h.assignmentId}`}>
-                  Открыть домашнее задание в плане →
+                  {t('Открыть домашнее задание в плане →')}
                 </Link>
               </li>
             ))}
@@ -155,11 +160,11 @@ function MeetingDetail({ id }: { id: string }) {
         )}
         {m.summaryHistory.length > 1 && (
           <details>
-            <summary>История итоговых комментариев</summary>
+            <summary>{t('История итоговых комментариев')}</summary>
             {m.summaryHistory.map((h) => (
               <article key={h.id}>
                 <p>
-                  {h.author} · {new Date(h.createdAt).toLocaleString('ru')}
+                  {h.author} · {new Date(h.createdAt).toLocaleString(dateLocale)}
                 </p>
                 <p className="content-text">{h.comment}</p>
               </article>
@@ -196,7 +201,7 @@ function SummaryEditor({ meeting: m, saved }: { meeting: Meeting; saved: () => v
       pending.current = null;
       saved();
     } catch (e) {
-      setError((e as Error).message);
+      setError(t((e as Error).message));
       if (e instanceof ApiError && e.status && e.status < 500) {
         pending.current = null;
         if (e.code === 'MEETING_SUMMARY_CHANGED') saved();
@@ -206,24 +211,25 @@ function SummaryEditor({ meeting: m, saved }: { meeting: Meeting; saved: () => v
     }
   }
   return (
-    <section className="panel" aria-label="Итог преподавателя">
-      <h2>Сохранить итог занятия</h2>
+    <section className="panel" aria-label={t('Итог преподавателя')}>
+      <h2>{t('Сохранить итог занятия')}</h2>
       <form onSubmit={(e) => void submit(e)}>
         <fieldset disabled={busy || Boolean(pending.current)}>
           <label>
-            Итоговый комментарий
+            {t('Итоговый комментарий')}
             <textarea
-              aria-label="Итоговый комментарий"
+              aria-label={t('Итоговый комментарий')}
               required
               maxLength={3000}
               value={comment}
               onChange={(e) => setComment(e.target.value)}
             />
           </label>
-          <h3>Домашняя работа участникам</h3>
+          <h3>{t('Домашняя работа участникам')}</h3>
           <p>
-            Задание попадёт в существующий план ученика. Первоначальная диагностика должна быть
-            завершена.
+            {t(
+              'Задание попадёт в существующий план ученика. Первоначальная диагностика должна быть завершена.',
+            )}
           </p>
           {m.members
             .filter((p) => p.role === 'student')
@@ -246,10 +252,10 @@ function SummaryEditor({ meeting: m, saved }: { meeting: Meeting; saved: () => v
         </fieldset>
         <button disabled={busy || !comment.trim()}>
           {busy
-            ? 'Сохраняем итог…'
+            ? t('Сохраняем итог…')
             : pending.current
-              ? 'Повторить сохранение итога'
-              : 'Сохранить итог и назначения'}
+              ? t('Повторить сохранение итога')
+              : t('Сохранить итог и назначения')}
         </button>
       </form>
       {error && (
@@ -291,15 +297,16 @@ function HomeworkRow({
             if (!e.target.checked) change(null);
           }}
         />
-        Назначить домашнюю работу: {name}
+        {t('Назначить домашнюю работу: ')}
+        {name}
       </label>
-      {!state.data.items.length && <p>Сохранённого плана этого языка пока нет.</p>}
+      {!state.data.items.length && <p>{t('Сохранённого плана этого языка пока нет.')}</p>}
       {enabled && (
         <>
           <label>
-            План ученика
+            {t('План ученика')}
             <select
-              aria-label="План ученика"
+              aria-label={t('План ученика')}
               value={planId || state.data.items[0]?.id}
               onChange={(e) => {
                 setPlanId(e.target.value);
@@ -308,7 +315,7 @@ function HomeworkRow({
             >
               {state.data.items.map((p) => (
                 <option key={p.id} value={p.id}>
-                  {p.title} · {new Date(p.createdAt).toLocaleDateString('ru')}
+                  {p.title} · {new Date(p.createdAt).toLocaleDateString(dateLocale)}
                 </option>
               ))}
             </select>
@@ -338,7 +345,7 @@ function HomeworkExercise({
     teacherExerciseBankSchema,
   );
   const [exercise, setExercise] = useState(''),
-    [reason, setReason] = useState('Закрепляем материал видеозанятия.'),
+    [reason, setReason] = useState(t('Закрепляем материал видеозанятия.')),
     [due, setDue] = useState('');
   function update(id: string, text: string, date: string) {
     setExercise(id);
@@ -365,14 +372,14 @@ function HomeworkExercise({
   return (
     <div className="form-grid">
       <label>
-        Упражнение для домашней работы
+        {t('Упражнение для домашней работы')}
         <select
-          aria-label="Упражнение для домашней работы"
+          aria-label={t('Упражнение для домашней работы')}
           required
           value={exercise}
           onChange={(e) => update(e.target.value, reason, due)}
         >
-          <option value="">Выберите упражнение</option>
+          <option value="">{t('Выберите упражнение')}</option>
           {state.data.items.map((e) => (
             <option key={e.id} value={e.id}>
               {e.lessonTitle} · {e.instruction}
@@ -381,9 +388,9 @@ function HomeworkExercise({
         </select>
       </label>
       <label>
-        Причина домашнего задания
+        {t('Причина домашнего задания')}
         <textarea
-          aria-label="Причина домашнего задания"
+          aria-label={t('Причина домашнего задания')}
           required
           maxLength={2700}
           value={reason}
@@ -391,7 +398,7 @@ function HomeworkExercise({
         />
       </label>
       <label>
-        Доступно с даты
+        {t('Доступно с даты')}
         <input
           type="datetime-local"
           value={due}

@@ -1,3 +1,4 @@
+import { t } from '../i18n';
 import { useState, type FormEvent } from 'react';
 import { Link, useParams, useSearchParams } from 'react-router-dom';
 import {
@@ -19,16 +20,16 @@ import { EmptyState, ErrorState, LoadingState } from '../components/States';
 import { StartLessonButton } from './EnginePages';
 
 const purposeLabels: Record<ExercisePurpose, string> = {
-  practice: 'Тренировка',
-  diagnostic: 'Диагностика',
-  control: 'Контроль',
+  practice: t('Тренировка'),
+  diagnostic: t('Диагностика'),
+  control: t('Контроль'),
 };
 export function CourseCatalogPage() {
   const { state, refresh } = useResource('/content/routes', catalogSchema);
   return (
     <>
-      <p className="eyebrow">Учебные материалы</p>
-      <h1>Языковые маршруты</h1>
+      <p className="eyebrow">{t('Учебные материалы')}</p>
+      <h1>{t('Языковые маршруты')}</h1>
       {state.status === 'loading' ? (
         <LoadingState />
       ) : state.status === 'error' ? (
@@ -38,24 +39,26 @@ export function CourseCatalogPage() {
           {state.data.map((route) => (
             <section className="panel" key={`${route.packageId}:${route.id}`}>
               <span className="badge">
-                {route.language === 'ru' ? 'РКИ' : 'English'} · {route.level}
-                {route.isDemo ? ' · Демо' : ''}
+                {route.language === 'ru' ? t('РКИ') : 'English'} · {route.level}
+                {route.isDemo ? t(' · Демо') : ''}
               </span>
               <h2>{route.title}</h2>
               <p>{route.description}</p>
-              <p>{route.lessonCount} коротких уроков</p>
+              <p>
+                {route.lessonCount} {t(' коротких уроков')}
+              </p>
               <Link
                 to={`/courses/${route.packageId}/${route.id}?packageVersion=${route.packageVersion}`}
               >
-                Открыть маршрут →
+                {t('Открыть маршрут →')}
               </Link>
             </section>
           ))}
         </div>
       ) : (
         <EmptyState
-          title="Материалы пока не загружены"
-          description="Администратор может импортировать пакет учебных материалов."
+          title={t('Материалы пока не загружены')}
+          description={t('Администратор может импортировать пакет учебных материалов.')}
         />
       )}
     </>
@@ -74,15 +77,15 @@ export function CourseRoutePage() {
   const route = state.data;
   return (
     <>
-      <Link to="/courses">← Все маршруты</Link>
+      <Link to="/courses">{t('← Все маршруты')}</Link>
       <h1>{route.title}</h1>
       <p>{route.description}</p>
       <span className="badge">
         {route.level}
-        {route.isDemo ? ' · Демонстрационный контент' : ''}
+        {route.isDemo ? t(' · Демонстрационный контент') : ''}
       </span>
       <section className="panel">
-        <h2>Цели маршрута</h2>
+        <h2>{t('Цели маршрута')}</h2>
         <ul>
           {route.goals.map((goal) => (
             <li key={goal}>{goal}</li>
@@ -96,21 +99,23 @@ export function CourseRoutePage() {
               {index + 1}. {lesson.title}
             </h2>
             <p>{lesson.summary}</p>
-            <p>{lesson.estimatedMinutes} минут</p>
+            <p>
+              {lesson.estimatedMinutes} {t(' минут')}
+            </p>
             <Link
               to={`/courses/${route.packageId}/${route.id}/lessons/${lesson.id}?packageVersion=${route.packageVersion}`}
             >
-              Посмотреть урок →
+              {t('Посмотреть урок →')}
             </Link>
           </li>
         ))}
       </ol>
       <section className="panel">
-        <h2>Наборы заданий</h2>
+        <h2>{t('Наборы заданий')}</h2>
         <ul>
           {route.sets.map((set) => (
             <li key={set.id}>
-              {set.title}: {set.exerciseIds.length} заданий
+              {set.title}: {set.exerciseIds.length} {t(' заданий')}
             </li>
           ))}
         </ul>
@@ -173,14 +178,17 @@ export function ContentBlocks({
         if (!asset)
           return (
             <p key={block.id} role="alert">
-              Материал пока недоступен.
+              {t('Материал пока недоступен.')}
             </p>
           );
         if (block.type === 'image')
           return (
             <figure key={block.id}>
               {failedSources.includes(asset.src) ? (
-                <p role="alert">Изображение недоступно: {block.alt}</p>
+                <p role="alert">
+                  {t('Изображение недоступно: ')}
+                  {block.alt}
+                </p>
               ) : (
                 <img
                   className="lesson-image"
@@ -208,18 +216,20 @@ export function ContentBlocks({
             {block.caption && <h3>{block.caption}</h3>}
             {block.type === 'audio' ? (
               <audio controls preload="none" src={asset.src} onError={() => failed(asset.src)}>
-                Аудио: <a href={asset.src}>Открыть запись</a>
+                {t('Аудио: ')}
+                <a href={asset.src}>{t('Открыть запись')}</a>
               </audio>
             ) : (
               <video controls preload="none" src={asset.src} onError={() => failed(asset.src)}>
-                Видео: <a href={asset.src}>Открыть запись</a>
+                {t('Видео: ')}
+                <a href={asset.src}>{t('Открыть запись')}</a>
               </video>
             )}
             {failedSources.includes(asset.src) && (
-              <p role="alert">Не удалось загрузить запись. Используйте текст записи ниже.</p>
+              <p role="alert">{t('Не удалось загрузить запись. Используйте текст записи ниже.')}</p>
             )}
             <details>
-              <summary>Текст записи</summary>
+              <summary>{t('Текст записи')}</summary>
               <p className="content-text">{block.transcript}</p>
             </details>
           </section>
@@ -243,8 +253,8 @@ export function LessonPreviewPage() {
   if (lesson.routeId !== routeId)
     return (
       <EmptyState
-        title="Урок не найден в этом маршруте"
-        description="Вернитесь к списку языковых маршрутов."
+        title={t('Урок не найден в этом маршруте')}
+        description={t('Вернитесь к списку языковых маршрутов.')}
       />
     );
   return (
@@ -252,18 +262,19 @@ export function LessonPreviewPage() {
       <Link
         to={`/courses/${lesson.packageId}/${lesson.routeId}?packageVersion=${lesson.packageVersion}`}
       >
-        ← К маршруту
+        {t('← К маршруту')}
       </Link>
       <h1>{lesson.title}</h1>
       <p>{lesson.summary}</p>
       <span className="badge">
-        {lesson.estimatedMinutes} минут{lesson.isDemo ? ' · Демо' : ''}
+        {lesson.estimatedMinutes} {t(' минут')}
+        {lesson.isDemo ? t(' · Демо') : ''}
       </span>
       <section className="panel">
         <ContentBlocks blocks={lesson.blocks} assets={lesson.assets} />
       </section>
       <section className="panel">
-        <h2>Проверяемые навыки</h2>
+        <h2>{t('Проверяемые навыки')}</h2>
         <ul>
           {lesson.skills.map((skill) => (
             <li key={skill.id}>
@@ -272,9 +283,11 @@ export function LessonPreviewPage() {
           ))}
         </ul>
       </section>
-      <h2>Задания урока</h2>
-      <p>Начните прохождение: движок сохранит ответы и поможет продолжить урок после перерыва.</p>
-      <div className="tabs" role="tablist" aria-label="Набор заданий">
+      <h2>{t('Задания урока')}</h2>
+      <p>
+        {t('Начните прохождение: движок сохранит ответы и поможет продолжить урок после перерыва.')}
+      </p>
+      <div className="tabs" role="tablist" aria-label={t('Набор заданий')}>
         {(['practice', 'diagnostic', 'control'] as const).map((mode) => (
           <button
             key={mode}
@@ -300,7 +313,10 @@ export function LessonPreviewPage() {
       {lesson.exercises.length ? (
         lesson.exercises.map((exercise, index) => (
           <section className="panel exercise-preview" key={exercise.id}>
-            <h3>Задание {index + 1}</h3>
+            <h3>
+              {t('Задание ')}
+              {index + 1}
+            </h3>
             <p>{exercise.instruction}</p>
             <ContentBlocks blocks={exercise.blocks} assets={lesson.assets} />
             {exercise.response.type === 'choice' ? (
@@ -311,15 +327,16 @@ export function LessonPreviewPage() {
               </ul>
             ) : (
               <p className="muted">
-                Короткий текстовый ответ, до {exercise.response.maxLength} символов.
+                {t('Короткий текстовый ответ, до ')}
+                {exercise.response.maxLength} {t(' символов.')}
               </p>
             )}
           </section>
         ))
       ) : (
         <EmptyState
-          title="В этом наборе пока нет заданий"
-          description="Выберите другой набор или вернитесь к маршруту."
+          title={t('В этом наборе пока нет заданий')}
+          description={t('Выберите другой набор или вернитесь к маршруту.')}
         />
       )}
     </>
@@ -340,18 +357,20 @@ export function AdminContentPage() {
     setReading(true);
     try {
       if (file.size > CONTENT_MAX_BYTES)
-        throw new Error('Размер пакета должен быть не более 2 МиБ.');
+        throw new Error(t('Размер пакета должен быть не более 2 МиБ.'));
       const result = contentPackageSchema.safeParse(JSON.parse(await file.text()));
       if (!result.success)
         throw new Error(
-          `Проверьте формат пакета: ${result.error.issues
-            .slice(0, 5)
-            .map((issue) => `${issue.path.join('.')}: ${issue.message}`)
-            .join('; ')}`,
+          t('Проверьте формат пакета: {0}', [
+            result.error.issues
+              .slice(0, 5)
+              .map((issue) => `${issue.path.join('.')}: ${t(issue.message)}`)
+              .join('; '),
+          ]),
         );
       setDraft(result.data);
     } catch (failure) {
-      setError(failure instanceof Error ? failure.message : 'Не удалось прочитать файл.');
+      setError(failure instanceof Error ? t(failure.message) : t('Не удалось прочитать файл.'));
     } finally {
       setReading(false);
     }
@@ -366,12 +385,16 @@ export function AdminContentPage() {
       const result = await api('/admin/content/import', importResultSchema, { body: draft });
       setMessage(
         result.status === 'unchanged'
-          ? 'Эта версия уже загружена. Дубликаты не созданы.'
-          : `Пакет загружен: ${result.counts.routes} маршрута, ${result.counts.lessons} уроков, ${result.counts.exercises} заданий.`,
+          ? t('Эта версия уже загружена. Дубликаты не созданы.')
+          : t('Пакет загружен: {0} маршрута, {1} уроков, {2} заданий.', [
+              result.counts.routes,
+              result.counts.lessons,
+              result.counts.exercises,
+            ]),
       );
       refresh();
     } catch (failure) {
-      setError(failure instanceof Error ? failure.message : 'Импорт не выполнен.');
+      setError(failure instanceof Error ? t(failure.message) : t('Импорт не выполнен.'));
     } finally {
       setBusy(false);
     }
@@ -390,22 +413,23 @@ export function AdminContentPage() {
       link.click();
       setTimeout(() => URL.revokeObjectURL(url), 1000);
     } catch (failure) {
-      setError(failure instanceof Error ? failure.message : 'Экспорт не выполнен.');
+      setError(failure instanceof Error ? t(failure.message) : t('Экспорт не выполнен.'));
     } finally {
       setBusy(false);
     }
   }
   return (
     <>
-      <Link to="/admin">← Кабинет суперадмина</Link>
-      <h1>Учебный контент</h1>
+      <Link to="/admin">{t('← Кабинет суперадмина')}</Link>
+      <h1>{t('Учебный контент')}</h1>
       <p>
-        Импорт и экспорт пакетов JSON. Медиафайлы размещаются отдельно; пакет хранит их ссылки и
-        описание. Экспорт включает правильные ответы.
+        {t(
+          'Импорт и экспорт пакетов JSON. Медиафайлы размещаются отдельно; пакет хранит их ссылки и описание. Экспорт включает правильные ответы.',
+        )}
       </p>
       <form className="panel" onSubmit={(event) => void submit(event)}>
-        <h2>Импортировать пакет</h2>
-        <label htmlFor="content-file">Файл контента JSON</label>
+        <h2>{t('Импортировать пакет')}</h2>
+        <label htmlFor="content-file">{t('Файл контента JSON')}</label>
         <input
           id="content-file"
           type="file"
@@ -413,15 +437,16 @@ export function AdminContentPage() {
           disabled={busy || reading}
           onChange={(event) => void select(event.target.files?.[0])}
         />
-        {reading && <LoadingState text="Проверяем файл…" />}
+        {reading && <LoadingState text={t('Проверяем файл…')} />}
         {draft && (
           <p>
-            {draft.package.title} · версия {draft.package.version} · {draft.lessons.length} уроков ·{' '}
-            {draft.exercises.length} заданий
+            {draft.package.title} {t(' · версия ')}
+            {draft.package.version} · {draft.lessons.length} {t(' уроков ·')}{' '}
+            {draft.exercises.length} {t(' заданий')}
           </p>
         )}
         <button disabled={!draft || busy || reading}>
-          {busy ? 'Выполняем операцию…' : 'Импортировать пакет'}
+          {busy ? t('Выполняем операцию…') : t('Импортировать пакет')}
         </button>
       </form>
       {error && (
@@ -435,7 +460,7 @@ export function AdminContentPage() {
         </p>
       )}
       <section className="panel">
-        <h2>Загруженные пакеты</h2>
+        <h2>{t('Загруженные пакеты')}</h2>
         {state.status === 'loading' ? (
           <LoadingState />
         ) : state.status === 'error' ? (
@@ -446,27 +471,29 @@ export function AdminContentPage() {
               <li key={item.id}>
                 <strong>{item.title}</strong>
                 <span>
-                  Версия {item.currentVersion}
-                  {item.isDemo ? ' · Демо' : ''}
+                  {t('Версия ')}
+                  {item.currentVersion}
+                  {item.isDemo ? t(' · Демо') : ''}
                 </span>
                 <button
                   className="secondary"
                   disabled={busy}
                   onClick={() => void download(item.id)}
                 >
-                  Экспортировать {item.id}
+                  {t('Экспортировать ')}
+                  {item.id}
                 </button>
               </li>
             ))}
           </ul>
         ) : (
           <EmptyState
-            title="Пакеты пока не загружены"
-            description="Выберите подготовленный JSON-файл и импортируйте его."
+            title={t('Пакеты пока не загружены')}
+            description={t('Выберите подготовленный JSON-файл и импортируйте его.')}
           />
         )}
       </section>
-      <Link to="/courses">Просмотреть учебные маршруты →</Link>
+      <Link to="/courses">{t('Просмотреть учебные маршруты →')}</Link>
     </>
   );
 }

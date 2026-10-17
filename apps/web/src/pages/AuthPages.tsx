@@ -1,3 +1,4 @@
+import { t, dateLocale } from '../i18n';
 import { useState, type FormEvent } from 'react';
 import { Link, useNavigate, useSearchParams } from 'react-router-dom';
 import {
@@ -43,16 +44,15 @@ export function LoginPage() {
   }
   return (
     <section className="auth-card panel">
-      <p className="eyebrow">Добро пожаловать в ЛУЧ</p>
-      <h1>Вход в аккаунт</h1>
-      <p>Введите почту и текущий код из вашего приложения Authenticator.</p>
+      <h1>{t('Вход в аккаунт')}</h1>
+      <p>{t('Введите почту и текущий код из вашего приложения Authenticator.')}</p>
       <form
         noValidate
         onSubmit={(event) => {
           void submit(event);
         }}
       >
-        <label htmlFor="login-email">Почта</label>
+        <label htmlFor="login-email">{t('Почта')}</label>
         <input
           id="login-email"
           type="text"
@@ -63,7 +63,7 @@ export function LoginPage() {
           required
           maxLength={254}
         />
-        <label htmlFor="login-code">Код Authenticator</label>
+        <label htmlFor="login-code">{t('Код Authenticator')}</label>
         <input
           id="login-code"
           inputMode="numeric"
@@ -77,19 +77,20 @@ export function LoginPage() {
         <CaptchaField captcha={captcha} />
         {error && (
           <p className="error inline-message" role="alert">
-            {error.message}
+            {t(error.message)}
           </p>
         )}
-        <button disabled={busy}>{busy ? 'Входим…' : 'Войти'}</button>
+        <button disabled={busy}>{busy ? t('Входим…') : t('Войти')}</button>
       </form>
       <p className="auth-links">
-        Нет аккаунта? <Link to="/register">Создать аккаунт</Link>
+        {t('Нет аккаунта? ')}
+        <Link to="/register">{t('Создать аккаунт')}</Link>
       </p>
       {policy.localMailboxEnabled && (
         <div className="notice">
-          <strong>Демонстрационные аккаунты</strong>
+          <strong>{t('Демонстрационные аккаунты')}</strong>
           <p>student@example.test · teacher@example.test · admin@example.test</p>
-          <Link to="/demo-mail">Открыть демо-почту и подключить Authenticator →</Link>
+          <Link to="/demo-mail">{t('Открыть демо-почту и подключить Authenticator →')}</Link>
         </div>
       )}
     </section>
@@ -118,7 +119,7 @@ export function RegisterPage() {
           ...(check ? { captcha: check } : {}),
         },
       });
-      setMessage(result.message);
+      setMessage(t(result.message));
       captcha.refresh();
     } catch (failure) {
       setError(failure as Error);
@@ -129,15 +130,16 @@ export function RegisterPage() {
   }
   return (
     <section className="auth-card panel">
-      <p className="eyebrow">Первый шаг</p>
-      <h1>Создать аккаунт</h1>
-      <p>Подтвердите почту, затем подключите Authenticator по QR-коду. Пароль не требуется.</p>
+      <h1>{t('Создать аккаунт')}</h1>
+      <p>
+        {t('Подтвердите почту, затем подключите Authenticator по QR-коду. Пароль не требуется.')}
+      </p>
       <form
         onSubmit={(event) => {
           void submit(event);
         }}
       >
-        <label htmlFor="register-name">Имя</label>
+        <label htmlFor="register-name">{t('Имя')}</label>
         <input
           id="register-name"
           value={name}
@@ -147,7 +149,7 @@ export function RegisterPage() {
           maxLength={100}
           required
         />
-        <label htmlFor="register-email">Почта</label>
+        <label htmlFor="register-email">{t('Почта')}</label>
         <input
           id="register-email"
           type="email"
@@ -157,22 +159,24 @@ export function RegisterPage() {
           maxLength={254}
           required
         />
-        <label htmlFor="register-role">Я регистрируюсь как</label>
+        <label htmlFor="register-role">{t('Я регистрируюсь как')}</label>
         <select
           id="register-role"
           value={role}
           onChange={(event) => setRole(event.target.value as 'student' | 'teacher')}
         >
-          <option value="student">Ученик</option>
-          <option value="teacher">Преподаватель</option>
+          <option value="student">{t('Ученик')}</option>
+          <option value="teacher">{t('Преподаватель')}</option>
         </select>
         <CaptchaField captcha={captcha} />
         {error && (
           <p className="error inline-message" role="alert">
-            {error.message}
+            {t(error.message)}
           </p>
         )}
-        <button disabled={busy}>{busy ? 'Отправляем…' : 'Отправить письмо подтверждения'}</button>
+        <button disabled={busy}>
+          {busy ? t('Отправляем…') : t('Отправить письмо подтверждения')}
+        </button>
       </form>
       {message && (
         <div className="success" role="status">
@@ -180,14 +184,14 @@ export function RegisterPage() {
           {policy.localMailboxEnabled && (
             <p>
               <Link to={`/demo-mail?email=${encodeURIComponent(email.trim())}`}>
-                Посмотреть письмо в демо-почте
+                {t('Посмотреть письмо в демо-почте')}
               </Link>
             </p>
           )}
         </div>
       )}
       <p className="auth-links">
-        <Link to="/login">Уже есть аккаунт? Войти</Link>
+        <Link to="/login">{t('Уже есть аккаунт? Войти')}</Link>
       </p>
     </section>
   );
@@ -211,29 +215,29 @@ export function VerifyEmailPage() {
   }
   return (
     <section className="auth-card panel">
-      <h1>Подтверждение почты</h1>
+      <h1>{t('Подтверждение почты')}</h1>
       {value ? (
         <>
-          <p>Подтвердите адрес, чтобы перейти к подключению Authenticator.</p>
+          <p>{t('Подтвердите адрес, чтобы перейти к подключению Authenticator.')}</p>
           <button
             disabled={busy}
             onClick={() => {
               void verify();
             }}
           >
-            {busy ? 'Подтверждаем…' : 'Подтвердить почту'}
+            {busy ? t('Подтверждаем…') : t('Подтвердить почту')}
           </button>
         </>
       ) : (
-        <p>Откройте ссылку из письма подтверждения.</p>
+        <p>{t('Откройте ссылку из письма подтверждения.')}</p>
       )}
       {error && (
         <p className="error inline-message" role="alert">
-          {error.message}
+          {t(error.message)}
         </p>
       )}
       <p className="auth-links">
-        <Link to="/register">Запросить новое письмо</Link>
+        <Link to="/register">{t('Запросить новое письмо')}</Link>
       </p>
     </section>
   );
@@ -269,9 +273,9 @@ export function AuthenticatorPage() {
   if (awaiting)
     return (
       <section className="auth-card panel">
-        <h1>Authenticator подключён</h1>
-        <p>Доступ ожидает проверки администратором.</p>
-        <Link to="/login">Вернуться ко входу</Link>
+        <h1>{t('Authenticator подключён')}</h1>
+        <p>{t('Доступ ожидает проверки администратором.')}</p>
+        <Link to="/login">{t('Вернуться ко входу')}</Link>
       </section>
     );
   if (state.status === 'loading') return <LoadingState />;
@@ -279,40 +283,41 @@ export function AuthenticatorPage() {
     return (
       <>
         <ErrorState error={state.error} retry={refresh} />
-        <Link to="/register">Запросить новое письмо</Link>
+        <Link to="/register">{t('Запросить новое письмо')}</Link>
       </>
     );
   return (
     <section className="auth-card panel">
-      <p className="eyebrow">Почта подтверждена</p>
-      <h1>Подключить Authenticator</h1>
+      <p className="eyebrow">{t('Почта подтверждена')}</p>
+      <h1>{t('Подключить Authenticator')}</h1>
       <p>{state.data.email}</p>
       <p>
-        Добавьте аккаунт в Google Authenticator, Microsoft Authenticator или другое совместимое
-        приложение.
+        {t(
+          'Добавьте аккаунт в Google Authenticator, Microsoft Authenticator или другое совместимое приложение.',
+        )}
       </p>
       <img
         className="auth-qr"
         src={state.data.qrDataUrl}
         width={240}
         height={240}
-        alt="QR-код подключения Authenticator"
+        alt={t('QR-код подключения Authenticator')}
       />
       <details>
-        <summary>Ввести ключ вручную</summary>
+        <summary>{t('Ввести ключ вручную')}</summary>
         <code className="manual-key" data-testid="manual-key">
           {state.data.manualKey}
         </code>
       </details>
       <p className="muted">
-        QR-код и ключ нужны только для подключения. Не передавайте их другим людям.
+        {t('QR-код и ключ нужны только для подключения. Не передавайте их другим людям.')}
       </p>
       <form
         onSubmit={(event) => {
           void confirm(event);
         }}
       >
-        <label htmlFor="setup-code">Код Authenticator</label>
+        <label htmlFor="setup-code">{t('Код Authenticator')}</label>
         <input
           id="setup-code"
           inputMode="numeric"
@@ -326,10 +331,10 @@ export function AuthenticatorPage() {
         <CaptchaField captcha={captcha} />
         {error && (
           <p role="alert" className="error inline-message">
-            {error.message}
+            {t(error.message)}
           </p>
         )}
-        <button disabled={busy}>{busy ? 'Подключаем…' : 'Подключить и войти'}</button>
+        <button disabled={busy}>{busy ? t('Подключаем…') : t('Подключить и войти')}</button>
       </form>
     </section>
   );
@@ -338,14 +343,15 @@ export function DemoMailPage() {
   const { policy } = useSecurity();
   const [params, setParams] = useSearchParams();
   const [email, setEmail] = useState(params.get('email') ?? 'student@example.test');
-  if (!policy.localMailboxEnabled) return <p>Демо-почта недоступна в этой среде.</p>;
+  if (!policy.localMailboxEnabled) return <p>{t('Демо-почта недоступна в этой среде.')}</p>;
   return (
     <>
-      <p className="eyebrow">Локальная демонстрация</p>
-      <h1>Демо-почта</h1>
+      <p className="eyebrow">{t('Локальная демонстрация')}</p>
+      <h1>{t('Демо-почта')}</h1>
       <p className="lead">
-        Письма показаны здесь вместо отправки на настоящий адрес. Для обычных аккаунтов на хостинге
-        используется почтовая отправка.
+        {t(
+          'Письма показаны здесь вместо отправки на настоящий адрес. Для обычных аккаунтов на хостинге используется почтовая отправка.',
+        )}
       </p>
       <form
         className="panel"
@@ -354,7 +360,7 @@ export function DemoMailPage() {
           setParams({ email });
         }}
       >
-        <label htmlFor="mail-email">Почта аккаунта</label>
+        <label htmlFor="mail-email">{t('Почта аккаунта')}</label>
         <div className="form-row">
           <input
             id="mail-email"
@@ -363,7 +369,7 @@ export function DemoMailPage() {
             onChange={(event) => setEmail(event.target.value)}
             required
           />
-          <button>Открыть письма</button>
+          <button>{t('Открыть письма')}</button>
         </div>
         <div className="demo-choices">
           {['student@example.test', 'teacher@example.test', 'admin@example.test'].map((address) => (
@@ -394,32 +400,37 @@ function LocalInbox({ email }: { email: string }) {
   if (state.status === 'error') return <ErrorState error={state.error} retry={refresh} />;
   return (
     <section className="panel">
-      <h2>Письма для {email}</h2>
+      <h2>
+        {t('Письма для ')}
+        {email}
+      </h2>
       {!state.data.length ? (
         <p>
-          Писем пока нет. Создайте аккаунт или загрузите демонстрационные аккаунты по инструкции.
+          {t(
+            'Писем пока нет. Создайте аккаунт или загрузите демонстрационные аккаунты по инструкции.',
+          )}
         </p>
       ) : (
         state.data.map((mail, index) => (
           <article key={mail.id} className="mail-item">
             <h3>{mail.subject}</h3>
             <time dateTime={mail.createdAt}>
-              {new Date(mail.createdAt).toLocaleString('ru-RU')}
+              {new Date(mail.createdAt).toLocaleString(dateLocale)}
             </time>
-            <p>Перейдите по ссылке, чтобы подтвердить почту и подключить Authenticator.</p>
+            <p>{t('Перейдите по ссылке, чтобы подтвердить почту и подключить Authenticator.')}</p>
             <Link
               className="text-link"
               to={`${new URL(mail.verificationUrl).pathname}${new URL(mail.verificationUrl).search}`}
             >
               {index === 0
-                ? 'Открыть последнее письмо подтверждения'
-                : 'Открыть письмо подтверждения'}
+                ? t('Открыть последнее письмо подтверждения')
+                : t('Открыть письмо подтверждения')}
             </Link>
           </article>
         ))
       )}
       <button className="secondary" onClick={refresh}>
-        Обновить письма
+        {t('Обновить письма')}
       </button>
     </section>
   );

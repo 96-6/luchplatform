@@ -12,8 +12,8 @@ for (const language of ['ru', 'en'] as const)
     browser,
   }) => {
     test.setTimeout(150000);
-    const studentContext = await browser.newContext(),
-      teacherContext = await browser.newContext();
+    const studentContext = await browser.newContext({ locale: 'ru-RU' }),
+      teacherContext = await browser.newContext({ locale: 'ru-RU' });
     try {
       const student = await studentContext.newPage(),
         teacher = await teacherContext.newPage();

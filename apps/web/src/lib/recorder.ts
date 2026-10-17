@@ -1,3 +1,4 @@
+import { t } from '../i18n';
 // Browser audio is normalized before upload. The server validates PCM frames and duration again.
 export function encodePcmWav(parts: Float32Array[], sampleRate: number) {
   const length = parts.reduce((n, part) => n + part.length, 0);
@@ -9,7 +10,7 @@ export function encodePcmWav(parts: Float32Array[], sampleRate: number) {
   }
   const frames = Math.min(30 * 16000, Math.floor((length * 16000) / sampleRate));
   if (frames < 1600)
-    throw new Error('Запись слишком короткая. Произнесите реплику и попробуйте снова.');
+    throw new Error(t('Запись слишком короткая. Произнесите реплику и попробуйте снова.'));
   const bytes = new Uint8Array(44 + frames * 2),
     view = new DataView(bytes.buffer);
   const tag = (at: number, text: string) => {
@@ -70,7 +71,7 @@ export class PcmRecorder {
   }
   async start() {
     if (!navigator.mediaDevices?.getUserMedia || !window.AudioContext)
-      throw new Error('Запись недоступна в этом браузере. Используйте текстовый ввод.');
+      throw new Error(t('Запись недоступна в этом браузере. Используйте текстовый ввод.'));
     try {
       this.stream = await navigator.mediaDevices.getUserMedia({
         audio: { channelCount: 1, echoCancellation: true, noiseSuppression: true },
@@ -82,7 +83,7 @@ export class PcmRecorder {
       }
       this.context = new AudioContext();
       if (!this.context.audioWorklet)
-        throw new Error('Этот браузер не поддерживает запись. Используйте текстовый ввод.');
+        throw new Error(t('Этот браузер не поддерживает запись. Используйте текстовый ввод.'));
       await this.context.resume();
       await this.context.audioWorklet.addModule('/audio/pcm-recorder.js');
       if (this.cancelled) {
@@ -108,7 +109,7 @@ export class PcmRecorder {
         }
       };
       this.node.onprocessorerror = () =>
-        this.fail(new Error('Запись прервалась. Повторите её или введите текст.'));
+        this.fail(new Error(t('Запись прервалась. Повторите её или введите текст.')));
       this.source = this.context.createMediaStreamSource(this.stream);
       this.source.connect(this.node);
       this.node.connect(this.context.destination); // The worklet emits silence, so there is no microphone echo.
@@ -122,7 +123,7 @@ export class PcmRecorder {
     this.node?.port.postMessage('stop');
     clearTimeout(this.timer);
     this.timer = setTimeout(
-      () => this.fail(new Error('Не удалось завершить запись. Повторите её или введите текст.')),
+      () => this.fail(new Error(t('Не удалось завершить запись. Повторите её или введите текст.'))),
       3000,
     );
   }
@@ -135,7 +136,7 @@ export class PcmRecorder {
   }
   cancel() {
     this.cancelled = true;
-    this.fail(new Error('Запись отменена.'));
+    this.fail(new Error(t('Запись отменена.')));
   }
   private cleanup() {
     clearTimeout(this.timer);

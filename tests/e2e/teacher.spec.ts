@@ -37,7 +37,7 @@ async function csrf(page: Page) {
   };
 }
 async function link(browser: Browser, teacherId: string, studentId: string) {
-  const ctx = await browser.newContext({ baseURL: 'http://127.0.0.1:3200' });
+  const ctx = await browser.newContext({ locale: 'ru-RU', baseURL: 'http://127.0.0.1:3200' });
   try {
     const page = await ctx.newPage(),
       k = await keys();
@@ -145,7 +145,7 @@ for (const language of ['ru', 'en'] as const)
     await expect(page.locator('.feedback h3')).toHaveText('Нужно исправить');
     const saved = await current(page),
       attempt = saved.attempts[0]!;
-    const ctx = await browser.newContext({ baseURL: 'http://127.0.0.1:3200' }),
+    const ctx = await browser.newContext({ locale: 'ru-RU', baseURL: 'http://127.0.0.1:3200' }),
       teacher = await ctx.newPage();
     try {
       const tutor = await login(teacher, `teacher-${language}-tutor`);
@@ -289,7 +289,7 @@ test('a lost teacher review response and assignment response can be retried with
   await page.getByRole('button', { name: 'Проверить ответ', exact: true }).click();
   await expect(page.locator('.feedback h3')).toHaveText('Нужно исправить');
   const id = (await current(page)).attempts[0]!.id;
-  const ctx = await browser.newContext({ baseURL: 'http://127.0.0.1:3200' }),
+  const ctx = await browser.newContext({ locale: 'ru-RU', baseURL: 'http://127.0.0.1:3200' }),
     teacher = await ctx.newPage();
   try {
     const tutor = await login(teacher, 'teacher-retry-tutor');

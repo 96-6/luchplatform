@@ -1,3 +1,4 @@
+import { t } from '../i18n';
 import { useEffect, useState } from 'react';
 import { avatarBindingsSchema } from '@luch/contracts';
 import { api } from '../lib/api';
@@ -22,10 +23,11 @@ export function AvatarBindings({ changed }: { changed: () => void }) {
     );
   return (
     <section className="panel">
-      <h2>Персонажи и голоса HeyGen</h2>
+      <h2>{t('Персонажи и голоса HeyGen')}</h2>
       <p>
-        Укажите ID подготовленных аватаров и голосов из своего аккаунта HeyGen. После изменения
-        подтвердите цену подключения заново.
+        {t(
+          'Укажите ID подготовленных аватаров и голосов из своего аккаунта HeyGen. После изменения подтвердите цену подключения заново.',
+        )}
       </p>
       <form
         onSubmit={(e) => {
@@ -46,15 +48,15 @@ export function AvatarBindings({ changed }: { changed: () => void }) {
           <div className="provider-grid">
             {data.items.map((item, index) => (
               <section key={item.id}>
-                <h3>{{ mentor: 'Мира', partner: 'Алекс', guide: 'Искра' }[item.id]}</h3>
+                <h3>{{ mentor: t('Мира'), partner: t('Алекс'), guide: t('Искра') }[item.id]}</h3>
                 {(['avatarId', 'voiceRu', 'voiceEn'] as const).map((field) => (
                   <div key={field}>
                     <label htmlFor={`heygen-${item.id}-${field}`}>
                       {field === 'avatarId'
-                        ? 'ID аватара HeyGen'
+                        ? t('ID аватара HeyGen')
                         : field === 'voiceRu'
-                          ? 'ID голоса для РКИ'
-                          : 'ID голоса для английского'}
+                          ? t('ID голоса для РКИ')
+                          : t('ID голоса для английского')}
                     </label>
                     <input
                       id={`heygen-${item.id}-${field}`}
@@ -75,10 +77,10 @@ export function AvatarBindings({ changed }: { changed: () => void }) {
               </section>
             ))}
           </div>
-          <button>Сохранить персонажей HeyGen</button>
+          <button>{t('Сохранить персонажей HeyGen')}</button>
         </fieldset>
       </form>
-      {saved && <p role="status">Персонажи сохранены.</p>}
+      {saved && <p role="status">{t('Персонажи сохранены.')}</p>}
       {error && <ErrorState error={error} retry={resource.refresh} />}
     </section>
   );

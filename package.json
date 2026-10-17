@@ -16,7 +16,7 @@
     "dev": "npm run build -w @luch/contracts && concurrently --kill-others -n api,web \"npm run dev -w @luch/api\" \"npm run dev -w @luch/web\"",
     "build": "npm run build -w @luch/contracts && npm run build -w @luch/api && npm run build -w @luch/web",
     "start": "node apps/api/dist/server.js",
-    "typecheck": "npm run build -w @luch/contracts && npm run typecheck --workspaces --if-present",
+    "typecheck": "npm run build -w @luch/contracts && npm run typecheck --workspaces --if-present && node scripts/check-locales.mjs",
     "db:migrate": "npm run build -w @luch/contracts && npm run db:migrate -w @luch/api",
     "db:smoke": "npm run build -w @luch/contracts && npm run db:smoke -w @luch/api",
     "db:verify-smoke": "npm run build -w @luch/contracts && npm run db:verify-smoke -w @luch/api",
@@ -33,7 +33,8 @@
     "content:import": "npm run content:import -w @luch/api --",
     "content:export": "npm run content:export -w @luch/api --",
     "content:schema": "npm run build -w @luch/contracts && node scripts/content-schema.mjs",
-    "learning:recover": "npm run build -w @luch/contracts && npm run learning:recover -w @luch/api"
+    "learning:recover": "npm run build -w @luch/contracts && npm run learning:recover -w @luch/api",
+    "locale:check": "npm run build -w @luch/contracts && node scripts/check-locales.mjs"
   },
   "devDependencies": {
     "@playwright/test": "1.64.0",

@@ -1,3 +1,4 @@
+import { t, dateLocale } from '../i18n';
 import { UpcomingMeetings } from './meetings/shared';
 import { TeacherUpdates } from './TeacherPages';
 import { useEffect, useState } from 'react';
@@ -25,11 +26,11 @@ type Action =
   | { kind: 'diagnostic' }
   | { kind: 'plan'; diagnosticId: string };
 const kindLabels = {
-  initial: 'Урок маршрута',
-  correction: 'Дополнительная практика',
-  supported_practice: 'Практика самостоятельности',
-  review: 'Отсроченная проверка',
-  teacher: 'Назначение преподавателя',
+  initial: t('Урок маршрута'),
+  correction: t('Дополнительная практика'),
+  supported_practice: t('Практика самостоятельности'),
+  review: t('Отсроченная проверка'),
+  teacher: t('Назначение преподавателя'),
 };
 export function StudentPage() {
   const timeZone = Intl.DateTimeFormat().resolvedOptions().timeZone || 'UTC';
@@ -62,10 +63,9 @@ export function StudentPage() {
   }, [state, refresh]);
   return (
     <>
-      <p className="eyebrow">Ваше пространство</p>
-      <h1>Кабинет ученика</h1>
+      <h1>{t('Кабинет ученика')}</h1>
       {state.status === 'loading' ? (
-        <LoadingState text="Загружаем ваш учебный день…" />
+        <LoadingState text={t('Загружаем ваш учебный день…')} />
       ) : state.status === 'error' ? (
         <ErrorState error={state.error} retry={refresh} />
       ) : (
@@ -117,10 +117,10 @@ function Dashboard({ data, refresh }: { data: StudentDashboard; refresh: () => v
       setBusy(false);
     }
   }
-  function assignmentButton(a: DashboardAssignment, label = 'Начать задание') {
+  function assignmentButton(a: DashboardAssignment, label = t('Начать задание')) {
     return a.runId ? (
       <Link className="button-link" to={`/learning/runs/${a.runId}`}>
-        Продолжить задание
+        {t('Продолжить задание')}
       </Link>
     ) : (
       <button
@@ -128,13 +128,13 @@ function Dashboard({ data, refresh }: { data: StudentDashboard; refresh: () => v
         onClick={() => void start({ kind: 'assignment', planId: a.planId, assignmentId: a.id })}
       >
         {busy && retryAction?.kind === 'assignment' && retryAction.assignmentId === a.id
-          ? 'Открываем…'
+          ? t('Открываем…')
           : label}
       </button>
     );
   }
   const formatDate = (value: string) =>
-    new Date(value).toLocaleString('ru-RU', {
+    new Date(value).toLocaleString(dateLocale, {
       timeZone: data.timeZone,
       dateStyle: 'medium',
       timeStyle: 'short',
@@ -152,27 +152,27 @@ function Dashboard({ data, refresh }: { data: StudentDashboard; refresh: () => v
           <span className="badge">{kindLabels[a.kind]}</span>
           <h3>{a.title}</h3>
           <p>
-            {a.estimatedMinutes} мин. ·{' '}
+            {a.estimatedMinutes} {t(' мин. ·')}{' '}
             {a.status === 'active'
-              ? `${a.completedSteps}/${a.totalSteps} заданий завершено`
-              : 'Не начато'}
+              ? t('{0}/{1} заданий завершено', [a.completedSteps, a.totalSteps])
+              : t('Не начато')}
           </p>
-          <p className="muted">{a.reason}</p>
+          <p className="muted">{a.kind === 'teacher' ? a.reason : t(a.reason)}</p>
           {a.dueAt && (
             <p>
               <time dateTime={a.dueAt}>{formatDate(a.dueAt)}</time> ·{' '}
-              {a.canStart ? 'Доступно' : 'Откроется позже'}
+              {a.canStart ? t('Доступно') : t('Откроется позже')}
             </p>
           )}
-          <Link to={`/plan/${a.planId}#assignment-${a.id}`}>Назначение в плане →</Link>
+          <Link to={`/plan/${a.planId}#assignment-${a.id}`}>{t('Назначение в плане →')}</Link>
         </div>
         {assignmentButton(
           a,
           a.kind === 'review'
-            ? 'Начать повторение'
+            ? t('Начать повторение')
             : a.kind === 'initial'
-              ? 'Начать урок'
-              : 'Начать практику',
+              ? t('Начать урок')
+              : t('Начать практику'),
         )}
       </li>
     );
@@ -180,79 +180,89 @@ function Dashboard({ data, refresh }: { data: StudentDashboard; refresh: () => v
   return (
     <>
       <section className="panel" aria-labelledby="learning-goal">
-        <h2 id="learning-goal">{profile ? languageLabels[profile.language] : 'С чего начнём'}</h2>
-        {(plan?.isDemo || continueRun?.isDemo) && <p className="badge">Демонстрационный контент</p>}
+        <h2 id="learning-goal">
+          {profile ? languageLabels[profile.language] : t('С чего начнём')}
+        </h2>
+        {(plan?.isDemo || continueRun?.isDemo) && (
+          <p className="badge">{t('Демонстрационный контент')}</p>
+        )}
         {profile ? (
           <p className="lead">
-            Цель: <strong>{goalLabels[profile.goal]}</strong> · {profile.minutesPerDay} мин. в день
+            {t('Цель: ')}
+            <strong>{goalLabels[profile.goal]}</strong> · {profile.minutesPerDay}{' '}
+            {t(' мин. в день')}
           </p>
         ) : (
           <p>
-            Выберите язык, цель и время на занятия. После короткой диагностики появится ваш план.
+            {t(
+              'Выберите язык, цель и время на занятия. После короткой диагностики появится ваш план.',
+            )}
           </p>
         )}
         {continueRun ? (
           <div className="dashboard-next" data-testid="dashboard-next">
             <h3>{continueRun.title}</h3>
             <p>
-              {continueRun.completedSteps}/{continueRun.totalSteps} заданий завершено. Ответы и
-              черновик сохранены.
+              {continueRun.completedSteps}/{continueRun.totalSteps}{' '}
+              {t(' заданий завершено. Ответы и черновик сохранены.')}
             </p>
             <Link className="button-link" to={`/learning/runs/${continueRun.id}`}>
               {continueRun.purpose === 'diagnostic'
-                ? 'Продолжить диагностику →'
-                : 'Продолжить урок →'}
+                ? t('Продолжить диагностику →')
+                : t('Продолжить урок →')}
             </Link>
           </div>
         ) : nextAssignment ? (
           <div className="dashboard-next" data-testid="dashboard-next">
             <h3>{nextAssignment.title}</h3>
             <p>
-              {kindLabels[nextAssignment.kind]} · {nextAssignment.estimatedMinutes} мин.
+              {kindLabels[nextAssignment.kind]} · {nextAssignment.estimatedMinutes} {t(' мин.')}
             </p>
-            {assignmentButton(nextAssignment, 'Начать следующее назначение')}
+            {assignmentButton(nextAssignment, t('Начать следующее назначение'))}
           </div>
         ) : !profile ? (
           <Link className="button-link" to="/onboarding">
-            Заполнить анкету
+            {t('Заполнить анкету')}
           </Link>
         ) : !plan ? (
           data.diagnostic?.status === 'completed' &&
           data.diagnostic.profileRevision === profile.revision ? (
             <div>
-              <p>Диагностика завершена. Можно сформировать план по сохранённому результату.</p>
+              <p>
+                {t('Диагностика завершена. Можно сформировать план по сохранённому результату.')}
+              </p>
               <button
                 disabled={busy}
                 onClick={() => void start({ kind: 'plan', diagnosticId: data.diagnostic!.id })}
               >
-                Сформировать план
+                {t('Сформировать план')}
               </button>
             </div>
           ) : (
             <div>
-              <p>Пройдите короткую диагностику, чтобы получить первоначальный план.</p>
+              <p>{t('Пройдите короткую диагностику, чтобы получить первоначальный план.')}</p>
               <button disabled={busy} onClick={() => void start({ kind: 'diagnostic' })}>
-                {busy ? 'Открываем диагностику…' : 'Начать диагностику'}
+                {busy ? t('Открываем диагностику…') : t('Начать диагностику')}
               </button>
             </div>
           )
         ) : (
           <p role="status">
             {plan.status === 'completed'
-              ? 'Активных незавершённых назначений в плане нет.'
-              : 'Доступные задания выполнены. Следующая проверка откроется в указанное время.'}
+              ? t('Активных незавершённых назначений в плане нет.')
+              : t('Доступные задания выполнены. Следующая проверка откроется в указанное время.')}
           </p>
         )}
         {profile && (
           <p>
-            <Link to="/onboarding">Изменить анкету и пройти диагностику →</Link>
+            <Link to="/onboarding">{t('Изменить анкету и пройти диагностику →')}</Link>
           </p>
         )}
         {data.profileChangedSincePlan && plan && (
           <div className="notice">
-            <p>Анкета изменена. Текущий план сохраняет прежнюю цель и нагрузку:</p>
+            <p>{t('Анкета изменена. Текущий план сохраняет прежнюю цель и нагрузку:')}</p>
             <QuestionnaireSummary data={plan.questionnaire} />
-            <Link to="/onboarding">Обновить план через новую диагностику →</Link>
+            <Link to="/onboarding">{t('Обновить план через новую диагностику →')}</Link>
           </div>
         )}
       </section>
@@ -263,9 +273,9 @@ function Dashboard({ data, refresh }: { data: StudentDashboard; refresh: () => v
         />
       )}
       <section className="panel" aria-labelledby="today-heading">
-        <h2 id="today-heading">Задания на сегодня</h2>
+        <h2 id="today-heading">{t('Задания на сегодня')}</h2>
         <p className="muted">
-          {new Date(data.asOf).toLocaleDateString('ru-RU', {
+          {new Date(data.asOf).toLocaleDateString(dateLocale, {
             timeZone: data.timeZone,
             dateStyle: 'long',
           })}{' '}
@@ -273,8 +283,9 @@ function Dashboard({ data, refresh }: { data: StudentDashboard; refresh: () => v
         </p>
         {plan && (
           <p>
-            Рекомендуемый день {data.recommendedDay}. Незавершённые задания предыдущих дней остаются
-            в списке. Распределение можно проходить в своём темпе.
+            {t('Рекомендуемый день ')}
+            {data.recommendedDay}
+            {t('. Незавершённые задания предыдущих дней остаются в списке.')}
           </p>
         )}
         {data.today.length ? (
@@ -282,40 +293,44 @@ function Dashboard({ data, refresh }: { data: StudentDashboard; refresh: () => v
         ) : (
           <p>
             {plan
-              ? 'Незавершённых уроков на сегодня нет. Повторения показаны отдельно; при желании можно перейти к следующему шагу плана.'
-              : 'Здесь появятся уроки и дополнительные упражнения из вашего плана.'}
+              ? t(
+                  'Незавершённых уроков на сегодня нет. Повторения показаны отдельно; при желании можно перейти к следующему шагу плана.',
+                )
+              : t('Здесь появятся уроки и дополнительные упражнения из вашего плана.')}
           </p>
         )}
       </section>
       <section className="panel" aria-labelledby="reviews-heading">
-        <h2 id="reviews-heading">Назначенные повторения</h2>
+        <h2 id="reviews-heading">{t('Назначенные повторения')}</h2>
         {data.reviews.length ? (
           <>
             <p className="muted">
-              Время указано для {data.timeZone}. Проверки открываются в назначенное время.
+              {t('Время указано для ')}
+              {data.timeZone}
+              {t('. Проверки открываются в назначенное время.')}
             </p>
             <ul className="dashboard-list">{data.reviews.map(assignment)}</ul>
           </>
         ) : (
-          <p>Повторения появятся после самостоятельных успешных ответов.</p>
+          <p>{t('Повторения появятся после самостоятельных успешных ответов.')}</p>
         )}
       </section>
       <section className="panel" aria-labelledby="progress-heading">
-        <h2 id="progress-heading">Краткий прогресс</h2>
+        <h2 id="progress-heading">{t('Краткий прогресс')}</h2>
         <p>
-          Завершено уроков:{' '}
+          {t('Завершено уроков:')}{' '}
           <strong data-testid="dashboard-completed-lessons">{progress.completedLessons}</strong>
         </p>
         {plan && (
           <>
             <p>
-              В текущем плане завершено назначений:{' '}
+              {t('В текущем плане завершено назначений:')}{' '}
               <strong>
                 {plan.completedAssignments}/{plan.totalAssignments}
               </strong>
             </p>
             <progress
-              aria-label="Выполнение текущего плана"
+              aria-label={t('Выполнение текущего плана')}
               max={Math.max(1, plan.totalAssignments)}
               value={plan.completedAssignments}
             />
@@ -323,35 +338,41 @@ function Dashboard({ data, refresh }: { data: StudentDashboard; refresh: () => v
         )}
         <dl className="dashboard-stats" data-testid="dashboard-stats">
           <div>
-            <dt>Самостоятельно верно</dt>
+            <dt>{t('Самостоятельно верно')}</dt>
             <dd>{progress.independentCorrect}</dd>
           </div>
           <div>
-            <dt>Верно с помощью</dt>
+            <dt>{t('Верно с помощью')}</dt>
             <dd>{progress.assistedCorrect}</dd>
           </div>
           <div>
-            <dt>Попытки с ошибкой</dt>
+            <dt>{t('Попытки с ошибкой')}</dt>
             <dd>{progress.incorrectAttempts}</dd>
           </div>
         </dl>
-        <p>Проверено преподавателем: {progress.teacherReviewedAttempts}</p>
+        <p>
+          {t('Проверено преподавателем: ')}
+          {progress.teacherReviewedAttempts}
+        </p>
         <p className="muted">
-          {progress.evaluatedAttempts} проверенных попыток
-          {profile ? ` · ${languageLabels[profile.language]}` : ''}. Повторные попытки учитываются
-          отдельно. Учебные оценки предварительные и не подтверждают общий уровень языка.
+          {progress.evaluatedAttempts} {t(' проверенных попыток')}
+          {profile ? ` · ${languageLabels[profile.language]}` : ''}
+          {t(
+            '. Повторные попытки учитываются отдельно. Учебные оценки предварительные и не подтверждают общий уровень языка.',
+          )}
         </p>
         {progress.pendingEvaluationAttempts > 0 && (
           <p>
-            Ожидают завершения диагностики или контроля: {progress.pendingEvaluationAttempts}. Их
-            оценки пока не включены в сводку.
+            {t('Ожидают завершения диагностики или контроля: ')}
+            {progress.pendingEvaluationAttempts}
+            {t('. Их оценки пока не включены в сводку.')}
           </p>
         )}
       </section>
       <UpcomingMeetings />
       <TeacherUpdates compact />
       <section className="panel" aria-labelledby="results-heading">
-        <h2 id="results-heading">Последние результаты</h2>
+        <h2 id="results-heading">{t('Последние результаты')}</h2>
         {data.recentResults.length ? (
           <ul className="account-list" data-testid="dashboard-results">
             {data.recentResults.map((r) => (
@@ -359,53 +380,55 @@ function Dashboard({ data, refresh }: { data: StudentDashboard; refresh: () => v
                 <strong>{r.title}</strong>
                 <span>
                   {r.correct === null
-                    ? 'Ответ сохранён · оценка после завершения'
+                    ? t('Ответ сохранён · оценка после завершения')
                     : r.correct
                       ? r.independent
-                        ? 'Верно самостоятельно'
-                        : 'Верно с помощью'
-                      : 'Есть ошибка'}
+                        ? t('Верно самостоятельно')
+                        : t('Верно с помощью')
+                      : t('Есть ошибка')}
                 </span>
-                {r.teacherReviewed && <span className="badge">Проверено преподавателем</span>}
+                {r.teacherReviewed && (
+                  <span className="badge">{t('Проверено преподавателем')}</span>
+                )}
                 <time dateTime={r.evaluatedAt}>{formatDate(r.evaluatedAt)}</time>
-                <Link to={`/learning/runs/${r.runId}`}>Открыть ответ →</Link>
+                <Link to={`/learning/runs/${r.runId}`}>{t('Открыть ответ →')}</Link>
               </li>
             ))}
           </ul>
         ) : (
           <EmptyState
-            title="Пока нет ответов"
-            description="После первого ответа здесь появится сохранённый результат."
+            title={t('Пока нет ответов')}
+            description={t('После первого ответа здесь появится сохранённый результат.')}
           />
         )}
         <p>
-          <Link to="/learning">Все прохождения и ответы →</Link>
+          <Link to="/learning">{t('Все прохождения и ответы →')}</Link>
         </p>
       </section>
-      <nav className="next-grid" aria-label="Разделы ученика">
+      <nav className="next-grid" aria-label={t('Разделы ученика')}>
         <Link to={plan ? `/plan/${plan.id}` : '/plan'}>
-          <strong>Мой план</strong>
-          <span>Назначения и причины изменений →</span>
+          <strong>{t('Мой план')}</strong>
+          <span>{t('Назначения и причины изменений →')}</span>
         </Link>
         <Link to="/assistant">
-          <strong>Помощник</strong>
-          <span>Персонаж, объяснения и переписка →</span>
+          <strong>{t('Помощник')}</strong>
+          <span>{t('Персонаж, объяснения и переписка →')}</span>
         </Link>
         <Link to="/schedule">
-          <strong>Расписание</strong>
-          <span>Занятия с преподавателем →</span>
+          <strong>{t('Расписание')}</strong>
+          <span>{t('Занятия с преподавателем →')}</span>
         </Link>
         <Link to="/progress">
-          <strong>Учебный отчёт</strong>
-          <span>Прогресс и результаты →</span>
+          <strong>{t('Учебный отчёт')}</strong>
+          <span>{t('Прогресс и результаты →')}</span>
         </Link>
       </nav>
       <details className="panel">
-        <summary>Профиль и доступ</summary>
+        <summary>{t('Профиль и доступ')}</summary>
         <UserSummary user={data.user} />
       </details>
       <p>
-        <Link to="/courses">Учебные маршруты →</Link>
+        <Link to="/courses">{t('Учебные маршруты →')}</Link>
       </p>
     </>
   );

@@ -8,6 +8,8 @@ export const userSchema = z.object({
   role: roleSchema,
   isDemo: z.boolean(),
   isBlocked: z.boolean(),
+  isActive: z.boolean(),
+  blockReason: z.string(),
   accessVerified: z.boolean(),
   emailVerified: z.boolean(),
   authenticatorEnabled: z.boolean(),
@@ -95,10 +97,17 @@ export const securityPolicySchema = z.strictObject({
 });
 export const securitySettingsSchema = securityPolicySchema.extend({ currentIp: z.string() });
 export const usersSchema = z.array(userSchema);
-export const accountUpdateSchema = z.strictObject({
-  isBlocked: z.boolean(),
-  accessVerified: z.boolean(),
-});
+export const accountUpdateSchema = z
+  .strictObject({
+    isBlocked: z.boolean(),
+    isActive: z.boolean().optional(),
+    blockReason: z.string().trim().max(1000).optional(),
+    accessVerified: z.boolean(),
+  })
+  .refine((input) => input.isActive !== false || !input.isBlocked, {
+    path: ['isBlocked'],
+    message: 'Выберите деактивацию или блокировку.',
+  });
 export const adminAccountCreateSchema = z.strictObject({
   email: z
     .email()

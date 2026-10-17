@@ -159,9 +159,7 @@ test('mistakes and independent success produce different next tasks and persiste
   ).toBeVisible();
   const unchanged = await plan(page);
   expect(unchanged.assignments.find((x) => x.id === next.id)!.status).toBe('pending');
-  const other = await browser.newContext({
-    baseURL: 'http://127.0.0.1:3200',
-  });
+  const other = await browser.newContext({ locale: 'ru-RU', baseURL: 'http://127.0.0.1:3200' });
   try {
     const good = await other.newPage();
     await good.setViewportSize({ width: 390, height: 844 });
@@ -290,12 +288,8 @@ test('root sets budgets and provider keys; a created administrator can change on
   await page.getByRole('button', { name: 'Создать и показать QR-код', exact: true }).click();
   await expect(page.getByAltText('QR-код Authenticator пользователя')).toBeVisible();
   const key = (await page.getByTestId('admin-manual-key').textContent())!.trim();
-  const operator = await browser.newContext({
-      baseURL: 'http://127.0.0.1:3200',
-    }),
-    student = await browser.newContext({
-      baseURL: 'http://127.0.0.1:3200',
-    });
+  const operator = await browser.newContext({ locale: 'ru-RU', baseURL: 'http://127.0.0.1:3200' }),
+    student = await browser.newContext({ locale: 'ru-RU', baseURL: 'http://127.0.0.1:3200' });
   try {
     const admin = await operator.newPage();
     await ordinaryLogin(admin, email, key, 'Кабинет администратора');

@@ -1,3 +1,4 @@
+import { t } from '../i18n';
 import { UpcomingMeetings } from './meetings/shared';
 import { RecentAttempts, TeacherUpdates } from './TeacherPages';
 import { Link, useParams } from 'react-router-dom';
@@ -18,19 +19,21 @@ export function UserSummary({ user }: { user: User }) {
       <div className="profile-badges">
         <span className="badge">
           {user.role === 'student'
-            ? 'Ученик'
+            ? t('Ученик')
             : user.role === 'teacher'
-              ? 'Преподаватель'
+              ? t('Преподаватель')
               : user.role === 'admin'
-                ? 'Администратор'
-                : 'Суперадмин'}
+                ? t('Администратор')
+                : t('Суперадмин')}
         </span>
-        {user.isDemo && <span className="badge">Демо-аккаунт</span>}
+        {user.isDemo && <span className="badge">{t('Демо-аккаунт')}</span>}
         <span className="badge">
-          {user.emailVerified ? 'Почта подтверждена' : 'Почта не подтверждена'}
+          {user.emailVerified ? t('Почта подтверждена') : t('Почта не подтверждена')}
         </span>
         <span className="badge">
-          {user.authenticatorEnabled ? 'Authenticator подключён' : 'Authenticator не подключён'}
+          {user.authenticatorEnabled
+            ? t('Authenticator подключён')
+            : t('Authenticator не подключён')}
         </span>
       </div>
     </div>
@@ -41,20 +44,19 @@ export function TeacherPage() {
   const { state, refresh } = useResource('/teacher/students', usersSchema);
   return (
     <>
-      <p className="eyebrow">Рабочее пространство</p>
-      <h1>Кабинет преподавателя</h1>
+      <h1>{t('Кабинет преподавателя')}</h1>
       <p className="button-row">
-        <Link to="/schedule">Расписание и видеозанятия</Link>
-        <Link to="/plan">Планы учеников</Link>
-        <Link to="/progress">Учебные отчёты</Link>
-        <Link to="/learning">Прохождения и ответы</Link>
+        <Link to="/schedule">{t('Расписание и видеозанятия')}</Link>
+        <Link to="/plan">{t('Планы учеников')}</Link>
+        <Link to="/progress">{t('Учебные отчёты')}</Link>
+        <Link to="/learning">{t('Прохождения и ответы')}</Link>
       </p>
       <UpcomingMeetings />
       <section className="panel">
         <UserSummary user={session.user!} />
       </section>
       <section className="panel">
-        <h2>Мои ученики</h2>
+        <h2>{t('Мои ученики')}</h2>
         {state.status === 'loading' ? (
           <LoadingState />
         ) : state.status === 'error' ? (
@@ -66,16 +68,16 @@ export function TeacherPage() {
                 <strong>{user.name}</strong>
                 <span>{user.email}</span>
                 <Link className="text-link" to={`/teacher/students/${user.id}`}>
-                  Открыть карточку →
+                  {t('Открыть карточку →')}
                 </Link>
-                <Link to={`/progress?userId=${user.id}`}>Учебный отчёт →</Link>
+                <Link to={`/progress?userId=${user.id}`}>{t('Учебный отчёт →')}</Link>
               </li>
             ))}
           </ul>
         ) : (
           <EmptyState
-            title="Ученики пока не назначены"
-            description="Суперадмин может закрепить ученика за вами."
+            title={t('Ученики пока не назначены')}
+            description={t('Суперадмин может закрепить ученика за вами.')}
           />
         )}
       </section>
@@ -90,16 +92,16 @@ export function TeacherStudentPage() {
   if (state.status === 'error') return <ErrorState error={state.error} retry={refresh} />;
   return (
     <>
-      <h1>Карточка ученика</h1>
+      <h1>{t('Карточка ученика')}</h1>
       <section className="panel">
         <UserSummary user={state.data} />
-        <p>Ниже доступны сохранённые прохождения и ответы ученика.</p>
+        <p>{t('Ниже доступны сохранённые прохождения и ответы ученика.')}</p>
         <Link className="button-link" to={`/progress?userId=${id}`}>
-          Открыть учебный отчёт →
+          {t('Открыть учебный отчёт →')}
         </Link>
       </section>
       <p>
-        <Link to={`/assistant?userId=${id}`}>Персонаж и переписка помощника →</Link>
+        <Link to={`/assistant?userId=${id}`}>{t('Персонаж и переписка помощника →')}</Link>
       </p>
       <RecentAttempts userId={id!} />
       <TeacherUpdates userId={id!} compact />
@@ -108,7 +110,7 @@ export function TeacherStudentPage() {
       <ProfileOverview userId={id!} />
       <DiagnosticHistory userId={id!} />
       <SkillStates userId={id!} />
-      <Link to={session.dashboardPath ?? '/teacher'}>← Кабинет</Link>
+      <Link to={session.dashboardPath ?? '/teacher'}>{t('← Кабинет')}</Link>
     </>
   );
 }

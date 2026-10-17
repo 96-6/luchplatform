@@ -21,11 +21,14 @@ test('calendar persists a group meeting, retries lost create, reschedules and ca
 }) => {
   test.setTimeout(90000);
   const student = await login(page, 'meeting-calendar-student');
-  const ctx = await browser.newContext({ baseURL: 'http://127.0.0.1:3200' });
+  const ctx = await browser.newContext({ locale: 'ru-RU', baseURL: 'http://127.0.0.1:3200' });
   try {
     const teacher = await ctx.newPage(),
       tutor = await login(teacher, 'meeting-calendar-tutor');
-    const peerContext = await browser.newContext({ baseURL: 'http://127.0.0.1:3200' });
+    const peerContext = await browser.newContext({
+      locale: 'ru-RU',
+      baseURL: 'http://127.0.0.1:3200',
+    });
     const peer = await login(await peerContext.newPage(), 'meeting-calendar-peer');
     await peerContext.close();
     await link(browser, tutor.user.id, [student.user.id, peer.user.id]);
@@ -107,10 +110,12 @@ for (const language of ['ru', 'en'] as const)
       contexts = [];
     try {
       const sctx = await browser.newContext({
+          locale: 'ru-RU',
           baseURL: 'http://127.0.0.1:3200',
           permissions: ['camera', 'microphone'],
         }),
         tctx = await browser.newContext({
+          locale: 'ru-RU',
           baseURL: 'http://127.0.0.1:3200',
           permissions: ['camera', 'microphone'],
         });
@@ -188,18 +193,37 @@ for (const language of ['ru', 'en'] as const)
       ).toBe(true);
       await studentPage.getByRole('button', { name: 'Поднять руку', exact: true }).click();
       await expect(tile.getByLabel('Рука поднята', { exact: true })).toBeVisible();
+      await studentPage.getByRole('button', { name: 'Чат', exact: true }).click();
+      await teacher.getByRole('button', { name: 'Чат', exact: true }).click();
       const chat = studentPage.getByRole('region', { name: 'Чат видеовстречи', exact: true });
       await chat
         .getByLabel('Сообщение в чат', { exact: true })
         .fill('Можно повторить последний пример?');
       await chat.getByRole('button', { name: 'Отправить в чат', exact: true }).click();
       await expect(teacher.getByRole('log')).toContainText('Можно повторить последний пример?');
+      await teacher.getByRole('button', { name: 'Закрыть чат', exact: true }).click();
+      await tile.getByRole('button', { name: 'Закрыть сведения', exact: true }).click();
+      await teacher.screenshot({
+        path: `test-results/meeting-grid-${language}.png`,
+        fullPage: true,
+      });
       await teacher.setViewportSize({ width: 390, height: 844 });
       expect(await teacher.evaluate(() => document.documentElement.scrollWidth <= innerWidth)).toBe(
         true,
       );
+      await tile
+        .getByRole('button', { name: 'Предупреждение о виртуальной камере', exact: true })
+        .click();
+      await teacher.screenshot({
+        path: `test-results/meeting-room-mobile-${language}.png`,
+        fullPage: true,
+      });
       await tile.screenshot({ path: `test-results/meeting-warning-${language}.png` });
+      await tile.getByRole('button', { name: 'Закрыть сведения', exact: true }).click();
+      await expect(tile.getByRole('note')).toHaveCount(0);
       await teacher.setViewportSize({ width: 1280, height: 900 });
+      if ((await teacher.locator('.conference-manage').getAttribute('open')) === null)
+        await teacher.locator('.conference-manage > summary').click();
       await teacher
         .getByRole('button', { name: 'Завершить встречу для всех', exact: true })
         .click();
@@ -277,14 +301,16 @@ test('real screen share, moderation, permission failure, locked reconnect, root 
     contexts = [];
   try {
     const tctx = await browser.newContext({
+        locale: 'ru-RU',
         baseURL: 'http://127.0.0.1:3200',
         permissions: ['camera', 'microphone'],
       }),
       sctx = await browser.newContext({
+        locale: 'ru-RU',
         baseURL: 'http://127.0.0.1:3200',
         permissions: ['camera', 'microphone'],
       }),
-      rctx = await browser.newContext({ baseURL: 'http://127.0.0.1:3200' });
+      rctx = await browser.newContext({ locale: 'ru-RU', baseURL: 'http://127.0.0.1:3200' });
     contexts.push(tctx, sctx, rctx);
     const teacher = await tctx.newPage(),
       studentPage = await sctx.newPage(),
@@ -292,7 +318,7 @@ test('real screen share, moderation, permission failure, locked reconnect, root 
     await virtualNames(studentPage);
     const tutor = await login(teacher, 'meeting-moderation-tutor'),
       student = await login(studentPage, 'meeting-moderation-student');
-    const pctx = await browser.newContext({ baseURL: 'http://127.0.0.1:3200' });
+    const pctx = await browser.newContext({ locale: 'ru-RU', baseURL: 'http://127.0.0.1:3200' });
     contexts.push(pctx);
     const peerPage = await pctx.newPage(),
       peer = await login(peerPage, 'meeting-moderation-peer');
@@ -365,6 +391,8 @@ test('real screen share, moderation, permission failure, locked reconnect, root 
     await expect(
       studentPage.getByRole('button', { name: 'Включить микрофон', exact: true }),
     ).toBeEnabled();
+    if ((await teacher.locator('.conference-manage').getAttribute('open')) === null)
+      await teacher.locator('.conference-manage > summary').click();
     await teacher.getByRole('button', { name: 'Закрыть вход', exact: true }).click();
     await studentPage.reload();
     await studentPage.getByRole('button', { name: 'Войти во встречу', exact: true }).click();
@@ -393,6 +421,8 @@ test('real screen share, moderation, permission failure, locked reconnect, root 
       await (await teacher.request.get(`/api/v1/meetings/${id}/room-state`)).json()
     ).data;
     expect(serverState.available).toBe(true);
+    if ((await observer.locator('.conference-manage').getAttribute('open')) === null)
+      await observer.locator('.conference-manage > summary').click();
     await observer.getByRole('button', { name: 'Завершить встречу для всех', exact: true }).click();
     await observer
       .getByRole('button', { name: 'Подтвердить завершение для всех', exact: true })

@@ -120,8 +120,14 @@ test('luch engine saves both languages, resumes after login and shares all evide
     userId = stored.run.user.id;
   await page.getByRole('button', { name: 'Сохранить и выйти', exact: true }).click();
   await expect(page.getByRole('heading', { name: 'Кабинет ученика', exact: true })).toBeVisible();
-  const adminContext = await browser.newContext({ baseURL: 'http://127.0.0.1:3200' }),
-    teacherContext = await browser.newContext({ baseURL: 'http://127.0.0.1:3200' });
+  const adminContext = await browser.newContext({
+      locale: 'ru-RU',
+      baseURL: 'http://127.0.0.1:3200',
+    }),
+    teacherContext = await browser.newContext({
+      locale: 'ru-RU',
+      baseURL: 'http://127.0.0.1:3200',
+    });
   try {
     const admin = await adminContext.newPage();
     await enroll(admin, 'engine-admin@example.test', 'superadmin');
@@ -264,7 +270,7 @@ test('background integrity signals stay out of learner feedback and are availabl
   const data = await runData(page);
   expect(data.attempts[0].integrity).toBeNull();
   await expect(page.getByText('Контекст честности:', { exact: false })).toHaveCount(0);
-  const context = await browser.newContext({ baseURL: 'http://127.0.0.1:3200' });
+  const context = await browser.newContext({ locale: 'ru-RU', baseURL: 'http://127.0.0.1:3200' });
   try {
     const admin = await context.newPage();
     await loginFixture(admin, 'engine-integrity-admin');

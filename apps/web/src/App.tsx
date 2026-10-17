@@ -1,3 +1,4 @@
+import { t } from './i18n';
 import { lazy, Suspense } from 'react';
 import { SchedulePage } from './pages/meetings/SchedulePage';
 import { MeetingPage } from './pages/meetings/MeetingPage';
@@ -44,7 +45,7 @@ export function App() {
   return (
     <Layout devTools={devTools}>
       {state.status === 'loading' ? (
-        <LoadingState text="Подключаемся к платформе…" />
+        <LoadingState text={t('Подключаемся к платформе…')} />
       ) : state.status === 'error' ? (
         <ErrorState error={state.error} retry={refresh} />
       ) : (
@@ -78,7 +79,7 @@ export function App() {
               path="/meetings/:id/room"
               element={
                 <Protected>
-                  <Suspense fallback={<LoadingState text="Открываем видеокомнату…" />}>
+                  <Suspense fallback={<LoadingState text={t('Открываем видеокомнату…')} />}>
                     <MeetingRoomPage />
                   </Suspense>
                 </Protected>
@@ -256,8 +257,8 @@ export function App() {
               path="*"
               element={
                 <>
-                  <h1>Страница не найдена</h1>
-                  <Link to="/">Вернуться на главную</Link>
+                  <h1>{t('Страница не найдена')}</h1>
+                  <Link to="/">{t('Вернуться на главную')}</Link>
                 </>
               }
             />
