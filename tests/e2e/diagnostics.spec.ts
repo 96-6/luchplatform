@@ -146,7 +146,7 @@ test('superadmin creates a ready account, shows its QR and resets 2FA for ordina
     const expired = await student.reload();
     expect(expired?.status()).toBe(401);
     await expect(
-      student.getByRole('heading', { name: '401 · Требуется вход', exact: true }),
+      student.getByRole('heading', { name: 'Требуется вход', exact: true }),
     ).toBeVisible();
     await ordinaryLogin(student, email, newKey!.trim());
     await expect(
