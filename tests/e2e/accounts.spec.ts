@@ -162,11 +162,17 @@ test('email, Authenticator, three roles, shared assignments and security setting
   }
 });
 
-test('unauthenticated users are redirected away from protected cabinets', async ({ page }) => {
+test('unauthenticated direct cabinet links return HTTP 401 without a redirect bypass', async ({
+  page,
+}) => {
   for (const path of ['/student', '/teacher', '/admin', '/plan', '/courses', '/admin/content']) {
-    await page.goto(path);
-    await expect(page.getByRole('heading', { name: 'Вход в аккаунт', exact: true })).toBeVisible();
-    expect(new URL(page.url()).pathname).toBe('/login');
+    const response = await page.goto(path);
+    expect(response?.status()).toBe(401);
+    await expect(
+      page.getByRole('heading', { name: '401 · Требуется вход', exact: true }),
+    ).toBeVisible();
+    await expect(page.getByRole('link', { name: 'Войти в аккаунт' })).toBeVisible();
+    expect(new URL(page.url()).pathname).toBe(path);
   }
   expect((await page.request.get('/api/v1/admin/accounts')).status()).toBe(401);
 });

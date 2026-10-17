@@ -43,6 +43,12 @@ export function TeacherPage() {
     <>
       <p className="eyebrow">Рабочее пространство</p>
       <h1>Кабинет преподавателя</h1>
+      <p className="button-row">
+        <Link to="/schedule">Расписание и видеозанятия</Link>
+        <Link to="/plan">Планы учеников</Link>
+        <Link to="/progress">Учебные отчёты</Link>
+        <Link to="/learning">Прохождения и ответы</Link>
+      </p>
       <UpcomingMeetings />
       <section className="panel">
         <UserSummary user={session.user!} />

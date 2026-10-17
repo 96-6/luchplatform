@@ -386,6 +386,7 @@ test('empty and failed teacher workspaces recover and foreign student cards stay
   expect((await page.request.get(`/api/v1/learning/attempts?userId=${stranger}`)).status()).toBe(
     404,
   );
-  await page.goto(`/teacher/students/${stranger}`);
+  const denied = await page.goto(`/teacher/students/${stranger}`);
+  expect(denied?.status()).toBe(404);
   await expect(page.getByRole('alert')).toContainText('Аккаунт не найден.');
 });

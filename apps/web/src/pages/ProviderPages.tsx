@@ -1,5 +1,4 @@
 import { useEffect, useState, type FormEvent } from 'react';
-import { Link } from 'react-router-dom';
 import {
   providerSettingsSchema,
   providerRequestsSchema,
@@ -8,11 +7,9 @@ import {
 } from '@luch/contracts';
 import type { z } from 'zod';
 import { AvatarBindings } from '../components/AvatarBindings';
-import { useAuth } from '../auth/AuthContext';
 import { api } from '../lib/api';
 import { useResource } from '../lib/useResource';
 import { LoadingState, ErrorState } from '../components/States';
-import { UserSummary } from './AccountPages';
 type View = z.infer<typeof providerSettingsSchema>;
 const usd = (micros: number) =>
   `${(micros / 1_000_000).toLocaleString('ru-RU', { minimumFractionDigits: 6, maximumFractionDigits: 6 })} USD`;
@@ -32,19 +29,6 @@ const numberLabels = {
   maxConcurrent: 'Одновременных запросов',
   pricingValidityHours: 'Срок подтверждения цены, часы',
 };
-export function OperationsPage() {
-  const { session } = useAuth();
-  return (
-    <>
-      <h1>Кабинет администратора</h1>
-      <section className="panel">
-        <UserSummary user={session.user!} />
-        <p>Настройки адаптации доступны в пределах ограничений суперадмина.</p>
-        <Link to="/admin/providers">AI, озвучивание и расходы →</Link>
-      </section>
-    </>
-  );
-}
 export function ProviderPage() {
   const resource = useResource('/admin/providers', providerSettingsSchema),
     [view, setView] = useState<View | null>(null),

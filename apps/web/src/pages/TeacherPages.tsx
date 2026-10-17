@@ -1,3 +1,4 @@
+import { StudentDirectory } from '../components/StudentDirectory';
 import { useEffect, useRef, useState, type FormEvent } from 'react';
 import { Link, useParams, useSearchParams } from 'react-router-dom';
 import {
@@ -488,7 +489,15 @@ export function TeacherUpdates({
   );
 }
 export function TeacherFeedbackPage() {
+  const { session } = useAuth();
   const [params] = useSearchParams();
+  if (session.user?.role !== 'student' && !params.get('userId'))
+    return (
+      <>
+        <h1>Комментарии и назначения</h1>
+        <StudentDirectory path="/feedback" />
+      </>
+    );
   return (
     <>
       <h1>Комментарии и назначения</h1>

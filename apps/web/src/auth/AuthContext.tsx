@@ -1,8 +1,7 @@
 import { createContext, useContext, useEffect, useState, type ReactNode } from 'react';
-import { Navigate } from 'react-router-dom';
 import { sessionSchema, messageSchema, type Session, type User } from '@luch/contracts';
 import { api, setCsrfToken } from '../lib/api';
-import { LoadingState, ErrorState } from '../components/States';
+import { LoadingState, ErrorState, StatusState } from '../components/States';
 
 const empty: Session = { user: null, csrfToken: null, dashboardPath: null };
 const AuthContext = createContext<{
@@ -71,11 +70,12 @@ export function Protected({
   const auth = useAuth();
   if (auth.loading) return <LoadingState />;
   if (auth.error) return <ErrorState error={auth.error} retry={auth.refresh} />;
-  if (!auth.session.user) return <Navigate to="/login" replace />;
+  if (!auth.session.user)
+    return <StatusState status={401} message="Войдите в аккаунт, чтобы открыть этот раздел." />;
   if (
     (role && auth.session.user.role !== role) ||
     (roles && !roles.includes(auth.session.user.role))
   )
-    return <Navigate to={auth.session.dashboardPath ?? '/login'} replace />;
+    return <StatusState status={403} message="Этот раздел недоступен вашей роли." />;
   return children;
 }

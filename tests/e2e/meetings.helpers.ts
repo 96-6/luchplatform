@@ -13,7 +13,7 @@ export async function csrf(p: Page) {
     'x-csrf-token': (await (await p.request.get('/api/v1/auth/session')).json()).data.csrfToken,
   };
 }
-export async function login(p: Page, prefix: string, offset = 0) {
+export async function login(p: Page, prefix: string, offset = 0, dashboard?: RegExp) {
   p.setDefaultTimeout(15000);
   const k = await keys(),
     email = `${prefix}-${test.info().retry}@example.test`;
@@ -32,7 +32,7 @@ export async function login(p: Page, prefix: string, offset = 0) {
   );
   await p.getByLabel('Символы с картинки').fill('ABCDE');
   await p.getByRole('button', { name: 'Войти', exact: true }).click();
-  await expect(p).toHaveURL(prefix.endsWith('-tutor') ? /\/teacher$/ : /\/student$/);
+  await expect(p).toHaveURL(dashboard ?? (prefix.endsWith('-tutor') ? /\/teacher$/ : /\/student$/));
   return (await (await p.request.get('/api/v1/auth/session')).json()).data;
 }
 export async function root(p: Page) {

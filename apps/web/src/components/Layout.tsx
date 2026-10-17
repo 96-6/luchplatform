@@ -1,5 +1,5 @@
 import { useEffect, useState, type ReactNode } from 'react';
-import { NavLink, useLocation } from 'react-router-dom';
+import { NavLink, useLocation, useNavigate } from 'react-router-dom';
 import { useAuth } from '../auth/AuthContext';
 
 const navigation = [
@@ -13,11 +13,13 @@ const navigation = [
   { to: '/progress', label: 'Прогресс', icon: '↗' },
   { to: '/feedback', label: 'Комментарии преподавателя', icon: '✎' },
   { to: '/admin/providers', label: 'AI и расходы', icon: '⚙' },
-  { to: '/teacher', label: 'Преподаватель', icon: '◇' },
+  { to: '/operations', label: 'Обслуживание', icon: '⚒' },
+  { to: '/teacher', label: 'Мои ученики', icon: '◇' },
 ];
 export function Layout({ children, devTools }: { children: ReactNode; devTools: boolean }) {
   const [open, setOpen] = useState(false);
   const auth = useAuth();
+  const navigate = useNavigate();
   const [logoutError, setLogoutError] = useState('');
   const user = auth.session.user;
   const visibleNavigation = user
@@ -25,13 +27,22 @@ export function Layout({ children, devTools }: { children: ReactNode; devTools: 
         .filter(
           (item) =>
             (item.to !== '/teacher' || user.role === 'teacher') &&
-            (item.to !== '/onboarding' || user.role === 'student') &&
+            (!['/learning', '/onboarding', '/plan', '/assistant', '/progress'].includes(item.to) ||
+              user.role !== 'admin') &&
             (item.to !== '/feedback' || user.role === 'student') &&
-            (item.to !== '/plan' || user.role === 'student') &&
+            (item.to !== '/operations' || ['admin', 'superadmin'].includes(user.role)) &&
             (item.to !== '/admin/providers' || user.role === 'admin' || user.role === 'superadmin'),
         )
         .map((item) =>
-          user.role === 'student' && item.to === '/' ? { ...item, to: '/student' } : item,
+          user.role === 'student' && item.to === '/'
+            ? { ...item, to: '/student' }
+            : item.to === '/plan' && user.role !== 'student'
+              ? { ...item, label: 'Планы учеников' }
+              : item.to === '/onboarding' && user.role !== 'student'
+                ? { ...item, label: 'Анкеты и диагностика учеников' }
+                : item.to === '/operations' && user.role === 'admin'
+                  ? { ...item, label: 'Администратор' }
+                  : item,
         )
     : [
         { to: '/', label: 'Главная', icon: '⌂' },
@@ -86,19 +97,13 @@ export function Layout({ children, devTools }: { children: ReactNode; devTools: 
               {item.label}
             </NavLink>
           ))}
-          {user && user.role !== 'student' && (
+          {user && user.role === 'superadmin' && (
             <NavLink to={auth.session.dashboardPath ?? '/student'}>
               <span aria-hidden="true">◇</span>
-              {user.role === 'superadmin'
-                ? 'Суперадмин'
-                : user.role === 'admin'
-                  ? 'Администратор'
-                  : user.role === 'teacher'
-                    ? 'Мои ученики'
-                    : 'Мой кабинет'}
+              Суперадмин
             </NavLink>
           )}
-          {devTools && (
+          {devTools && (!user || user.role === 'superadmin') && (
             <NavLink to="/system">
               <span aria-hidden="true">⚙</span>Проверка системы
             </NavLink>
@@ -120,7 +125,11 @@ export function Layout({ children, devTools }: { children: ReactNode; devTools: 
                 <button
                   className="secondary"
                   onClick={() => {
-                    void auth.logout().catch((error: Error) => setLogoutError(error.message));
+                    setLogoutError('');
+                    void auth
+                      .logout()
+                      .then(() => navigate('/login', { replace: true }))
+                      .catch((error: Error) => setLogoutError(error.message));
                   }}
                 >
                   Выйти

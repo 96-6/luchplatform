@@ -177,6 +177,22 @@ export async function registerAccountRoutes(app: FastifyInstance, auth: AuthServ
     });
     return { data: { message: 'Ученик закреплён за преподавателем.' }, requestId: request.id };
   });
+  app.post('/api/v1/admin/teacher-students/remove', async (request) => {
+    const actor = await auth.requireActor(request, 'superadmin', true);
+    const input = teacherLinkSchema.parse(request.body);
+    await db.transaction(async (tx) => {
+      const removed = await tx.query(
+        'DELETE FROM teacher_students WHERE teacher_id=$1 AND student_id=$2 RETURNING teacher_id',
+        [input.teacherId, input.studentId],
+      );
+      if (removed.rows.length)
+        await audit(tx, actor.user.id, 'teacher.student_unassigned', input.studentId);
+    });
+    return {
+      data: { message: 'Закрепление снято. Ответы и история обучения сохранены.' },
+      requestId: request.id,
+    };
+  });
   app.get('/api/v1/admin/security', async (request) => {
     await auth.requireActor(request, 'superadmin');
     return {

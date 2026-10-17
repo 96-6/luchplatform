@@ -193,6 +193,17 @@ for (const prefix of [
   'report-ru-tutor',
   'report-en-tutor',
   'report-empty',
+  'audit-student',
+  'audit-tutor',
+  'audit-admin',
+  'audit-superadmin',
+  'audit-select-student',
+  'audit-select-tutor',
+  'audit-maint-admin',
+  'audit-maint-superadmin',
+  'audit-links-student',
+  'audit-links-tutor',
+  'audit-dev-student',
 ])
   for (const retry of [0, 1]) {
     const email = `${prefix}-${retry}@example.test`;
@@ -203,20 +214,25 @@ for (const prefix of [
       [
         randomUUID(),
         email,
-        prefix.startsWith('meeting-')
-          ? `Встречи ${prefix}`
-          : prefix.startsWith('report-')
-            ? `Отчёт ${prefix}`
-            : 'Проверка движка',
+        prefix.startsWith('audit-')
+          ? `Проверка интерфейса ${prefix}`
+          : prefix.startsWith('meeting-')
+            ? `Встречи ${prefix}`
+            : prefix.startsWith('report-')
+              ? `Отчёт ${prefix}`
+              : 'Проверка движка',
         prefix === 'engine-integrity-admin' ||
         prefix === 'plan-admin' ||
         prefix === 'adapt-admin' ||
         prefix === 'adapt-providers-admin' ||
-        prefix === 'assistant-admin'
+        prefix === 'assistant-admin' ||
+        prefix.endsWith('-superadmin')
           ? 'superadmin'
-          : prefix === 'plan-teacher' || prefix.endsWith('-tutor')
-            ? 'teacher'
-            : 'student',
+          : prefix.startsWith('audit-') && prefix.endsWith('-admin')
+            ? 'admin'
+            : prefix === 'plan-teacher' || prefix.endsWith('-tutor')
+              ? 'teacher'
+              : 'student',
         fixtureCrypto.encrypt(key),
       ],
     );

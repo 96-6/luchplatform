@@ -31,12 +31,14 @@ export async function learningFixture(
     Settings,
     'LIVEKIT_URL' | 'LIVEKIT_WS_URL' | 'LIVEKIT_API_KEY' | 'LIVEKIT_API_SECRET'
   >,
+  testWebRoot?: string,
 ) {
   const settings = parseSettings({
     APP_ENV: 'test',
     DATABASE_URL: process.env.TEST_DATABASE_URL ?? 'pglite:memory',
     AUTH_ENCRYPTION_KEY: randomBytes(32).toString('base64'),
     LOG_LEVEL: 'silent',
+    SERVE_WEB: testWebRoot ? 'true' : 'false',
     ...videoSettings,
   });
   if (
@@ -46,7 +48,11 @@ export async function learningFixture(
     throw new Error('Use an isolated test database.');
   const db = await createDatabase(settings);
   await migrate(db);
-  const app = await buildApp(settings, db, { providerFetch, meetingVideo }),
+  const app = await buildApp(settings, db, {
+      providerFetch,
+      meetingVideo,
+      ...(testWebRoot ? { testWebRoot } : {}),
+    }),
     crypto = new AccountCrypto(settings.AUTH_ENCRYPTION_KEY);
   const demo = contentPackageSchema.parse(
     JSON.parse(await readFile(resolve(projectRoot, 'content/demo/luch-demo.json'), 'utf8')),

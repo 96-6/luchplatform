@@ -54,6 +54,12 @@ export class LuchEngine {
   }
   async startInTransaction(tx: QueryExecutor, actor: Actor, input: StartRun) {
     const userId = input.userId ?? actor.user.id;
+    if (!['student', 'superadmin'].includes(actor.user.role))
+      throw new AppError(
+        403,
+        'STUDENT_REQUIRED',
+        'Прохождения начинает ученик; преподаватель использует предварительный просмотр материалов.',
+      );
     if (userId !== actor.user.id && actor.user.role !== 'superadmin')
       throw new AppError(403, 'ACCESS_DENIED', 'Начните собственное прохождение.');
     const revision = await this.content.revision(input.packageId, input.packageVersion, tx);
@@ -74,8 +80,15 @@ export class LuchEngine {
         : set!.exerciseIds.map((id) => manifest.exercises.find((item) => item.id === id)!);
     if (!exercises.length)
       throw new AppError(409, 'NO_EXERCISES', 'В этом наборе пока нет заданий.');
-    if (!(await tx.query('SELECT id FROM users WHERE id=$1', [userId])).rows.length)
-      throw new AppError(404, 'USER_NOT_FOUND', 'Аккаунт не найден.');
+    const subject = (
+      await tx.query<{ role: string }>('SELECT role FROM users WHERE id=$1', [userId])
+    ).rows[0];
+    if (!subject) throw new AppError(404, 'USER_NOT_FOUND', 'Аккаунт не найден.');
+    if (
+      subject.role !== 'student' &&
+      !(actor.user.role === 'superadmin' && actor.user.id === userId)
+    )
+      throw new AppError(403, 'STUDENT_REQUIRED', 'Для прохождения выберите аккаунт ученика.');
     if (this.db.kind === 'postgres')
       await tx.query('SELECT pg_advisory_xact_lock(hashtextextended($1,0))', [
         `${userId}:${input.packageId}:${revision.packageVersion}:${source.type}:${source.id}:${purpose}`,

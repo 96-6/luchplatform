@@ -1,5 +1,7 @@
 import { registerReportRoutes } from './modules/reports/routes.js';
 import { ReportsService } from './modules/reports/service.js';
+import { OperationsService } from './modules/operations/service.js';
+import { registerOperationsRoutes } from './modules/operations/routes.js';
 import websocket from '@fastify/websocket';
 import { registerMeetingSignalling } from './modules/meetings/signalling.js';
 import { registerMeetingRoutes } from './modules/meetings/routes.js';
@@ -12,7 +14,7 @@ import { resolve } from 'node:path';
 import Fastify from 'fastify';
 import cors from '@fastify/cors';
 import helmet from '@fastify/helmet';
-import staticFiles from '@fastify/static';
+import { registerWebAccess, pageError } from './modules/navigation/web.js';
 import cookies from '@fastify/cookie';
 import { ZodError } from 'zod';
 import { projectRoot, type Settings } from './config.js';
@@ -60,6 +62,7 @@ export async function buildApp(
     ipInspector?: IpInspector;
     providerFetch?: ProviderFetch;
     meetingVideo?: MeetingVideo;
+    testWebRoot?: string;
   } = {},
 ) {
   const crypto = new AccountCrypto(settings.AUTH_ENCRYPTION_KEY);
@@ -165,6 +168,29 @@ export async function buildApp(
     await database.close();
   });
   app.setErrorHandler((error, request, reply) => {
+    if (
+      settings.SERVE_WEB &&
+      !request.url.startsWith('/api/') &&
+      !(error instanceof AppError && error.code === 'VPN_ACCESS_DENIED')
+    ) {
+      const status =
+        error instanceof AppError ? error.statusCode : error instanceof ZodError ? 400 : 500;
+      if (status >= 500)
+        request.log.error(
+          { errorType: error instanceof Error ? error.name : 'UnknownError' },
+          'Page request failed',
+        );
+      return pageError(
+        reply,
+        status,
+        error instanceof AppError
+          ? error.message
+          : status === 400
+            ? 'Некорректная ссылка.'
+            : 'Сервис временно недоступен. Повторите позже.',
+        request.id,
+      );
+    }
     if (error instanceof ZodError) {
       const fields: Record<string, string[]> = {};
       for (const issue of error.issues) {
@@ -248,6 +274,7 @@ export async function buildApp(
     options.meetingVideo ?? new LiveKitVideo(settings),
   );
   await registerMeetingRoutes(app, auth, meetings, settings.APP_ENV !== 'test');
+  await registerOperationsRoutes(app, auth, new OperationsService(database, settings, meetings));
   await registerMeetingSignalling(app, auth, meetings, settings);
   await registerContentRoutes(app, auth);
   await registerEngineRoutes(app, auth);
@@ -271,52 +298,16 @@ export async function buildApp(
     new AvatarVideoService(providerSettings, new HeyGenAdapter(options.providerFetch)),
   );
 
-  const webRoot = resolve(projectRoot, 'apps/web/dist');
+  if (options.testWebRoot && settings.APP_ENV !== 'test')
+    throw new Error('A web root override is test-only.');
+  const webRoot = options.testWebRoot ?? resolve(projectRoot, 'apps/web/dist');
   if (settings.SERVE_WEB) {
     await access(resolve(webRoot, 'index.html'));
-    await app.register(staticFiles, { root: webRoot, index: false });
-    app.get('/', (_request, reply) => reply.type('text/html').sendFile('index.html'));
   }
-  const webPaths = new Set([
-    '/',
-    '/plan',
-    '/operations',
-    '/admin/providers',
-    '/assistant',
-    '/schedule',
-    '/progress',
-    '/feedback',
-    '/teacher',
-    '/system',
-    '/student',
-    '/login',
-    '/register',
-    '/verify-email',
-    '/authenticator',
-    '/admin',
-    '/admin/content',
-    '/courses',
-    '/learning',
-    '/onboarding',
-    '/admin/learning',
-    '/demo-mail',
-    '/network-check',
-  ]);
+  await registerWebAccess(app, auth, webRoot);
   app.setNotFoundHandler((request, reply) => {
-    const pathname = request.url.split('?')[0] ?? '';
-    if (
-      settings.SERVE_WEB &&
-      request.method === 'GET' &&
-      (webPaths.has(pathname) ||
-        /^\/teacher\/students\/[0-9a-f-]{36}$/.test(pathname) ||
-        /^\/courses\/[a-z0-9-]+\/[a-z0-9-]+(?:\/lessons\/[a-z0-9-]+)?$/.test(pathname) ||
-        /^\/learning\/(?:runs|attempts)\/[0-9a-f-]{36}$/.test(pathname) ||
-        /^\/diagnostics\/[0-9a-f-]{36}$/.test(pathname) ||
-        /^\/plan\/[0-9a-f-]{36}$/.test(pathname) ||
-        /^\/meetings\/[0-9a-f-]{36}(?:\/room)?$/.test(pathname))
-    ) {
-      return reply.type('text/html').sendFile('index.html');
-    }
+    if (settings.SERVE_WEB && !request.url.startsWith('/api/'))
+      return pageError(reply, 404, 'Страница или ресурс не найдены.', request.id);
     return reply.code(404).send({
       error: {
         code: 'NOT_FOUND',

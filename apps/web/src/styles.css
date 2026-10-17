@@ -107,6 +107,10 @@ p {
 }
 .navigation {
   display: grid;
+  min-height: 0;
+  overflow-y: auto;
+  flex-shrink: 1;
+  align-content: start;
   gap: 8px;
   margin-top: 46px;
 }
@@ -135,10 +139,15 @@ p {
   font-weight: 650;
 }
 .sidebar-note {
+  flex-shrink: 0;
   margin-top: auto;
   padding-top: 35px;
   color: #64776f;
   font-size: 12px;
+}
+.operation-action {
+  padding: 18px 0;
+  border-top: 1px solid #e2e8e3;
 }
 .sidebar-note strong {
   color: #3e5e52;
@@ -477,6 +486,7 @@ input {
   }
   .navigation.open {
     display: grid;
+    max-height: 65dvh;
   }
   .sidebar-note {
     display: none;

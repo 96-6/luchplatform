@@ -145,13 +145,8 @@ export class AuthService {
     return { ...result.rows[0], value };
   }
   async enrollment(request: FastifyRequest) {
-    const record = await this.enrollmentToken(request);
-    const user = (
-      await this.database.query<UserRow>('SELECT * FROM users WHERE id=$1', [record.user_id])
-    ).rows[0];
-    if (!user?.totp_secret_ciphertext || user.totp_enabled_at || user.is_blocked)
-      throw new AppError(401, 'ENROLLMENT_EXPIRED', 'Подключение Authenticator недоступно.');
-    const manualKey = this.crypto.decrypt(user.totp_secret_ciphertext);
+    const { record, user } = await this.requireEnrollment(request);
+    const manualKey = this.crypto.decrypt(user.totp_secret_ciphertext!);
     return {
       email: user.email,
       manualKey,
@@ -161,6 +156,15 @@ export class AuthService {
       }),
       expiresAt: new Date(record.expires_at).toISOString(),
     };
+  }
+  async requireEnrollment(request: FastifyRequest) {
+    const record = await this.enrollmentToken(request);
+    const user = (
+      await this.database.query<UserRow>('SELECT * FROM users WHERE id=$1', [record.user_id])
+    ).rows[0];
+    if (!user?.totp_secret_ciphertext || user.totp_enabled_at || user.is_blocked)
+      throw new AppError(401, 'ENROLLMENT_EXPIRED', 'Подключение Authenticator недоступно.');
+    return { record, user };
   }
   private async acceptCode(tx: QueryExecutor, user: UserRow, code: string, enable: boolean) {
     if (

@@ -8,16 +8,10 @@ import {
 } from '@luch/contracts';
 import { api } from '../lib/api';
 import { useResource } from '../lib/useResource';
-import { LoadingState, EmptyState, ErrorState } from '../components/States';
+import { LoadingState, EmptyState, ErrorState, StatusState } from '../components/States';
 
 export function SystemPage({ enabled }: { enabled: boolean }) {
-  if (!enabled)
-    return (
-      <EmptyState
-        title="Проверка системы недоступна"
-        description="Этот раздел включается только для разработки и тестирования."
-      />
-    );
+  if (!enabled) return <StatusState status={404} />;
   return <SystemCheck />;
 }
 function SystemCheck() {

@@ -38,7 +38,14 @@ async function ordinaryLogin(page: Page, email: string, secret: string) {
   await page.getByLabel('Почта', { exact: true }).fill(email);
   await page.getByLabel('Код Authenticator').fill(code(email, secret));
   await page.getByLabel('Символы с картинки').fill('ABCDE');
+  const logged = page.waitForResponse(
+    (r) => r.url().endsWith('/api/v1/auth/login') && r.request().method() === 'POST',
+  );
   await page.getByRole('button', { name: 'Войти', exact: true }).click();
+  const response = await logged;
+  expect(response.status()).toBe(200);
+  const accepted = (await response.json()).data;
+  await expect(page).toHaveURL(accepted.dashboardPath);
 }
 async function session(page: Page) {
   return (await (await page.request.get('/api/v1/auth/session')).json()).data;
@@ -136,9 +143,10 @@ test('superadmin creates a ready account, shows its QR and resets 2FA for ordina
       .click();
     const newKey = await page.getByTestId('admin-manual-key').textContent();
     expect(newKey!.trim()).not.toBe(key);
-    await student.reload();
+    const expired = await student.reload();
+    expect(expired?.status()).toBe(401);
     await expect(
-      student.getByRole('heading', { name: 'Вход в аккаунт', exact: true }),
+      student.getByRole('heading', { name: '401 · Требуется вход', exact: true }),
     ).toBeVisible();
     await ordinaryLogin(student, email, newKey!.trim());
     await expect(
