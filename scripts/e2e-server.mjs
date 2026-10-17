@@ -188,6 +188,11 @@ for (const prefix of [
   'meeting-outsider',
   'meeting-calendar-peer',
   'meeting-moderation-peer',
+  'report-ru-student',
+  'report-en-student',
+  'report-ru-tutor',
+  'report-en-tutor',
+  'report-empty',
 ])
   for (const retry of [0, 1]) {
     const email = `${prefix}-${retry}@example.test`;
@@ -198,7 +203,11 @@ for (const prefix of [
       [
         randomUUID(),
         email,
-        prefix.startsWith('meeting-') ? `Встречи ${prefix}` : 'Проверка движка',
+        prefix.startsWith('meeting-')
+          ? `Встречи ${prefix}`
+          : prefix.startsWith('report-')
+            ? `Отчёт ${prefix}`
+            : 'Проверка движка',
         prefix === 'engine-integrity-admin' ||
         prefix === 'plan-admin' ||
         prefix === 'adapt-admin' ||

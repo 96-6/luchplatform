@@ -11,7 +11,7 @@ import { systemSchema } from '@luch/contracts';
 import { Layout } from './components/Layout';
 import { LoadingState, ErrorState } from './components/States';
 import { HomePage } from './pages/HomePage';
-import { PlaceholderPage } from './pages/PlaceholderPage';
+import { ReportPage } from './pages/ReportPage';
 import { SystemPage } from './pages/SystemPage';
 import { useResource } from './lib/useResource';
 import { Protected } from './auth/AuthContext';
@@ -228,10 +228,7 @@ export function App() {
             path="/progress"
             element={
               <Protected>
-                <PlaceholderPage
-                  title="Учебный отчёт"
-                  description="Полный учебный отчёт пока недоступен. Краткий прогресс показан в кабинете, а сохранённые ответы доступны в разделе «Обучение»."
-                />
+                <ReportPage />
               </Protected>
             }
           />
