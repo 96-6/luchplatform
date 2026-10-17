@@ -219,6 +219,8 @@ for (const language of ['ru', 'en'] as const)
         fullPage: true,
       });
       await tile.screenshot({ path: `test-results/meeting-warning-${language}.png` });
+      await tile.getByRole('button', { name: 'Закрыть сведения', exact: true }).click();
+      await expect(tile.getByRole('note')).toHaveCount(0);
       await teacher.setViewportSize({ width: 1280, height: 900 });
       if ((await teacher.locator('.conference-manage').getAttribute('open')) === null)
         await teacher.locator('.conference-manage > summary').click();
