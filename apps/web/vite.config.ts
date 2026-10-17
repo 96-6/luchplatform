@@ -1,9 +1,22 @@
 import { fileURLToPath } from 'node:url';
+import { resolve, relative, isAbsolute, sep } from 'node:path';
+import { realpath } from 'node:fs/promises';
 import { defineConfig, loadEnv } from 'vite';
 import react from '@vitejs/plugin-react';
 import { pageErrorDocument, errorSchema } from '@luch/contracts';
 
 const root = fileURLToPath(new URL('../../', import.meta.url));
+const browserRoots = [
+  resolve(root, 'apps/web'),
+  resolve(root, 'packages/contracts/dist'),
+  resolve(root, 'node_modules'),
+];
+const inside = (base: string, file: string) => {
+  const offset = relative(base, file);
+  return (
+    offset === '' || (!isAbsolute(offset) && offset !== '..' && !offset.startsWith('..' + sep))
+  );
+};
 export default defineConfig(({ mode }) => {
   const environment = loadEnv(mode, root, '');
   const apiPort = Number(process.env.API_PORT ?? environment.API_PORT ?? 3000);
@@ -13,10 +26,38 @@ export default defineConfig(({ mode }) => {
       react(),
       {
         name: 'luch-page-access',
-        configureServer(server) {
+        async configureServer(server) {
+          const allowedRoots = await Promise.all(browserRoots.map((folder) => realpath(folder)));
           server.middlewares.use(async (req, res, next) => {
             const path = req.url ?? '/';
             const pathname = path.split('?')[0]!;
+            if (pathname.startsWith('/@fs/')) {
+              let permitted = false;
+              try {
+                let requested = decodeURIComponent(pathname.slice(4));
+                if (process.platform === 'win32' && /^\/[a-z]:\//i.test(requested))
+                  requested = requested.slice(1);
+                if (
+                  isAbsolute(requested) &&
+                  [...browserRoots, ...allowedRoots].some((base) =>
+                    inside(base, resolve(requested)),
+                  )
+                ) {
+                  const file = await realpath(requested);
+                  permitted = allowedRoots.some((base) => inside(base, file));
+                }
+              } catch {
+                /* Missing file or invalid path is not served. */
+              }
+              if (!permitted) {
+                res.statusCode = 403;
+                res.setHeader('Content-Type', 'text/html; charset=utf-8');
+                res.setHeader('Cache-Control', 'no-store');
+                return res.end(
+                  pageErrorDocument(403, 'Этот файл недоступен через приложение.', 'dev-file'),
+                );
+              }
+            }
             const developmentModule =
               /^\/(?:src|node_modules|@vite|@react-refresh|@id|@fs)(?:\/|$)/.test(pathname);
             const publicAsset =
@@ -74,6 +115,10 @@ export default defineConfig(({ mode }) => {
     server: {
       port: webPort,
       strictPort: true,
+      fs: {
+        strict: true,
+        allow: browserRoots,
+      },
       proxy: {
         '/api': { target: `http://127.0.0.1:${apiPort}`, changeOrigin: true, ws: true },
         '/learning-media': { target: `http://127.0.0.1:${apiPort}`, changeOrigin: true },

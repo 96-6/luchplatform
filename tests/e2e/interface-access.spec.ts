@@ -313,6 +313,19 @@ test('development server enforces the same direct-page and media access rules', 
         })
       ).status(),
     ).toBe(404);
+    for (const file of [
+      'content/demo/luch-demo.json',
+      'apps/api/src/config.ts',
+      'node_modules/@luch/api/src/config.ts',
+      'node_modules/@luch/contracts/src/index.ts',
+    ])
+      expect([403, 404]).toContain(
+        (
+          await page.request.get(dev + '/@fs' + resolve(file), { headers: { accept: '*/*' } })
+        ).status(),
+      );
+    await page.goto(dev + '/login');
+    await expect(page.getByRole('heading', { name: 'Вход в аккаунт', exact: true })).toBeVisible();
     await login(page, 'audit-dev-student');
     expect(
       (await page.request.get(dev + '/student', { headers: { accept: 'text/html' } })).status(),
