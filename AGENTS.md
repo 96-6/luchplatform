@@ -4,7 +4,7 @@ Follow the user's numbered tasks in `docs/ROADMAP.md` from top to bottom. Comple
 
 The interface/access follow-up requested on 17 October 2026 is complete and verified: unused placeholders removed, routine role workflows available without a console, operator CLI recovery retained, and page/resource/link preconditions enforced. Evidence is recorded in `docs/ACCEPTANCE_INTERFACE_ACCESS.md`. This does not authorize deployment under task 14.
 
-The UI/localization follow-up requested on 17 October 2026 is in progress. Preserve persisted learner data, use the shared locale catalog, keep account deactivation distinct from bans, and keep reviewer integrity indicators private. Evidence is recorded in `docs/ACCEPTANCE_UI_LOCALIZATION.md`.
+The UI/localization follow-up requested on 17 October 2026 is complete and verified. Preserve persisted learner data, use the shared locale catalog, keep account deactivation distinct from bans, and keep reviewer integrity indicators private. Evidence is recorded in `docs/ACCEPTANCE_UI_LOCALIZATION.md`.
 
 - Read `README.md`, `docs/ARCHITECTURE.md`, and the current task's acceptance record before changes.
 - Keep the React client, Fastify API, and shared validation contracts integrated. Only the server reads database credentials or provider keys.
