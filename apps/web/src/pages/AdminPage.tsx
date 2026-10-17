@@ -1,3 +1,4 @@
+import { t, dateLocale } from '../i18n';
 import { useEffect, useState, type FormEvent } from 'react';
 import { Link, useSearchParams } from 'react-router-dom';
 import {
@@ -25,24 +26,24 @@ export function AdminPage() {
   const tab = params.get('tab') ?? 'accounts';
   return (
     <>
-      <p className="eyebrow">Управление платформой</p>
-      <h1>Кабинет суперадмина</h1>
+      <p className="eyebrow">{t('Управление платформой')}</p>
+      <h1>{t('Кабинет суперадмина')}</h1>
       <p>
         <Link className="button-link" to="/operations">
-          Состояние и обслуживание платформы →
+          {t('Состояние и обслуживание платформы →')}
         </Link>
       </p>
       <p>
-        <Link to="/admin/content">Учебный контент: импорт и экспорт →</Link>
+        <Link to="/admin/content">{t('Учебный контент: импорт и экспорт →')}</Link>
       </p>
       <p>
-        <Link to="/admin/learning">Все прохождения и результаты →</Link>
+        <Link to="/admin/learning">{t('Все прохождения и результаты →')}</Link>
       </p>
-      <div className="tabs" role="tablist" aria-label="Разделы суперадмина">
+      <div className="tabs" role="tablist" aria-label={t('Разделы суперадмина')}>
         {[
-          ['accounts', 'Аккаунты пользователей'],
-          ['security', 'Настройки безопасности'],
-          ['audit', 'Журнал действий'],
+          ['accounts', t('Аккаунты пользователей')],
+          ['security', t('Настройки безопасности')],
+          ['audit', t('Журнал действий')],
         ].map(([value, label]) => (
           <button
             role="tab"
@@ -97,15 +98,15 @@ function Accounts() {
           setFilter(search);
         }}
       >
-        <label htmlFor="account-search">Найти аккаунт</label>
+        <label htmlFor="account-search">{t('Найти аккаунт')}</label>
         <input
           id="account-search"
           value={search}
           onChange={(event) => setSearch(event.target.value)}
-          placeholder="Имя или почта"
+          placeholder={t('Имя или почта')}
           maxLength={100}
         />
-        <button>Найти</button>
+        <button>{t('Найти')}</button>
       </form>
       {state.status === 'loading' ? (
         <LoadingState />
@@ -114,7 +115,7 @@ function Accounts() {
       ) : (
         <>
           <section className="panel">
-            <h2>Аккаунты пользователей</h2>
+            <h2>{t('Аккаунты пользователей')}</h2>
             <ul className="account-list">
               {state.data.map((user) => (
                 <li key={user.id}>
@@ -122,25 +123,26 @@ function Accounts() {
                   <span>{user.email}</span>
                   <span className="badge">
                     {user.role === 'student'
-                      ? 'Ученик'
+                      ? t('Ученик')
                       : user.role === 'teacher'
-                        ? 'Преподаватель'
+                        ? t('Преподаватель')
                         : user.role === 'admin'
-                          ? 'Администратор'
-                          : 'Суперадмин'}
-                    {user.isBlocked ? ' · заблокирован' : ''}
+                          ? t('Администратор')
+                          : t('Суперадмин')}
+                    {!user.isActive ? t(' · деактивирован') : ''}
+                    {user.isBlocked ? t(' · заблокирован') : ''}
                   </span>
                   <button
                     className="secondary"
                     onClick={() => setSelected(user.id)}
-                    aria-label={`Открыть ${user.email}`}
+                    aria-label={t('Открыть {0}', [user.email])}
                   >
-                    Открыть
+                    {t('Открыть')}
                   </button>
                 </li>
               ))}
             </ul>
-            {!state.data.length && <p>Аккаунты не найдены.</p>}
+            {!state.data.length && <p>{t('Аккаунты не найдены.')}</p>}
           </section>
           {selected && (
             <AccountDetail key={selected} id={selected} version={detailVersion} onSaved={saved} />
@@ -165,6 +167,8 @@ function AccountDetail({
     accountDetailSchema,
   );
   const [blocked, setBlocked] = useState(false);
+  const [active, setActive] = useState(true);
+  const [blockReason, setBlockReason] = useState('');
   const [verified, setVerified] = useState(false);
   const [busy, setBusy] = useState(false);
   const [error, setError] = useState<Error | null>(null);
@@ -172,6 +176,8 @@ function AccountDetail({
   useEffect(() => {
     if (state.status === 'ready') {
       setBlocked(state.data.user.isBlocked);
+      setActive(state.data.user.isActive);
+      setBlockReason(state.data.user.blockReason);
       setVerified(state.data.user.accessVerified);
       setError(null);
     }
@@ -182,9 +188,9 @@ function AccountDetail({
     setError(null);
     try {
       await api(`/admin/accounts/${id}`, userSchema, {
-        body: { isBlocked: blocked, accessVerified: verified },
+        body: { isBlocked: blocked, isActive: active, blockReason, accessVerified: verified },
       });
-      setMessage('Доступ аккаунта обновлён.');
+      setMessage(t('Доступ аккаунта обновлён.'));
       refresh();
       onSaved();
     } catch (failure) {
@@ -200,7 +206,7 @@ function AccountDetail({
       const result = await api(`/admin/accounts/${id}/revoke-sessions`, messageSchema, {
         body: {},
       });
-      setMessage(result.message);
+      setMessage(t(result.message));
     } catch (failure) {
       setError(failure as Error);
     } finally {
@@ -214,7 +220,7 @@ function AccountDetail({
       const result = await api('/admin/teacher-students/remove', messageSchema, {
         body: { teacherId, studentId },
       });
-      setMessage(result.message);
+      setMessage(t(result.message));
       refresh();
       onSaved();
     } catch (failure) {
@@ -227,21 +233,27 @@ function AccountDetail({
   if (state.status === 'error') return <ErrorState error={state.error} retry={refresh} />;
   return (
     <section className="panel">
-      <h2>Карточка аккаунта для отладки</h2>
+      <h2>{t('Карточка аккаунта для отладки')}</h2>
       <UserSummary user={state.data.user} />
       <AdminAuthenticator userId={id} changed={onSaved} />
-      <p className="muted">Создан: {new Date(state.data.user.createdAt).toLocaleString('ru-RU')}</p>
+      <p className="muted">
+        {t('Создан: ')}
+        {new Date(state.data.user.createdAt).toLocaleString(dateLocale)}
+      </p>
       <p>
-        Прохождений: {state.data.progress.runs} · Завершено: {state.data.progress.completedRuns} ·
-        Попыток: {state.data.progress.attempts} · Верных: {state.data.progress.correctAttempts} · С
-        помощью: {state.data.progress.assistedAttempts}
+        {t('Прохождений: ')}
+        {state.data.progress.runs} {t(' · Завершено: ')}
+        {state.data.progress.completedRuns} {t(' · Попыток: ')}
+        {state.data.progress.attempts} {t(' · Верных: ')}
+        {state.data.progress.correctAttempts} {t(' · С помощью: ')}
+        {state.data.progress.assistedAttempts}
       </p>
       {state.data.user.role === 'student' && (
         <>
           <p>
-            <Link to={`/assistant?userId=${id}`}>Персонаж и переписка помощника →</Link> ·{' '}
-            <Link to={`/progress?userId=${id}`}>Учебный отчёт →</Link> ·{' '}
-            <Link to={`/onboarding?userId=${id}`}>Анкета и диагностика →</Link>
+            <Link to={`/assistant?userId=${id}`}>{t('Персонаж и переписка помощника →')}</Link> ·{' '}
+            <Link to={`/progress?userId=${id}`}>{t('Учебный отчёт →')}</Link> ·{' '}
+            <Link to={`/onboarding?userId=${id}`}>{t('Анкета и диагностика →')}</Link>
           </p>
           <RunList userId={id} />
           <ProfileOverview userId={id} />
@@ -251,9 +263,13 @@ function AccountDetail({
         </>
       )}
       <p>
-        Преподаватели: {state.data.teachers.map((user) => user.name).join(', ') || 'не назначены'}
+        {t('Преподаватели: ')}
+        {state.data.teachers.map((user) => user.name).join(', ') || t('не назначены')}
       </p>
-      <p>Ученики: {state.data.students.map((user) => user.name).join(', ') || 'не назначены'}</p>
+      <p>
+        {t('Ученики: ')}
+        {state.data.students.map((user) => user.name).join(', ') || t('не назначены')}
+      </p>
       {(state.data.teachers.length > 0 || state.data.students.length > 0) && (
         <ul className="account-list">
           {[
@@ -264,15 +280,15 @@ function AccountDetail({
               <strong>{user.name}</strong>
               <span>{user.email}</span>
               {user.role === 'student' && (
-                <Link to={`/teacher/students/${user.id}`}>Карточка ученика →</Link>
+                <Link to={`/teacher/students/${user.id}`}>{t('Карточка ученика →')}</Link>
               )}
               <button
                 className="secondary"
                 disabled={busy}
                 onClick={() => void unassign(teacherId, studentId)}
-                aria-label={`Снять закрепление ${user.email}`}
+                aria-label={t('Снять закрепление {0}', [user.email])}
               >
-                Снять закрепление
+                {t('Снять закрепление')}
               </button>
             </li>
           ))}
@@ -289,18 +305,45 @@ function AccountDetail({
             checked={verified}
             onChange={(event) => setVerified(event.target.checked)}
           />
-          Проверка доступа подтверждена
+          {t('Проверка доступа подтверждена')}
         </label>
         <label className="checkbox">
           <input
             type="checkbox"
             checked={blocked}
-            onChange={(event) => setBlocked(event.target.checked)}
+            onChange={(event) => {
+              setBlocked(event.target.checked);
+              if (event.target.checked) setActive(true);
+            }}
           />
-          Заблокировать аккаунт
+          {t('Заблокировать аккаунт')}
+        </label>
+        {blocked && (
+          <label>
+            {t('Причина блокировки')}
+            <textarea
+              maxLength={1000}
+              value={blockReason}
+              onChange={(event) => setBlockReason(event.target.value)}
+            />
+          </label>
+        )}
+        <label className="checkbox">
+          <input
+            type="checkbox"
+            checked={active}
+            onChange={(event) => {
+              setActive(event.target.checked);
+              if (!event.target.checked) {
+                setBlocked(false);
+                setBlockReason('');
+              }
+            }}
+          />
+          {t('Аккаунт активен')}
         </label>
         <div className="form-actions">
-          <button disabled={busy}>Сохранить доступ</button>
+          <button disabled={busy}>{t('Сохранить доступ')}</button>
           <button
             type="button"
             disabled={busy}
@@ -309,13 +352,13 @@ function AccountDetail({
               void revoke();
             }}
           >
-            Завершить все сессии
+            {t('Завершить все сессии')}
           </button>
         </div>
       </form>
       {error && (
         <p role="alert" className="error inline-message">
-          {error.message}
+          {t(error.message)}
         </p>
       )}
       {message && (
@@ -323,30 +366,31 @@ function AccountDetail({
           {message}
         </p>
       )}
-      <h3>Последние проверки соединения</h3>
+      <h3>{t('Последние проверки соединения')}</h3>
       {state.data.assessments.length ? (
         state.data.assessments.map((assessment) => (
           <details key={assessment.id}>
             <summary>
-              {assessment.ip} · {assessment.denied ? 'Доступ ограничен' : 'Проверка завершена'} ·{' '}
-              {new Date(assessment.createdAt).toLocaleString('ru-RU')}
+              {assessment.ip} ·{' '}
+              {assessment.denied ? t('Доступ ограничен') : t('Проверка завершена')} ·{' '}
+              {new Date(assessment.createdAt).toLocaleString(dateLocale)}
             </summary>
             <ul>
               {assessment.observations.map((observation) => (
-                <li key={observation.label}>
-                  {observation.label}:{' '}
+                <li key={t(observation.label)}>
+                  {t(observation.label)}:{' '}
                   {observation.status === 'observed'
-                    ? 'есть признак'
+                    ? t('есть признак')
                     : observation.status === 'not_observed'
-                      ? 'не обнаружен'
-                      : 'нет измерения'}
+                      ? t('не обнаружен')
+                      : t('нет измерения')}
                 </li>
               ))}
             </ul>
           </details>
         ))
       ) : (
-        <p className="muted">Проверки не записаны.</p>
+        <p className="muted">{t('Проверки не записаны.')}</p>
       )}
     </section>
   );
@@ -383,7 +427,7 @@ function AssignTeacher({ onSaved, version }: { onSaved: () => void; version: num
       const result = await api('/admin/teacher-students', messageSchema, {
         body: { teacherId, studentId },
       });
-      setMessage(result.message);
+      setMessage(t(result.message));
       onSaved();
     } catch (failure) {
       setError(failure as Error);
@@ -393,13 +437,13 @@ function AssignTeacher({ onSaved, version }: { onSaved: () => void; version: num
   }
   return (
     <section className="panel">
-      <h2>Закрепить ученика</h2>
+      <h2>{t('Закрепить ученика')}</h2>
       <form
         onSubmit={(event) => {
           void assign(event);
         }}
       >
-        <label htmlFor="teacher-lookup">Поиск преподавателя</label>
+        <label htmlFor="teacher-lookup">{t('Поиск преподавателя')}</label>
         <input
           id="teacher-lookup"
           value={teacherSearch}
@@ -414,23 +458,23 @@ function AssignTeacher({ onSaved, version }: { onSaved: () => void; version: num
             setTeacherFilter(teacherSearch);
           }}
         >
-          Найти преподавателя
+          {t('Найти преподавателя')}
         </button>
-        <label htmlFor="assign-teacher">Преподаватель</label>
+        <label htmlFor="assign-teacher">{t('Преподаватель')}</label>
         <select
           id="assign-teacher"
           value={teacherId}
           onChange={(event) => setTeacherId(event.target.value)}
           required
         >
-          <option value="">Выберите преподавателя</option>
+          <option value="">{t('Выберите преподавателя')}</option>
           {(teachers.state.status === 'ready' ? teachers.state.data : []).map((user) => (
             <option value={user.id} key={user.id}>
               {user.name} · {user.email}
             </option>
           ))}
         </select>
-        <label htmlFor="student-lookup">Поиск ученика для закрепления</label>
+        <label htmlFor="student-lookup">{t('Поиск ученика для закрепления')}</label>
         <input
           id="student-lookup"
           value={studentSearch}
@@ -445,23 +489,23 @@ function AssignTeacher({ onSaved, version }: { onSaved: () => void; version: num
             setStudentFilter(studentSearch);
           }}
         >
-          Найти ученика
+          {t('Найти ученика')}
         </button>
-        <label htmlFor="assign-student">Ученик</label>
+        <label htmlFor="assign-student">{t('Ученик')}</label>
         <select
           id="assign-student"
           value={studentId}
           onChange={(event) => setStudentId(event.target.value)}
           required
         >
-          <option value="">Выберите ученика</option>
+          <option value="">{t('Выберите ученика')}</option>
           {(students.state.status === 'ready' ? students.state.data : []).map((user) => (
             <option value={user.id} key={user.id}>
               {user.name} · {user.email}
             </option>
           ))}
         </select>
-        <button disabled={busy}>Назначить преподавателя</button>
+        <button disabled={busy}>{t('Назначить преподавателя')}</button>
       </form>
       {teachers.state.status === 'error' && (
         <ErrorState error={teachers.state.error} retry={teachers.refresh} />
@@ -471,7 +515,7 @@ function AssignTeacher({ onSaved, version }: { onSaved: () => void; version: num
       )}
       {error && (
         <p role="alert" className="error inline-message">
-          {error.message}
+          {t(error.message)}
         </p>
       )}
       {message && (
@@ -525,7 +569,7 @@ function SecuritySettings() {
   if (state.status === 'error') return <ErrorState error={state.error} retry={refresh} />;
   return (
     <section className="panel">
-      <h2>Настройки безопасности</h2>
+      <h2>{t('Настройки безопасности')}</h2>
       <form
         onSubmit={(event) => {
           void save(event);
@@ -537,26 +581,28 @@ function SecuritySettings() {
             checked={captcha}
             onChange={(event) => setCaptcha(event.target.checked)}
           />
-          Капча на страницах авторизации
+          {t('Капча на страницах авторизации')}
         </label>
         <label className="checkbox">
           <input type="checkbox" checked={vpn} onChange={(event) => setVpn(event.target.checked)} />
-          Проверка доступа пользователей с VPN
+          {t('Проверка доступа пользователей с VPN')}
         </label>
         <p className="muted">
-          При включённой проверке нужен подтверждённый доступ аккаунта и IP из белого списка. При
-          срабатывании проверки сервис недоступен.
+          {t(
+            'При включённой проверке нужен подтверждённый доступ аккаунта и IP из белого списка. При срабатывании проверки сервис недоступен.',
+          )}
         </p>
-        <label htmlFor="allowed-ips">Белый список IP и сетей</label>
+        <label htmlFor="allowed-ips">{t('Белый список IP и сетей')}</label>
         <textarea
           id="allowed-ips"
           value={ranges}
           onChange={(event) => setRanges(event.target.value)}
           rows={5}
-          placeholder="По одному адресу или сети на строку"
+          placeholder={t('По одному адресу или сети на строку')}
         />
         <p>
-          Текущий IP: <code>{state.data.currentIp}</code>{' '}
+          {t('Текущий IP: ')}
+          <code>{state.data.currentIp}</code>{' '}
           <button
             type="button"
             className="secondary"
@@ -568,10 +614,10 @@ function SecuritySettings() {
               )
             }
           >
-            Добавить текущий IP
+            {t('Добавить текущий IP')}
           </button>
         </p>
-        <label htmlFor="session-hours">Срок сессии, часы</label>
+        <label htmlFor="session-hours">{t('Срок сессии, часы')}</label>
         <input
           id="session-hours"
           type="number"
@@ -582,10 +628,10 @@ function SecuritySettings() {
         />
         {error && (
           <p role="alert" className="error inline-message">
-            {error.message}
+            {t(error.message)}
           </p>
         )}
-        <button disabled={busy}>{busy ? 'Сохраняем…' : 'Сохранить настройки'}</button>
+        <button disabled={busy}>{busy ? t('Сохраняем…') : t('Сохранить настройки')}</button>
       </form>
     </section>
   );
@@ -596,21 +642,21 @@ function AuditLog() {
   if (state.status === 'error') return <ErrorState error={state.error} retry={refresh} />;
   return (
     <section className="panel">
-      <h2>Последние действия</h2>
+      <h2>{t('Последние действия')}</h2>
       <ul className="account-list">
         {state.data.map((item) => (
           <li key={item.id}>
             <strong>{item.action}</strong>
-            <span>{item.actorEmail ?? 'Системная операция'}</span>
+            <span>{item.actorEmail ?? t('Системная операция')}</span>
             <span>{item.targetEmail ?? ''}</span>
             <time dateTime={item.createdAt}>
-              {new Date(item.createdAt).toLocaleString('ru-RU')}
+              {new Date(item.createdAt).toLocaleString(dateLocale)}
             </time>
           </li>
         ))}
       </ul>
       <button className="secondary" onClick={refresh}>
-        Обновить журнал
+        {t('Обновить журнал')}
       </button>
     </section>
   );

@@ -1,3 +1,4 @@
+import { t } from '../i18n';
 import { useEffect, useState } from 'react';
 import { captchaSchema } from '@luch/contracts';
 import type { z } from 'zod';
@@ -38,7 +39,7 @@ export function useCaptcha(purpose: 'login' | 'register' | 'enrollment') {
     refresh,
     submission: () => {
       if (!policy.captchaEnabled) return undefined;
-      if (!image || !answer.trim()) throw new Error('Введите символы с картинки.');
+      if (!image || !answer.trim()) throw new Error(t('Введите символы с картинки.'));
       return { id: image.id, answer: answer.trim() };
     },
   };
@@ -47,23 +48,23 @@ export function CaptchaField({ captcha }: { captcha: ReturnType<typeof useCaptch
   if (!captcha.enabled) return null;
   return (
     <div className="captcha-field">
-      <label htmlFor="captcha-answer">Символы с картинки</label>
+      <label htmlFor="captcha-answer">{t('Символы с картинки')}</label>
       <div className="captcha-image">
         {captcha.image ? (
           <img
             src={captcha.image.imageDataUrl}
-            alt="Капча: пять символов"
+            alt={t('Капча: пять символов')}
             width={240}
             height={82}
           />
         ) : (
-          <p role="status">Загружаем капчу…</p>
+          <p role="status">{t('Загружаем капчу…')}</p>
         )}
         <button type="button" className="secondary" onClick={captcha.refresh}>
-          Новая картинка
+          {t('Новая картинка')}
         </button>
       </div>
-      {captcha.error && <p role="alert">{captcha.error.message}</p>}
+      {captcha.error && <p role="alert">{t(captcha.error.message)}</p>}
       <input
         id="captcha-answer"
         value={captcha.answer}

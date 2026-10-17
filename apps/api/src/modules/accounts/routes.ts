@@ -134,15 +134,21 @@ export async function registerAccountRoutes(app: FastifyInstance, auth: AuthServ
     const policy = await getPolicy(db);
     if (
       id === actor.user.id &&
-      (input.isBlocked || (policy.vpnCheckEnabled && !input.accessVerified))
+      (!input.isActive || input.isBlocked || (policy.vpnCheckEnabled && !input.accessVerified))
     )
       throw new AppError(409, 'SELF_LOCKOUT', 'Нельзя отключить собственный доступ.');
     const user = await db.transaction(async (tx) => {
       const result = await tx.query<UserRow>(
-        'UPDATE users SET is_blocked=$1,access_verified=$2 WHERE id=$3 RETURNING *',
-        [input.isBlocked, input.accessVerified, id],
+        'UPDATE users SET is_blocked=$1,access_verified=$2,is_active=$4,block_reason=$5 WHERE id=$3 RETURNING *',
+        [
+          input.isBlocked,
+          input.accessVerified,
+          id,
+          input.isActive,
+          input.isBlocked ? input.blockReason : '',
+        ],
       );
-      if (input.isBlocked || (policy.vpnCheckEnabled && !input.accessVerified))
+      if (!input.isActive || input.isBlocked || (policy.vpnCheckEnabled && !input.accessVerified))
         await tx.query('UPDATE auth_sessions SET revoked_at=now() WHERE user_id=$1', [id]);
       await audit(tx, actor.user.id, 'account.access_changed', id);
       return publicUser(result.rows[0]!);

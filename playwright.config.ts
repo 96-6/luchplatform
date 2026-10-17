@@ -6,6 +6,7 @@ export default defineConfig({
   retries: process.env.CI ? 1 : 0,
   reporter: [['list'], ['html', { open: 'never' }]],
   use: {
+    locale: 'ru-RU',
     baseURL: 'http://127.0.0.1:3200',
     trace: 'retain-on-failure',
     launchOptions: process.env.PLAYWRIGHT_EXECUTABLE_PATH

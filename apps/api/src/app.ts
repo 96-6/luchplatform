@@ -1,3 +1,5 @@
+import { createHash } from 'node:crypto';
+import { PAGE_ERROR_STYLES } from '@luch/contracts';
 import { registerReportRoutes } from './modules/reports/routes.js';
 import { ReportsService } from './modules/reports/service.js';
 import { OperationsService } from './modules/operations/service.js';
@@ -122,7 +124,10 @@ export async function buildApp(
       directives: {
         defaultSrc: ["'self'"],
         scriptSrc: ["'self'"],
-        styleSrc: ["'self'"],
+        styleSrc: [
+          "'self'",
+          "'sha256-" + createHash('sha256').update(PAGE_ERROR_STYLES).digest('base64') + "'",
+        ],
         imgSrc: ["'self'", 'data:', 'https:'],
         mediaSrc: ["'self'", 'https:', 'blob:'],
         workerSrc: ["'self'", 'blob:'],
@@ -207,14 +212,8 @@ export async function buildApp(
       });
     }
     if (error instanceof AppError) {
-      if (error.code === 'VPN_ACCESS_DENIED' && !request.url.startsWith('/api/')) {
-        return reply
-          .code(403)
-          .type('text/html; charset=utf-8')
-          .send(
-            '<!doctype html><html lang="ru"><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1"><title>Сервис недоступен</title><body><main><h1>вы используете VPN - сервис недоступен</h1><a href="/network-check">Проверить соединение ещё раз</a></main></body></html>',
-          );
-      }
+      if (error.code === 'VPN_ACCESS_DENIED' && !request.url.startsWith('/api/'))
+        return pageError(reply, 403, error.message, request.id);
       return reply
         .code(error.statusCode)
         .send({ error: { code: error.code, message: error.message, requestId: request.id } });

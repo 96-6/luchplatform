@@ -18,7 +18,7 @@ test('all four roles can open every visible navigation item and mobile menus wit
     { prefix: 'audit-superadmin', dashboard: /\/admin$/, mobile: '/operations' },
   ];
   for (const v of variants) {
-    const context = await browser.newContext();
+    const context = await browser.newContext({ locale: 'ru-RU' });
     try {
       const page = await context.newPage(),
         failures: string[] = [];
@@ -66,9 +66,9 @@ test('teacher and superadmin choose a student in the UI; revoking assignment imm
   browser,
 }) => {
   test.setTimeout(120000);
-  const sc = await browser.newContext(),
-    tc = await browser.newContext(),
-    rc = await browser.newContext();
+  const sc = await browser.newContext({ locale: 'ru-RU' }),
+    tc = await browser.newContext({ locale: 'ru-RU' }),
+    rc = await browser.newContext({ locale: 'ru-RU' });
   try {
     const student = await sc.newPage(),
       teacher = await tc.newPage(),
@@ -105,7 +105,7 @@ test('teacher and superadmin choose a student in the UI; revoking assignment imm
     ).toHaveCount(0);
     const old = await teacher.goto(`/progress?userId=${s.user.id}`);
     expect(old?.status()).toBe(404);
-    await expect(teacher.getByRole('heading', { name: '404 · Страница не найдена' })).toBeVisible();
+    await expect(teacher.getByRole('heading', { name: 'Страница не найдена' })).toBeVisible();
     expect((await teacher.request.get(`/api/v1/reports/${s.user.id}`)).status()).toBe(404);
     await student.goto('/progress');
     await ready(student);
@@ -119,8 +119,8 @@ test('maintenance uses the UI and persists one operation when the first response
   browser,
 }) => {
   test.setTimeout(90000);
-  const rc = await browser.newContext(),
-    ac = await browser.newContext();
+  const rc = await browser.newContext({ locale: 'ru-RU' }),
+    ac = await browser.newContext({ locale: 'ru-RU' });
   try {
     const r = await rc.newPage(),
       a = await ac.newPage();
@@ -188,7 +188,7 @@ test('maintenance uses the UI and persists one operation when the first response
 test('direct links and client navigation reject forged context while valid saved plans survive a reload', async ({
   browser,
 }) => {
-  const context = await browser.newContext();
+  const context = await browser.newContext({ locale: 'ru-RU' });
   try {
     const page = await context.newPage();
     await login(page, 'audit-links-student');
@@ -224,8 +224,8 @@ test('direct links and client navigation reject forged context while valid saved
 test('verification and Authenticator pages require a live one-time link and enrollment cookie', async ({
   browser,
 }) => {
-  const c = await browser.newContext(),
-    stranger = await browser.newContext();
+  const c = await browser.newContext({ locale: 'ru-RU' }),
+    stranger = await browser.newContext({ locale: 'ru-RU' });
   try {
     const page = await c.newPage();
     const k = await keys();
@@ -269,7 +269,7 @@ test('verification and Authenticator pages require a live one-time link and enro
     expect((await attacker.goto(old!))?.status()).toBe(410);
     await c.clearCookies();
     expect((await page.reload())?.status()).toBe(401);
-    await expect(page.getByRole('heading', { name: '401 · Требуется вход' })).toBeVisible();
+    await expect(page.getByRole('heading', { name: 'Требуется вход' })).toBeVisible();
   } finally {
     await c.close();
     await stranger.close();

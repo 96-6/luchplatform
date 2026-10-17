@@ -56,9 +56,18 @@ test('email, Authenticator, three roles, shared assignments and security setting
   browser,
 }) => {
   test.setTimeout(60000);
-  const studentContext = await browser.newContext({ baseURL: 'http://127.0.0.1:3200' });
-  const teacherContext = await browser.newContext({ baseURL: 'http://127.0.0.1:3200' });
-  const adminContext = await browser.newContext({ baseURL: 'http://127.0.0.1:3200' });
+  const studentContext = await browser.newContext({
+    locale: 'ru-RU',
+    baseURL: 'http://127.0.0.1:3200',
+  });
+  const teacherContext = await browser.newContext({
+    locale: 'ru-RU',
+    baseURL: 'http://127.0.0.1:3200',
+  });
+  const adminContext = await browser.newContext({
+    locale: 'ru-RU',
+    baseURL: 'http://127.0.0.1:3200',
+  });
   const student = await studentContext.newPage();
   const teacher = await teacherContext.newPage();
   const admin = await adminContext.newPage();
@@ -125,7 +134,10 @@ test('email, Authenticator, three roles, shared assignments and security setting
     await admin.getByLabel('Капча на страницах авторизации').uncheck();
     await saveSettings(admin);
     await expect(admin.getByLabel('Капча на страницах авторизации')).not.toBeChecked();
-    const anonymous = await browser.newContext({ baseURL: 'http://127.0.0.1:3200' });
+    const anonymous = await browser.newContext({
+      locale: 'ru-RU',
+      baseURL: 'http://127.0.0.1:3200',
+    });
     const loginPage = await anonymous.newPage();
     await loginPage.goto('/login');
     await expect(loginPage.getByRole('heading', { name: 'Вход в аккаунт' })).toBeVisible();

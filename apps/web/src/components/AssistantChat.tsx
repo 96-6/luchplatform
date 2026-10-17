@@ -1,3 +1,4 @@
+import { t, dateLocale } from '../i18n';
 import { useEffect, useRef, useState, type FormEvent } from 'react';
 import { Link } from 'react-router-dom';
 import {
@@ -97,24 +98,26 @@ export function AssistantChat({
   }
   const allowed = chat?.hintsEnabled ?? view.run.purpose === 'practice';
   return (
-    <section className="panel assistant-chat" aria-label="Чат с помощником">
+    <section className="panel assistant-chat" aria-label={t('Чат с помощником')}>
       <div className="section-heading">
-        <h2>Демо-помощник</h2>
-        <Link to={`/assistant?userId=${view.run.user.id}`}>Выбрать персонажа →</Link>
+        <h2>{t('Демо-помощник')}</h2>
+        <Link to={`/assistant?userId=${view.run.user.id}`}>{t('Выбрать персонажа →')}</Link>
       </div>
       <p className="muted">
-        Сценарный помощник работает по текущему заданию. Использованная помощь учитывается в
-        попытке.
+        {t(
+          'Сценарный помощник работает по текущему заданию. Использованная помощь учитывается в попытке.',
+        )}
       </p>
       {!allowed && (
         <p className="notice">
-          В диагностике и контроле доступны только общие инструкции. Подсказки и тематический диалог
-          отключены.
+          {t(
+            'В диагностике и контроле доступны только общие инструкции. Подсказки и тематический диалог отключены.',
+          )}
         </p>
       )}
       {chat?.nextBefore && (
         <button className="secondary" disabled={busy} onClick={() => void older()}>
-          Показать предыдущие сообщения
+          {t('Показать предыдущие сообщения')}
         </button>
       )}
       <ol className="chat-messages" role="log" aria-live="polite" aria-relevant="additions">
@@ -124,13 +127,13 @@ export function AssistantChat({
               {m.role === 'assistant' ? (
                 <>
                   <img src={`/avatars/${m.avatarId}.svg`} alt="" width="36" height="36" />
-                  Демо-помощник
+                  {t('Демо-помощник')}
                 </>
               ) : (
-                'Пользователь'
+                t('Пользователь')
               )}
               <time dateTime={m.createdAt}>
-                {new Date(m.createdAt).toLocaleTimeString('ru-RU', {
+                {new Date(m.createdAt).toLocaleTimeString(dateLocale, {
                   hour: '2-digit',
                   minute: '2-digit',
                 })}
@@ -139,7 +142,7 @@ export function AssistantChat({
             <p className="content-text">{m.content}</p>
             {m.context && (
               <details>
-                <summary>Сохранённый контекст этой реплики</summary>
+                <summary>{t('Сохранённый контекст этой реплики')}</summary>
                 <pre className="engine-debug">{JSON.stringify(m.context, null, 2)}</pre>
               </details>
             )}
@@ -156,9 +159,9 @@ export function AssistantChat({
         ))}
       </ol>
       {chat && !chat.messages.length && (
-        <p>Объяснить задание, дать подсказку или начать короткий диалог?</p>
+        <p>{t('Объяснить задание, дать подсказку или начать короткий диалог?')}</p>
       )}
-      {busy && <p role="status">Помощник готовит ответ…</p>}
+      {busy && <p role="status">{t('Помощник готовит ответ…')}</p>}
       {error && (
         <ErrorState
           error={error}
@@ -175,45 +178,45 @@ export function AssistantChat({
               disabled={busy || Boolean(pending.current)}
               onClick={() => void send('explain')}
             >
-              Объяснить задание
+              {t('Объяснить задание')}
             </button>
             <button
               className="secondary"
               disabled={busy || !allowed || Boolean(pending.current)}
               onClick={() => void send('hint')}
             >
-              Подсказка помощника
+              {t('Подсказка помощника')}
             </button>
             <button
               className="secondary"
               disabled={busy || !allowed || Boolean(pending.current)}
               onClick={() => void send('dialogue')}
             >
-              Диалог по теме
+              {t('Диалог по теме')}
             </button>
           </div>
           <form onSubmit={submit}>
             <fieldset disabled={busy || !allowed || Boolean(pending.current)}>
-              <label htmlFor={`assistant-action-${view.run.id}`}>Тип сообщения</label>
+              <label htmlFor={`assistant-action-${view.run.id}`}>{t('Тип сообщения')}</label>
               <select
                 id={`assistant-action-${view.run.id}`}
                 value={action}
                 onChange={(e) => setAction(e.target.value as AssistantAction)}
               >
-                <option value="dialogue">Диалог по теме</option>
-                <option value="explain">Объяснение</option>
-                <option value="hint">Подсказка</option>
+                <option value="dialogue">{t('Диалог по теме')}</option>
+                <option value="explain">{t('Объяснение')}</option>
+                <option value="hint">{t('Подсказка')}</option>
               </select>
-              <label htmlFor={`assistant-text-${view.run.id}`}>Ваше сообщение</label>
+              <label htmlFor={`assistant-text-${view.run.id}`}>{t('Ваше сообщение')}</label>
               <textarea
                 id={`assistant-text-${view.run.id}`}
                 maxLength={1000}
                 rows={3}
                 value={text}
                 onChange={(e) => setText(e.target.value)}
-                placeholder="Короткий вопрос или реплика по теме урока"
+                placeholder={t('Короткий вопрос или реплика по теме урока')}
               />
-              <button>Отправить помощнику</button>
+              <button>{t('Отправить помощнику')}</button>
             </fieldset>
           </form>
           {pending.current && !busy && (
@@ -225,14 +228,14 @@ export function AssistantChat({
                 setText((t) => t);
               }}
             >
-              Отменить повтор сообщения
+              {t('Отменить повтор сообщения')}
             </button>
           )}
         </>
       )}
       {chat?.context && (
         <details>
-          <summary>Контекст помощника для суперадмина</summary>
+          <summary>{t('Контекст помощника для суперадмина')}</summary>
           <pre className="engine-debug">{JSON.stringify(chat.context, null, 2)}</pre>
         </details>
       )}
@@ -282,28 +285,36 @@ function AssistantVideo({ messageId, editable }: { messageId: string; editable: 
   if (video?.status === 'ready' && video.url)
     return (
       <div className="assistant-video">
-        <p className="muted">Видеоаватар · HeyGen {video.cached ? '· сохранённый ролик' : ''}</p>
-        <video controls preload="metadata" src={video.url} aria-label="Видео-реплика помощника" />
-        <p className="muted">Текст реплики доступен выше.</p>
+        <p className="muted">
+          {t('Видеоаватар · HeyGen ')}
+          {video.cached ? t('· сохранённый ролик') : ''}
+        </p>
+        <video
+          controls
+          preload="metadata"
+          src={video.url}
+          aria-label={t('Видео-реплика помощника')}
+        />
+        <p className="muted">{t('Текст реплики доступен выше.')}</p>
       </div>
     );
   return (
     <div>
       {video?.status === 'pending' ? (
-        <p role="status">HeyGen готовит видео… Текст уже доступен.</p>
+        <p role="status">{t('HeyGen готовит видео… Текст уже доступен.')}</p>
       ) : (
         editable && (
           <button className="secondary" disabled={busy} onClick={() => void prepare()}>
-            {busy ? 'Запускаем видео…' : 'Видео с аватаром'}
+            {busy ? t('Запускаем видео…') : t('Видео с аватаром')}
           </button>
         )
       )}
       {video?.message && (
-        <p role={video.status === 'error' ? 'alert' : 'status'}>{video.message}</p>
+        <p role={video.status === 'error' ? 'alert' : 'status'}>{t(video.message)}</p>
       )}
       {error && (
         <p className="error" role="alert">
-          {error.message}
+          {t(error.message)}
         </p>
       )}
     </div>

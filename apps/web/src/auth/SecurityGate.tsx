@@ -1,3 +1,4 @@
+import { t } from '../i18n';
 import { createContext, useContext, useEffect, useState, type ReactNode } from 'react';
 import { authPolicySchema, networkAccessSchema } from '@luch/contracts';
 import type { z } from 'zod';
@@ -38,7 +39,7 @@ export function SecurityGate({ children }: { children: ReactNode }) {
           signal: controller.signal,
         });
         if (!access.allowed) {
-          setState({ status: 'denied', message: access.message ?? 'Сервис недоступен' });
+          setState({ status: 'denied', message: access.message ?? t('Сервис недоступен') });
           return;
         }
       }
@@ -51,7 +52,7 @@ export function SecurityGate({ children }: { children: ReactNode }) {
   if (state.status === 'loading')
     return (
       <main className="access-screen">
-        <LoadingState text="Проверяем доступ к платформе…" />
+        <LoadingState text={t('Проверяем доступ к платформе…')} />
       </main>
     );
   if (state.status === 'error')
@@ -63,8 +64,8 @@ export function SecurityGate({ children }: { children: ReactNode }) {
   if (state.status === 'denied')
     return (
       <main className="access-screen" role="alert">
-        <h1>{state.message}</h1>
-        <button onClick={recheck}>Проверить соединение ещё раз</button>
+        <h1>{t(state.message)}</h1>
+        <button onClick={recheck}>{t('Проверить соединение ещё раз')}</button>
       </main>
     );
   return (

@@ -1388,3 +1388,438 @@ button.danger {
     min-width: 0;
   }
 }
+
+.integrity-flag {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.35rem;
+  padding: 0.28rem 0.55rem;
+  border-radius: 0.5rem;
+  color: #76520b;
+  background: #fff2b3;
+  border: 1px solid #ebc94e;
+  font-size: 0.78rem;
+  font-weight: 700;
+  vertical-align: middle;
+}
+.error,
+.state p,
+.inline-message {
+  white-space: pre-line;
+  overflow-wrap: anywhere;
+}
+.language-selector {
+  display: grid;
+  gap: 0.4rem;
+  font-size: 0.8rem;
+  color: var(--muted);
+}
+.language-selector select {
+  width: 100%;
+  background: var(--surface, #fff);
+}
+
+.sr-only {
+  position: absolute;
+  width: 1px;
+  height: 1px;
+  padding: 0;
+  margin: -1px;
+  overflow: hidden;
+  clip: rect(0, 0, 0, 0);
+  white-space: nowrap;
+  border: 0;
+}
+.conference {
+  position: relative;
+  isolation: isolate;
+  background: #171b23;
+  color: #f4f6fa;
+  border-radius: 1.2rem;
+  padding: 1rem;
+  box-shadow: 0 12px 40px #11182724;
+}
+.conference .meeting-connection {
+  color: #c3cbd8;
+  margin: 0.3rem 0.4rem 1rem;
+  font-size: 0.85rem;
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+}
+.conference .meeting-connection::before {
+  content: '';
+  background: #71c59c;
+  width: 0.5rem;
+  height: 0.5rem;
+  border-radius: 50%;
+  flex-shrink: 0;
+}
+.conference .participant-grid {
+  grid-template-columns: repeat(3, minmax(0, 1fr));
+  gap: 0.55rem;
+  margin: 0;
+  min-height: 48vh;
+  align-content: center;
+}
+.conference .participant-grid[data-count='1'] {
+  grid-template-columns: minmax(0, 1fr);
+  max-width: 62rem;
+  margin: auto;
+}
+.conference .participant-grid[data-count='2'] {
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+}
+.conference .participant-tile {
+  aspect-ratio: 16/10;
+  min-height: 11rem;
+  border: 2px solid transparent;
+  border-radius: 0.7rem;
+  background: #364658;
+  overflow: visible;
+}
+.conference .participant-tile.speaking {
+  border-color: #f1c45b;
+  box-shadow: 0 0 0 1px #f1c45b;
+}
+.conference .participant-tile.pinned {
+  grid-column: 1/-1;
+  width: 100%;
+  max-width: none;
+  aspect-ratio: 16/8;
+}
+.conference .participant-tile video {
+  position: absolute;
+  inset: 0;
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
+  border-radius: 0.55rem;
+}
+.conference .participant-placeholder {
+  height: 100%;
+  border-radius: 0.55rem;
+  background: transparent;
+}
+.conference .participant-placeholder::before {
+  content: '';
+  width: 5rem;
+  height: 5rem;
+  background: #ffffff20;
+  border: 1px solid #ffffff24;
+  border-radius: 50%;
+  position: absolute;
+}
+.conference .participant-placeholder {
+  font-size: 2.2rem;
+  font-weight: 600;
+}
+.conference .tile-tone-1 {
+  background: #425b55;
+}
+.conference .tile-tone-2 {
+  background: #51436f;
+}
+.conference .tile-tone-3 {
+  background: #535e3b;
+}
+.conference .tile-tone-4 {
+  background: #735b41;
+}
+.conference .tile-tone-5 {
+  background: #375972;
+}
+.conference .participant-top {
+  position: absolute;
+  inset: auto 0 0;
+  min-height: 0;
+  z-index: 2;
+  padding: 2rem 0.65rem 0.55rem;
+  background: linear-gradient(transparent, #0b101acc);
+  border-radius: 0 0 0.55rem 0.55rem;
+  gap: 0.4rem;
+}
+.conference .participant-top strong {
+  display: flex;
+  align-items: center;
+  gap: 0.4rem;
+  font-size: 0.8rem;
+  font-weight: 500;
+}
+.conference .participant-top strong svg {
+  width: 15px;
+  height: 15px;
+  flex-shrink: 0;
+}
+.conference .participant-top .raised-hand {
+  position: absolute;
+  bottom: 3rem;
+  left: 0.55rem;
+  background: #facb54;
+  border-radius: 0.4rem;
+  padding: 0.2rem;
+}
+.conference .participant-caption {
+  position: absolute;
+  width: 1px;
+  height: 1px;
+  overflow: hidden;
+  clip: rect(0, 0, 0, 0);
+}
+.conference .participant-tools {
+  position: absolute;
+  right: 0.35rem;
+  top: 0.3rem;
+  z-index: 3;
+  display: flex;
+  gap: 0.25rem;
+  padding: 0;
+}
+.conference .participant-tools button {
+  padding: 0.3rem;
+  min-height: 0;
+  border: 0;
+  color: white;
+  background: #12182390;
+  border-radius: 0.4rem;
+}
+.conference .participant-tools button:hover {
+  background: #121823;
+}
+.conference .participant-tools svg {
+  width: 17px;
+  height: 17px;
+}
+.conference .participant-moderation {
+  position: absolute;
+  top: 2.5rem;
+  right: 0.4rem;
+  z-index: 4;
+  padding: 0;
+  max-width: 95%;
+  font-size: 0.75rem;
+}
+.conference .participant-moderation summary {
+  background: #17202ecb;
+  color: #f3f5fb;
+  padding: 0.3rem 0.5rem;
+  border-radius: 0.4rem;
+  margin: 0;
+}
+.conference .participant-moderation[open] {
+  background: #fff;
+  color: #17202e;
+  border-radius: 0.5rem;
+  box-shadow: 0 8px 30px #0006;
+}
+.conference .participant-moderation .button-row {
+  padding: 0.5rem;
+  max-width: 18rem;
+}
+.conference .participant-moderation button {
+  font-size: 0.75rem;
+  padding: 0.4rem 0.6rem;
+}
+.conference .meeting-controls {
+  position: sticky;
+  bottom: 0.5rem;
+  z-index: 5;
+  background: #232a35;
+  padding: 0.65rem;
+  margin: 1rem 0 0;
+  border-radius: 0.9rem;
+  box-shadow: 0 8px 25px #0003;
+}
+.conference .meeting-controls > .button-row {
+  justify-content: center;
+  gap: 0.4rem;
+  align-items: stretch;
+}
+.conference .meeting-controls > .button-row > button {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  gap: 0.3rem;
+  min-width: 4.3rem;
+  padding: 0.65rem 0.55rem;
+  background: #343d4c;
+  color: #f4f6fb;
+  border: 1px solid #465165;
+  border-radius: 0.7rem;
+  max-width: 8rem;
+}
+.conference .meeting-controls > .button-row > button span {
+  font-size: 0.63rem;
+  line-height: 1.2;
+}
+.conference .meeting-controls > .button-row > button[aria-pressed='true'] {
+  background: #e6edf7;
+  color: #172332;
+  border-color: #fff;
+}
+.conference .meeting-controls > .button-row > .leave-call {
+  background: #d94747;
+  border-color: #eb6565;
+  color: #fff;
+}
+.conference .meeting-controls .call-device-settings {
+  font-size: 0.8rem;
+  color: #e1e7f0;
+}
+.conference .meeting-controls .call-device-settings[open] {
+  background: #fff;
+  color: #172332;
+  border-radius: 0.5rem;
+  padding: 0.6rem;
+}
+.conference .meeting-controls .call-device-settings summary {
+  margin: 0.4rem 0 0;
+  text-align: center;
+}
+.conference .meeting-controls > p {
+  font-size: 0.8rem;
+}
+.conference .conference-manage {
+  margin: 0.8rem 0;
+  font-size: 0.85rem;
+}
+.conference .conference-manage > summary {
+  cursor: pointer;
+  color: #d5deed;
+  padding: 0.4rem;
+}
+.conference .meeting-moderation {
+  color: #263644;
+  margin: 0.4rem 0;
+}
+.conference .device-warning-detail {
+  bottom: 2.7rem;
+  top: auto;
+}
+.conference .device-warnings {
+  position: static;
+}
+.conference .meeting-chat-panel {
+  position: absolute;
+  right: 1rem;
+  top: 3rem;
+  bottom: 8rem;
+  z-index: 6;
+  width: min(23rem, calc(100% - 2rem));
+  background: #fff;
+  color: #213443;
+  border: 1px solid #d5dfe7;
+  border-radius: 0.8rem;
+  padding: 0.8rem;
+  box-shadow: 0 12px 50px #0006;
+  overflow: auto;
+}
+.conference .meeting-chat-panel[hidden] {
+  display: none;
+}
+.chat-panel-title {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 1rem;
+}
+.conference .meeting-chat {
+  border: 0;
+  padding: 0.5rem 0 0;
+  margin: 0;
+  box-shadow: none;
+}
+.conference .meeting-chat h2 {
+  display: none;
+}
+.conference .meeting-chat [role='log'] {
+  max-height: 32vh;
+}
+.conference .meeting-chat textarea {
+  min-height: 4rem;
+}
+.conference .screen-stage {
+  margin-bottom: 0.65rem;
+}
+@media (max-width: 1050px) {
+  .conference .participant-grid {
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+    min-height: 35vh;
+  }
+}
+@media (max-width: 600px) {
+  .conference {
+    padding: 0.5rem;
+    margin: 0 -0.5rem;
+    border-radius: 0.7rem;
+  }
+  .conference .participant-grid {
+    gap: 0.3rem;
+  }
+  .conference .participant-tile {
+    min-height: 8rem;
+    aspect-ratio: 3/4;
+  }
+  .conference .participant-top {
+    padding: 0.4rem;
+    background: #0b101a99;
+  }
+  .conference .participant-top strong {
+    font-size: 0.65rem;
+  }
+  .conference .participant-tools {
+    left: 0.3rem;
+    right: auto;
+  }
+  .conference .meeting-controls > .button-row {
+    gap: 0.3rem;
+  }
+  .conference .meeting-controls > .button-row > button {
+    min-width: 2.65rem;
+    flex: 1;
+    padding: 0.5rem 0.2rem;
+  }
+  .conference .meeting-controls > .button-row > button span {
+    font-size: 0.53rem;
+  }
+  .conference .participant-moderation summary {
+    max-width: 7rem;
+  }
+  .conference .participant-placeholder {
+    font-size: 1.8rem;
+  }
+}
+
+.fatal,
+.access-screen {
+  width: min(42rem, calc(100% - 2rem));
+  margin: 8vh auto;
+  background: #fff;
+  border: 1px solid #dce6df;
+  border-radius: 1.25rem;
+  box-shadow: 0 16px 50px #213a360a;
+  padding: clamp(1.5rem, 4vw, 3rem);
+}
+.state.error {
+  border: 1px solid #e0d2cb;
+  border-radius: 1rem;
+  background: #fff;
+  box-shadow: 0 6px 24px #213a3608;
+}
+.state.error h1,
+.state.error h2 {
+  color: #8b4230;
+}
+
+.status-badge {
+  display: inline-block;
+  margin-bottom: 1rem;
+  border: 1px solid #e9ce83;
+  border-radius: 0.6rem;
+  padding: 0.3rem 0.7rem;
+  background: #fff3cf;
+  color: #795819;
+  font-size: 0.85rem;
+  font-weight: 700;
+}

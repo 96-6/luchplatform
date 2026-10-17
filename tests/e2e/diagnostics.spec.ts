@@ -130,7 +130,7 @@ test('superadmin creates a ready account, shows its QR and resets 2FA for ordina
   await expect(page.locator('.credential-setup')).toContainText('Аккаунт готов к входу');
   await expect(page.getByAltText('QR-код Authenticator пользователя')).toBeVisible();
   const key = (await page.getByTestId('admin-manual-key').textContent())!.trim();
-  const context = await browser.newContext({ baseURL: 'http://127.0.0.1:3200' });
+  const context = await browser.newContext({ locale: 'ru-RU', baseURL: 'http://127.0.0.1:3200' });
   try {
     const student = await context.newPage();
     await ordinaryLogin(student, email, key);
@@ -205,9 +205,15 @@ test('questionnaire, English resume, two different skill results and reviewer ac
   await expect(page.getByText('Верных ответов: 3 из 6 · 50%', { exact: true })).toBeVisible();
   await page.screenshot({ path: 'test-results/diagnostic-result.png', fullPage: true });
   const studentId = (await session(page)).user.id as string;
-  const rootContext = await browser.newContext({ baseURL: 'http://127.0.0.1:3200' }),
-    otherContext = await browser.newContext({ baseURL: 'http://127.0.0.1:3200' }),
-    teacherContext = await browser.newContext({ baseURL: 'http://127.0.0.1:3200' });
+  const rootContext = await browser.newContext({
+      locale: 'ru-RU',
+      baseURL: 'http://127.0.0.1:3200',
+    }),
+    otherContext = await browser.newContext({ locale: 'ru-RU', baseURL: 'http://127.0.0.1:3200' }),
+    teacherContext = await browser.newContext({
+      locale: 'ru-RU',
+      baseURL: 'http://127.0.0.1:3200',
+    });
   try {
     const admin = await rootContext.newPage();
     await localLogin(admin, await adminAlias());

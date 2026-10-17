@@ -62,7 +62,7 @@ export class AuthService {
         inserted.rows[0] ??
         (await tx.query<UserRow>('SELECT * FROM users WHERE email=$1 FOR UPDATE', [input.email]))
           .rows[0];
-      if (!user || user.totp_enabled_at || user.is_blocked) return null;
+      if (!user || user.totp_enabled_at || user.is_blocked || !user.is_active) return null;
       return this.emailToken(tx, user);
     });
     if (mailId) await this.mail.send(mailId);
@@ -105,7 +105,7 @@ export class AuthService {
       const user = (
         await tx.query<UserRow>('SELECT * FROM users WHERE id=$1 FOR UPDATE', [tokenRow.user_id])
       ).rows[0];
-      if (!user || user.totp_enabled_at || user.is_blocked)
+      if (!user || user.totp_enabled_at || user.is_blocked || !user.is_active)
         throw new AppError(400, 'LINK_EXPIRED', 'Ссылка недействительна или устарела.');
       const secret = createTotp(user.email).secret.base32;
       await tx.query(
@@ -162,7 +162,7 @@ export class AuthService {
     const user = (
       await this.database.query<UserRow>('SELECT * FROM users WHERE id=$1', [record.user_id])
     ).rows[0];
-    if (!user?.totp_secret_ciphertext || user.totp_enabled_at || user.is_blocked)
+    if (!user?.totp_secret_ciphertext || user.totp_enabled_at || user.is_blocked || !user.is_active)
       throw new AppError(401, 'ENROLLMENT_EXPIRED', 'Подключение Authenticator недоступно.');
     return { record, user };
   }
@@ -170,7 +170,6 @@ export class AuthService {
     if (
       !user.email_verified_at ||
       !user.totp_secret_ciphertext ||
-      user.is_blocked ||
       (!enable && !user.totp_enabled_at)
     )
       throw new AppError(401, 'INVALID_CREDENTIALS', 'Неверная почта или код Authenticator.');
@@ -179,6 +178,7 @@ export class AuthService {
     const delta = totp.validate({ token: code, window: 1, timestamp: now });
     if (delta === null)
       throw new AppError(401, 'INVALID_CREDENTIALS', 'Неверная почта или код Authenticator.');
+    assertAccountAccess(user);
     const counter = Math.floor(now / 30000) + delta;
     const updated = await tx.query<UserRow>(
       `UPDATE users SET last_totp_counter=$1${enable ? ',totp_enabled_at=now()' : ''} WHERE id=$2 AND last_totp_counter<$1${enable ? ' AND totp_enabled_at IS NULL' : ''} RETURNING *`,
@@ -304,13 +304,7 @@ export class AuthService {
       const user = (
         await tx.query<UserRow>('SELECT * FROM users WHERE email=$1 FOR UPDATE', [email])
       ).rows[0]!;
-      if (
-        !user.is_demo ||
-        user.role !== role ||
-        user.is_blocked ||
-        !user.email_verified_at ||
-        !user.totp_enabled_at
-      )
+      if (!user.is_demo || user.role !== role || !user.email_verified_at || !user.totp_enabled_at)
         throw new AppError(401, 'INVALID_CREDENTIALS', 'Неверная почта или код Authenticator.');
       if ((await getPolicy(tx)).vpnCheckEnabled && !user.access_verified)
         throw new AppError(
@@ -318,6 +312,7 @@ export class AuthService {
           'ACCESS_REVIEW_REQUIRED',
           'Доступ ожидает проверки администратором.',
         );
+      assertAccountAccess(user);
       return this.newSession(tx, publicUser(user), request, true);
     });
     reply.setCookie(this.sessionCookie, created.value, this.cookieOptions(created.hours * 3600));
@@ -330,7 +325,7 @@ export class AuthService {
     const result = await this.database.query<
       UserRow & { session_id: string; token_hash: string; local_debug: boolean }
     >(
-      `SELECT u.*,s.id AS session_id,s.token_hash,s.local_debug FROM auth_sessions s JOIN users u ON u.id=s.user_id WHERE s.token_hash=$1 AND s.revoked_at IS NULL AND s.expires_at>now() AND u.is_blocked=false AND u.email_verified_at IS NOT NULL AND u.totp_enabled_at IS NOT NULL`,
+      `SELECT u.*,s.id AS session_id,s.token_hash,s.local_debug FROM auth_sessions s JOIN users u ON u.id=s.user_id WHERE s.token_hash=$1 AND s.revoked_at IS NULL AND s.expires_at>now() AND u.is_blocked=false AND u.is_active=true AND u.email_verified_at IS NOT NULL AND u.totp_enabled_at IS NOT NULL`,
       [hashToken(value)],
     );
     const row = result.rows[0];
@@ -382,4 +377,15 @@ export class AuthService {
     if (actor) await audit(this.database, actor.user.id, 'session.ended', actor.user.id);
     return { message: 'Вы вышли из аккаунта.' };
   }
+}
+
+function assertAccountAccess(user: UserRow) {
+  if (user.is_blocked)
+    throw new AppError(
+      403,
+      'ACCOUNT_BLOCKED',
+      'Ваша учетная запись заблокирована' + (user.block_reason ? '\n' + user.block_reason : ''),
+    );
+  if (!user.is_active)
+    throw new AppError(403, 'ACCOUNT_DEACTIVATED', 'Ваш аккаунт деактивирован администратором');
 }

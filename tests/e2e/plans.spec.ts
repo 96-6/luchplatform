@@ -193,9 +193,9 @@ test('teacher and superadmin see the same plan; peers are denied and empty/error
     page.getByRole('heading', { name: 'План ещё не сформирован', exact: true }),
   ).toBeVisible();
   const plan = await completeDiagnostic(page, 'ru');
-  const root = await browser.newContext({ baseURL: 'http://127.0.0.1:3200' }),
-    teacher = await browser.newContext({ baseURL: 'http://127.0.0.1:3200' }),
-    peer = await browser.newContext({ baseURL: 'http://127.0.0.1:3200' });
+  const root = await browser.newContext({ locale: 'ru-RU', baseURL: 'http://127.0.0.1:3200' }),
+    teacher = await browser.newContext({ locale: 'ru-RU', baseURL: 'http://127.0.0.1:3200' }),
+    peer = await browser.newContext({ locale: 'ru-RU', baseURL: 'http://127.0.0.1:3200' });
   try {
     const adminPage = await root.newPage(),
       teacherPage = await teacher.newPage(),

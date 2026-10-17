@@ -1,3 +1,5 @@
+import { t, dateLocale } from '../i18n';
+import { IntegrityFlag } from '../components/IntegrityFlag';
 import { useCallback, useEffect, useRef, useState, type FormEvent } from 'react';
 import { Link, useNavigate, useParams, useSearchParams } from 'react-router-dom';
 import {
@@ -20,10 +22,10 @@ import { VoiceAnswer } from '../components/VoiceAnswer';
 import { AssistantChat } from '../components/AssistantChat';
 import { ListeningPlayer } from '../components/ListeningPlayer';
 
-const labels = { practice: 'Тренировка', diagnostic: 'Диагностика', control: 'Контроль' };
+const labels = { practice: t('Тренировка'), diagnostic: t('Диагностика'), control: t('Контроль') };
 export function RunList({
   userId,
-  title = 'Сохранённые уроки',
+  title = t('Сохранённые уроки'),
 }: {
   userId?: string | undefined;
   title?: string;
@@ -74,28 +76,31 @@ export function RunList({
                   <strong>{run.title}</strong>
                   <p>
                     {run.user.name} · {labels[run.purpose]} · {run.completedSteps}/{run.totalSteps}{' '}
-                    заданий · {run.status === 'completed' ? 'Завершено' : 'В процессе'}
+                    {t('заданий · ')}
+                    {run.status === 'completed' ? t('Завершено') : t('В процессе')}
                   </p>
                   <small>
-                    Версия {run.packageVersion} · Прохождение {run.cycle}
+                    {t('Версия ')}
+                    {run.packageVersion} {t(' · Прохождение ')}
+                    {run.cycle}
                   </small>
                 </div>
                 <Link to={`/learning/runs/${run.id}`}>
-                  {run.status === 'active' ? 'Продолжить урок →' : 'Посмотреть результаты →'}
+                  {run.status === 'active' ? t('Продолжить урок →') : t('Посмотреть результаты →')}
                 </Link>
               </li>
             ))}
           </ul>
           {page.nextCursor && (
             <button className="secondary" disabled={busy} onClick={() => void load(true)}>
-              Загрузить ещё
+              {t('Загрузить ещё')}
             </button>
           )}
         </>
       ) : (
         <EmptyState
-          title="Прохождений пока нет"
-          description="Откройте маршрут, выберите урок и начните тренировку."
+          title={t('Прохождений пока нет')}
+          description={t('Откройте маршрут, выберите урок и начните тренировку.')}
         />
       )}
     </section>
@@ -106,8 +111,8 @@ export function EngineHistoryPage() {
   const [params] = useSearchParams();
   return (
     <>
-      <h1>{session.user?.role === 'superadmin' ? 'Все прохождения' : 'Обучение'}</h1>
-      <Link to="/courses">Выбрать учебный маршрут →</Link>
+      <h1>{session.user?.role === 'superadmin' ? t('Все прохождения') : t('Обучение')}</h1>
+      <Link to="/courses">{t('Выбрать учебный маршрут →')}</Link>
       <RunList userId={params.get('userId') ?? undefined} />
     </>
   );
@@ -136,7 +141,7 @@ export function StartLessonButton({
       });
       navigate(`/learning/runs/${view.run.id}`);
     } catch (failure) {
-      setError((failure as Error).message);
+      setError(t((failure as Error).message));
     } finally {
       setBusy(false);
     }
@@ -144,11 +149,11 @@ export function StartLessonButton({
   if (!['student', 'superadmin'].includes(session.user?.role ?? ''))
     return (
       <p className="muted">
-        Предварительный просмотр материалов.
+        {t('Предварительный просмотр материалов.')}
         {session.user?.role !== 'admin' && (
           <>
             {' '}
-            <Link to="/plan">Открыть планы учеников →</Link>
+            <Link to="/plan">{t('Открыть планы учеников →')}</Link>
           </>
         )}
       </p>
@@ -157,12 +162,12 @@ export function StartLessonButton({
     <div className="start-lesson">
       <button disabled={busy} onClick={() => void start()}>
         {busy
-          ? 'Открываем…'
+          ? t('Открываем…')
           : session.user?.role === 'superadmin'
-            ? 'Проверить учебный движок'
+            ? t('Проверить учебный движок')
             : purpose === 'practice'
-              ? 'Начать или продолжить тренировку'
-              : 'Начать или продолжить проверку'}
+              ? t('Начать или продолжить тренировку')
+              : t('Начать или продолжить проверку')}
       </button>
       {error && (
         <p role="alert" className="error">
@@ -244,23 +249,24 @@ function RunSession({ id }: { id: string }) {
     editable = view.writable && (own || adminControl);
   return (
     <>
-      <Link to="/learning">← Сохранённые уроки</Link>
+      <Link to="/learning">{t('← Сохранённые уроки')}</Link>
       {view.run.planIds.map((planId) => (
         <p key={planId}>
-          <Link to={`/plan/${planId}`}>Вернуться к индивидуальному плану →</Link>
+          <Link to={`/plan/${planId}`}>{t('Вернуться к индивидуальному плану →')}</Link>
         </p>
       ))}
       <p className="eyebrow">
         {labels[view.run.purpose]} ·{' '}
-        {view.run.isDemo ? 'Демонстрационный контент' : 'Учебный контент'}
+        {view.run.isDemo ? t('Демонстрационный контент') : t('Учебный контент')}
       </p>
       <h1>{view.run.title}</h1>
       <p>
-        {view.run.completedSteps}/{view.run.totalSteps} заданий завершено
+        {view.run.completedSteps}/{view.run.totalSteps} {t(' заданий завершено')}
       </p>
       {!own && (
         <p>
-          Ученик: {view.run.user.name} · {view.run.user.email}
+          {t('Ученик: ')}
+          {view.run.user.name} · {view.run.user.email}
         </p>
       )}
       {view.writable && !own && (
@@ -270,35 +276,35 @@ function RunSession({ id }: { id: string }) {
             checked={adminControl}
             onChange={(event) => setAdminControl(event.target.checked)}
           />
-          Управлять прохождением пользователя
+          {t('Управлять прохождением пользователя')}
         </label>
       )}
       {error && <ErrorState error={error} retry={() => void load()} />}
       {view.run.status === 'completed' ? (
         <section className="panel" role="status">
-          <h2>{view.run.diagnosticId ? 'Диагностика завершена' : 'Урок завершён'}</h2>
+          <h2>{view.run.diagnosticId ? t('Диагностика завершена') : t('Урок завершён')}</h2>
           <p>
-            Результаты сохранены. Верных ответов:{' '}
-            {view.attempts.filter((attempt) => attempt.evaluation?.correct).length} из{' '}
-            {view.attempts.length} попыток.
+            {t('Результаты сохранены. Верных ответов:')}{' '}
+            {view.attempts.filter((attempt) => attempt.evaluation?.correct).length} {t(' из')}{' '}
+            {view.attempts.length} {t(' попыток.')}
           </p>
           {view.run.diagnosticId && (
             <p>
               <Link to={`/diagnostics/${view.run.diagnosticId}`}>
-                Результат входной диагностики по навыкам →
+                {t('Результат входной диагностики по навыкам →')}
               </Link>
             </p>
           )}
           {view.writable && (
             <button disabled={busy} onClick={() => void restart()}>
-              Пройти ещё раз
+              {t('Пройти ещё раз')}
             </button>
           )}
           <p>
             <Link
               to={`/courses/${view.run.packageId}/${view.run.routeId}?packageVersion=${view.run.packageVersion}`}
             >
-              Вернуться к маршруту →
+              {t('Вернуться к маршруту →')}
             </Link>
           </p>
         </section>
@@ -306,16 +312,18 @@ function RunSession({ id }: { id: string }) {
         view.current && (
           <>
             <h2>
-              Задание {view.current.position + 1} из {view.run.totalSteps}
+              {t('Задание ')}
+              {view.current.position + 1} {t(' из ')}
+              {view.run.totalSteps}
             </h2>
             {view.run.cachedContent && (
               <p className="notice">
-                Продолжаем по сохранённому материалу, который вы ещё не просматривали.
+                {t('Продолжаем по сохранённому материалу, который вы ещё не просматривали.')}
               </p>
             )}
             {view.current.generatedExerciseId && (
               <p className="notice">
-                Сгенерированный демонстрационный вариант задания. Результат предварительный.
+                {t('Сгенерированный демонстрационный вариант задания. Результат предварительный.')}
               </p>
             )}
             {view.current.exercise.hasListening && (
@@ -329,7 +337,7 @@ function RunSession({ id }: { id: string }) {
             )}
             {view.material.length > 0 && (
               <section className="panel">
-                <h3>Учебный материал</h3>
+                <h3>{t('Учебный материал')}</h3>
                 <ContentBlocks blocks={view.material} assets={view.assets} />
               </section>
             )}
@@ -353,9 +361,9 @@ function RunSession({ id }: { id: string }) {
                 <button disabled={busy} onClick={() => void action('next', view.current!.turn.id)}>
                   {view.current.position + 1 === view.run.totalSteps
                     ? view.run.diagnosticId
-                      ? 'Завершить диагностику'
-                      : 'Завершить урок'
-                    : 'Следующее задание'}
+                      ? t('Завершить диагностику')
+                      : t('Завершить урок')
+                    : t('Следующее задание')}
                 </button>
                 {view.run.purpose === 'practice' && (
                   <button
@@ -363,7 +371,7 @@ function RunSession({ id }: { id: string }) {
                     disabled={busy}
                     onClick={() => void action('retry', view.current!.turn.id)}
                   >
-                    Попробовать ещё раз
+                    {t('Попробовать ещё раз')}
                   </button>
                 )}
               </div>
@@ -375,7 +383,7 @@ function RunSession({ id }: { id: string }) {
       <AttemptHistory attempts={view.attempts} showActor={session.user?.role === 'superadmin'} />
       {view.debug && (
         <details className="panel">
-          <summary>Все данные luch engine для отладки</summary>
+          <summary>{t('Все данные luch engine для отладки')}</summary>
           <pre className="engine-debug">
             {JSON.stringify({ run: view.run, steps: view.debug, attempts: view.attempts }, null, 2)}
           </pre>
@@ -402,7 +410,7 @@ function Question({
   const [draft, setDraft] = useState<DraftAnswer>(turn.draftAnswer),
     [busy, setBusy] = useState(false),
     [error, setError] = useState('');
-  const [saved, setSaved] = useState('Черновик сохранён'),
+  const [saved, setSaved] = useState(t('Черновик сохранён')),
     [pending, setPending] = useState<{
       turnId: string;
       operationId: string;
@@ -448,11 +456,11 @@ function Question({
       try {
         const result = await promise;
         if (mounted.current && latest.current.revision === snapshot.revision)
-          setSaved('Черновик сохранён');
+          setSaved(t('Черновик сохранён'));
         return result;
       } catch (failure) {
         if (mounted.current && latest.current.revision === snapshot.revision)
-          setSaved(`Черновик пока не сохранён: ${(failure as Error).message}`);
+          setSaved(t('Черновик пока не сохранён: {0}', [(failure as Error).message]));
         return undefined;
       } finally {
         inFlight.current.delete(promise);
@@ -475,7 +483,7 @@ function Question({
         if (mounted.current) changed(result);
       })
       .catch((failure) => {
-        if (mounted.current) setError((failure as Error).message);
+        if (mounted.current) setError(t((failure as Error).message));
       });
     const timer = setInterval(() => {
       if (document.visibilityState === 'visible') void persist();
@@ -503,7 +511,7 @@ function Question({
   const update = (answer: DraftAnswer) => {
     latest.current = { draft: answer, revision: latest.current.revision + 1 };
     setDraft(answer);
-    setSaved('Сохраняем черновик…');
+    setSaved(t('Сохраняем черновик…'));
   };
   async function submit(event: FormEvent) {
     event.preventDefault();
@@ -522,7 +530,7 @@ function Question({
       setPending(null);
       changed(result.view);
     } catch (failure) {
-      setError(`${(failure as Error).message} Можно повторить отправку.`);
+      setError(t('{0} Можно повторить отправку.', [(failure as Error).message]));
     } finally {
       setBusy(false);
     }
@@ -537,7 +545,7 @@ function Question({
         }),
       );
     } catch (failure) {
-      setError((failure as Error).message);
+      setError(t((failure as Error).message));
     } finally {
       setBusy(false);
     }
@@ -560,7 +568,7 @@ function Question({
       navigate(session.dashboardPath ?? '/learning');
     } catch (failure) {
       enabled.current = true;
-      setError((failure as Error).message);
+      setError(t((failure as Error).message));
     } finally {
       setBusy(false);
     }
@@ -570,15 +578,10 @@ function Question({
   return (
     <section className="panel">
       <p className="exercise-instruction">{exercise.instruction}</p>
-      {view.integrityEnabled && (
-        <p className="muted">
-          Учебные действия и состояние окна сохраняются для проверки результата.
-        </p>
-      )}
       <ContentBlocks blocks={exercise.blocks} assets={view.assets} />
       <form onSubmit={(event) => void submit(event)}>
         <fieldset disabled={busy || !editable || Boolean(current.attempt) || Boolean(pending)}>
-          <legend>Ваш ответ</legend>
+          <legend>{t('Ваш ответ')}</legend>
           {exercise.response.type === 'choice' ? (
             exercise.response.options.map((option) => (
               <label className="answer-option" key={option.id}>
@@ -593,7 +596,7 @@ function Question({
             ))
           ) : (
             <>
-              <label htmlFor="short-answer">Короткий ответ</label>
+              <label htmlFor="short-answer">{t('Короткий ответ')}</label>
               <input
                 id="short-answer"
                 value={draft?.type === 'short_text' ? draft.text : ''}
@@ -608,7 +611,7 @@ function Question({
         {editable && !current.attempt && (
           <div className="form-actions">
             <button disabled={busy || !valid}>
-              {busy ? 'Проверяем…' : pending ? 'Повторить отправку' : 'Проверить ответ'}
+              {busy ? t('Проверяем…') : pending ? t('Повторить отправку') : t('Проверить ответ')}
             </button>
             <button
               type="button"
@@ -616,7 +619,7 @@ function Question({
               disabled={busy || Boolean(pending) || current.hintsRemaining === 0}
               onClick={() => void hint()}
             >
-              Подсказка
+              {t('Подсказка')}
             </button>
             <button
               type="button"
@@ -624,7 +627,7 @@ function Question({
               disabled={busy || Boolean(pending)}
               onClick={() => void pause()}
             >
-              Сохранить и выйти
+              {t('Сохранить и выйти')}
             </button>
           </div>
         )}
@@ -638,13 +641,13 @@ function Question({
         <div role="alert" className="error">
           <p>{error}</p>
           <button className="secondary" onClick={() => void refresh()}>
-            Проверить сохранённое состояние
+            {t('Проверить сохранённое состояние')}
           </button>
         </div>
       )}
       {turn.usedHints.length > 0 && (
         <aside className="hint">
-          <h3>Использованные подсказки</h3>
+          <h3>{t('Использованные подсказки')}</h3>
           {turn.usedHints.map((hint) => (
             <p key={hint.index}>{hint.text}</p>
           ))}
@@ -652,7 +655,7 @@ function Question({
       )}
       {view.run.purpose !== 'practice' && (
         <p className="muted">
-          Подсказки отключены. Оценка и объяснения появятся после завершения проверки.
+          {t('Подсказки отключены. Оценка и объяснения появятся после завершения проверки.')}
         </p>
       )}
       {current.attempt && (
@@ -660,26 +663,28 @@ function Question({
           <h3>
             {current.attempt.evaluation
               ? current.attempt.evaluation.correct
-                ? 'Верно'
-                : 'Нужно исправить'
-              : 'Ответ сохранён'}
+                ? t('Верно')
+                : t('Нужно исправить')
+              : t('Ответ сохранён')}
           </h3>
           {current.attempt.teacherReview && (
             <p className="badge">
-              Оценка преподавателя: {current.attempt.teacherReview.author.name}
+              {t('Оценка преподавателя: ')}
+              {current.attempt.teacherReview.author.name}
             </p>
           )}
           {current.attempt.evaluation && <p>{current.attempt.evaluation.explanation}</p>}
           <Link to={`/learning/attempts/${current.attempt.id}`}>
-            Комментарии и история проверки →
+            {t('Комментарии и история проверки →')}
           </Link>
           <p>
-            Время активности: {(current.attempt.activeMilliseconds / 1000).toFixed(1)} с
+            {t('Время активности: ')}
+            {(current.attempt.activeMilliseconds / 1000).toFixed(1)} {t(' с')}
             {current.attempt.adminAssistance
-              ? ' · С участием суперадмина'
+              ? t(' · С участием суперадмина')
               : current.attempt.independent
-                ? ' · Без помощи'
-                : ' · С помощью или после объяснения'}
+                ? t(' · Без помощи')
+                : t(' · С помощью или после объяснения')}
           </p>
         </div>
       )}
@@ -695,22 +700,23 @@ function AttemptHistory({
 }) {
   return (
     <section className="panel">
-      <h2>История попыток</h2>
+      <h2>{t('История попыток')}</h2>
       {attempts.length ? (
         attempts.map((attempt) => (
           <details className="attempt-item" key={attempt.id}>
             <summary>
-              Попытка {attempt.number}:{' '}
+              <IntegrityFlag assessment={attempt.integrity} /> {t('Попытка ')}
+              {attempt.number}:{' '}
               {attempt.evaluation
                 ? attempt.evaluation.correct
-                  ? 'верно'
-                  : 'ошибка'
-                : 'ответ сохранён'}{' '}
-              · {new Date(attempt.evaluatedAt).toLocaleString('ru-RU')}
+                  ? t('верно')
+                  : t('ошибка')
+                : t('ответ сохранён')}{' '}
+              · {new Date(attempt.evaluatedAt).toLocaleString(dateLocale)}
             </summary>
             <p>{attempt.instruction}</p>
             <p>
-              <strong>Ответ:</strong>{' '}
+              <strong>{t('Ответ:')}</strong>{' '}
               {attempt.answer.type === 'short_text' ? (
                 <span className="content-text">{attempt.answer.text}</span>
               ) : attempt.response.type === 'choice' ? (
@@ -722,29 +728,32 @@ function AttemptHistory({
               )}
             </p>
             {attempt.teacherReview && (
-              <p className="badge">Проверено преподавателем: {attempt.teacherReview.author.name}</p>
+              <p className="badge">
+                {t('Проверено преподавателем: ')}
+                {attempt.teacherReview.author.name}
+              </p>
             )}
             {attempt.evaluation && <p>{attempt.evaluation.explanation}</p>}
             <p>
               <Link to={`/learning/attempts/${attempt.id}`}>
-                Ответ и комментарии преподавателя →
+                {t('Ответ и комментарии преподавателя →')}
               </Link>
             </p>
             {attempt.integrity && (
               <aside className="integrity-review">
                 <strong>
-                  Контекст честности:{' '}
+                  {t('Контекст честности:')}{' '}
                   {attempt.integrity.requiresReview
-                    ? 'Требует внимания'
+                    ? t('Требует внимания')
                     : attempt.integrity.status === 'insufficient_data'
-                      ? 'Недостаточно наблюдений'
-                      : 'Пометки нет'}
+                      ? t('Недостаточно наблюдений')
+                      : t('Пометки нет')}
                 </strong>
-                <p>Фоновые сигналы требуют проверки человеком.</p>
+                <p>{t('Фоновые сигналы требуют проверки человеком.')}</p>
                 <ul>
                   {attempt.integrity.signals.map((signal) => (
                     <li key={signal.code}>
-                      {signal.label}: {signal.context}
+                      {t(signal.label)}: {t(signal.context)}
                     </li>
                   ))}
                 </ul>
@@ -752,26 +761,32 @@ function AttemptHistory({
             )}
             <p>
               {attempt.adminAssistance
-                ? 'С участием суперадмина'
+                ? t('С участием суперадмина')
                 : attempt.independent
-                  ? 'Самостоятельно'
-                  : 'С подсказкой или после объяснения'}{' '}
-              · Активность {(attempt.activeMilliseconds / 1000).toFixed(1)} с · От открытия до
-              ответа {(attempt.elapsedMilliseconds / 1000).toFixed(1)} с
+                  ? t('Самостоятельно')
+                  : t('С подсказкой или после объяснения')}{' '}
+              {t('· Активность ')}
+              {(attempt.activeMilliseconds / 1000).toFixed(1)} {t(' с · От открытия до ответа ')}
+              {(attempt.elapsedMilliseconds / 1000).toFixed(1)} {t(' с')}
             </p>
             {attempt.usedHints.map((hint) => (
-              <p key={hint.index}>Подсказка: {hint.text}</p>
+              <p key={hint.index}>
+                {t('Подсказка: ')}
+                {hint.text}
+              </p>
             ))}
             {showActor && (
               <p>
-                Автор отправки: {attempt.submittedBy} · Версия задания {attempt.exerciseVersion} ·
-                Движок {attempt.evaluation?.engineVersion}
+                {t('Автор отправки: ')}
+                {attempt.submittedBy} {t(' · Версия задания ')}
+                {attempt.exerciseVersion} {t(' · Движок ')}
+                {attempt.evaluation?.engineVersion}
               </p>
             )}
           </details>
         ))
       ) : (
-        <p className="muted">Ответов ещё нет.</p>
+        <p className="muted">{t('Ответов ещё нет.')}</p>
       )}
     </section>
   );
@@ -790,17 +805,17 @@ export function IntegrityControls() {
     setMessage('');
     try {
       await api('/admin/engine/integrity-policy', integrityPolicySchema, { body: { enabled } });
-      setMessage('Параметры честности сохранены.');
+      setMessage(t('Параметры честности сохранены.'));
       refresh();
     } catch (failure) {
-      setMessage((failure as Error).message);
+      setMessage(t((failure as Error).message));
     } finally {
       setBusy(false);
     }
   }
   return (
     <section className="panel">
-      <h2>Честность прохождения</h2>
+      <h2>{t('Честность прохождения')}</h2>
       {state.status === 'loading' ? (
         <LoadingState />
       ) : state.status === 'error' ? (
@@ -813,9 +828,9 @@ export function IntegrityControls() {
               checked={enabled}
               onChange={(event) => setEnabled(event.target.checked)}
             />
-            Фоновая проверка прохождения
+            {t('Фоновая проверка прохождения')}
           </label>
-          <button disabled={busy}>Сохранить параметры честности</button>
+          <button disabled={busy}>{t('Сохранить параметры честности')}</button>
         </form>
       )}
       {message && <p role="status">{message}</p>}

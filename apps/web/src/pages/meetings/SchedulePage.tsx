@@ -1,3 +1,4 @@
+import { t } from '../../i18n';
 import { useMemo, useRef, useState, type FormEvent } from 'react';
 import { Link, useNavigate, useSearchParams } from 'react-router-dom';
 import {
@@ -74,8 +75,12 @@ export function SchedulePage() {
   }
   return (
     <>
-      <h1>Расписание</h1>
-      <p>Время показано в часовом поясе {zone}. Встречи открываются в браузере.</p>
+      <h1>{t('Расписание')}</h1>
+      <p>
+        {t('Время показано в часовом поясе ')}
+        {zone}
+        {t('. Встречи открываются в браузере.')}
+      </p>
       <div className="calendar-toolbar">
         <button
           className="secondary"
@@ -89,13 +94,13 @@ export function SchedulePage() {
             )
           }
         >
-          ← Назад
+          {t('← Назад')}
         </button>
         <button
           className="secondary"
           onClick={() => change(dateParts(new Date(), zone).slice(0, 10))}
         >
-          Сегодня
+          {t('Сегодня')}
         </button>
         <button
           className="secondary"
@@ -109,33 +114,33 @@ export function SchedulePage() {
             )
           }
         >
-          Вперёд →
+          {t('Вперёд →')}
         </button>
         <label>
-          Дата
+          {t('Дата')}
           <input
-            aria-label="Дата календаря"
+            aria-label={t('Дата календаря')}
             type="date"
             value={day}
             onChange={(e) => change(e.target.value)}
           />
         </label>
         <label>
-          Вид
+          {t('Вид')}
           <select
-            aria-label="Вид календаря"
+            aria-label={t('Вид календаря')}
             value={mode}
             onChange={(e) => change(day, e.target.value)}
           >
-            <option value="week">Неделя</option>
-            <option value="month">Месяц</option>
-            <option value="agenda">Список</option>
+            <option value="week">{t('Неделя')}</option>
+            <option value="month">{t('Месяц')}</option>
+            <option value="agenda">{t('Список')}</option>
           </select>
         </label>
         <label>
-          Часовой пояс
+          {t('Часовой пояс')}
           <select
-            aria-label="Часовой пояс календаря"
+            aria-label={t('Часовой пояс календаря')}
             value={zone}
             onChange={(e) => setZone(e.target.value)}
           >
@@ -157,7 +162,7 @@ export function SchedulePage() {
         </label>
         {['teacher', 'admin', 'superadmin'].includes(session.user!.role) && (
           <button onClick={() => setCreating((v) => !v)}>
-            {creating ? 'Закрыть форму' : 'Запланировать занятие'}
+            {creating ? t('Закрыть форму') : t('Запланировать занятие')}
           </button>
         )}
       </div>
@@ -172,20 +177,20 @@ export function SchedulePage() {
         />
       )}
       {state.status === 'loading' ? (
-        <LoadingState text="Загружаем расписание…" />
+        <LoadingState text={t('Загружаем расписание…')} />
       ) : state.status === 'error' ? (
         <ErrorState error={state.error} retry={refresh} />
       ) : (
         <>
           <div
             className={mode === 'agenda' ? 'meeting-agenda' : 'calendar-grid'}
-            aria-label="Календарь занятий"
+            aria-label={t('Календарь занятий')}
           >
             {mode === 'agenda' ? (
               all.length ? (
                 all.map((m) => <MeetingCard key={m.id} meeting={m} zone={zone} />)
               ) : (
-                <p>На выбранную неделю занятий нет.</p>
+                <p>{t('На выбранную неделю занятий нет.')}</p>
               )
             ) : (
               Array.from({ length: days }, (_, i) => {
@@ -213,10 +218,10 @@ export function SchedulePage() {
               })
             )}
           </div>
-          {!all.length && mode !== 'agenda' && <p>В этом периоде занятий пока нет.</p>}
+          {!all.length && mode !== 'agenda' && <p>{t('В этом периоде занятий пока нет.')}</p>}
           {cursor && (
             <button disabled={busy} className="secondary" onClick={() => void more()}>
-              Загрузить остальные занятия периода
+              {t('Загрузить остальные занятия периода')}
             </button>
           )}
           {moreError && <ErrorState error={moreError} retry={() => void more()} />}
@@ -233,10 +238,10 @@ function MeetingCard({ meeting: m, zone }: { meeting: Meeting; zone: string }) {
       </Link>
       <p>{meetingTime(m, zone)}</p>
       <p>
-        {m.language === 'ru' ? 'РКИ' : 'Английский'} ·{' '}
+        {m.language === 'ru' ? t('РКИ') : t('Английский')} ·{' '}
         {m.members.filter((p) => p.role === 'student').length === 1
-          ? 'Индивидуальное'
-          : 'Групповое'}
+          ? t('Индивидуальное')
+          : t('Групповое')}
       </p>
       <span className="badge">{statusLabels[m.status]}</span>
     </article>
@@ -315,7 +320,7 @@ export function MeetingEditor({
       done();
       if (!meeting) navigate(`/meetings/${saved.id}`);
     } catch (e) {
-      setError((e as Error).message);
+      setError(t((e as Error).message));
       if (e instanceof ApiError && e.status && e.status < 500) pending.current = null;
     } finally {
       setBusy(false);
@@ -324,9 +329,9 @@ export function MeetingEditor({
   return (
     <section
       className="panel"
-      aria-label={meeting ? 'Изменение видеозанятия' : 'Новое видеозанятие'}
+      aria-label={meeting ? t('Изменение видеозанятия') : t('Новое видеозанятие')}
     >
-      <h2>{meeting ? 'Изменить занятие' : 'Запланировать видеозанятие'}</h2>
+      <h2>{meeting ? t('Изменить занятие') : t('Запланировать видеозанятие')}</h2>
       {opts.state.status === 'loading' ? (
         <LoadingState />
       ) : opts.state.status === 'error' ? (
@@ -336,7 +341,7 @@ export function MeetingEditor({
           <fieldset disabled={busy || Boolean(pending.current)}>
             <div className="form-grid">
               <label>
-                Название занятия
+                {t('Название занятия')}
                 <input
                   required
                   maxLength={160}
@@ -345,18 +350,18 @@ export function MeetingEditor({
                 />
               </label>
               <label>
-                Язык занятия
+                {t('Язык занятия')}
                 <select
-                  aria-label="Язык занятия"
+                  aria-label={t('Язык занятия')}
                   value={language}
                   onChange={(e) => setLanguage(e.target.value as 'ru' | 'en')}
                 >
-                  <option value="ru">РКИ</option>
-                  <option value="en">Английский</option>
+                  <option value="ru">{t('РКИ')}</option>
+                  <option value="en">{t('Английский')}</option>
                 </select>
               </label>
               <label>
-                Начало занятия
+                {t('Начало занятия')}
                 <input
                   required
                   type="datetime-local"
@@ -365,7 +370,7 @@ export function MeetingEditor({
                 />
               </label>
               <label>
-                Продолжительность, минут
+                {t('Продолжительность, минут')}
                 <input
                   required
                   type="number"
@@ -376,9 +381,9 @@ export function MeetingEditor({
                 />
               </label>
               <label>
-                Часовой пояс занятия
+                {t('Часовой пояс занятия')}
                 <select
-                  aria-label="Часовой пояс занятия"
+                  aria-label={t('Часовой пояс занятия')}
                   value={tz}
                   onChange={(e) => setTz(e.target.value)}
                 >
@@ -399,14 +404,14 @@ export function MeetingEditor({
                 </select>
               </label>
               <label>
-                Основной преподаватель
+                {t('Основной преподаватель')}
                 <select
                   required
                   value={organizer}
                   disabled={session.user!.role === 'teacher'}
                   onChange={(e) => setOrganizer(e.target.value)}
                 >
-                  <option value="">Выберите преподавателя</option>
+                  <option value="">{t('Выберите преподавателя')}</option>
                   {opts.state.data.organizers
                     .filter((p) => p.role === 'teacher')
                     .map((p) => (
@@ -418,7 +423,7 @@ export function MeetingEditor({
               </label>
             </div>
             <label>
-              Описание занятия
+              {t('Описание занятия')}
               <textarea
                 maxLength={3000}
                 value={description}
@@ -427,11 +432,13 @@ export function MeetingEditor({
             </label>
             <fieldset>
               <legend>
-                Ученики ·{' '}
-                {students.length === 1 ? 'индивидуальное занятие' : `группа: ${students.length}`}
+                {t('Ученики ·')}{' '}
+                {students.length === 1
+                  ? t('индивидуальное занятие')
+                  : t('группа: {0}', [students.length])}
               </legend>
               {!opts.state.data.students.length && (
-                <p>Сначала закрепите учеников за преподавателем.</p>
+                <p>{t('Сначала закрепите учеников за преподавателем.')}</p>
               )}
               <div className="meeting-picker">
                 {opts.state.data.students.map((p) => (
@@ -451,8 +458,8 @@ export function MeetingEditor({
               </div>
             </fieldset>
             <details>
-              <summary>Дополнительные организаторы</summary>
-              <p>Каждый преподаватель должен быть связан со всеми выбранными учениками.</p>
+              <summary>{t('Дополнительные организаторы')}</summary>
+              <p>{t('Каждый преподаватель должен быть связан со всеми выбранными учениками.')}</p>
               {opts.state.data.organizers
                 .filter((p) => p.id !== organizer)
                 .map((p) => (
@@ -472,17 +479,17 @@ export function MeetingEditor({
             </details>
             <label className="checkbox">
               <input type="checkbox" checked={lobby} onChange={(e) => setLobby(e.target.checked)} />
-              Зал ожидания: организатор допускает учеников
+              {t('Зал ожидания: организатор допускает учеников')}
             </label>
           </fieldset>
           <button disabled={busy || !students.length}>
             {busy
-              ? 'Сохраняем…'
+              ? t('Сохраняем…')
               : pending.current
-                ? 'Повторить сохранение занятия'
+                ? t('Повторить сохранение занятия')
                 : meeting
-                  ? 'Сохранить расписание'
-                  : 'Создать занятие'}
+                  ? t('Сохранить расписание')
+                  : t('Создать занятие')}
           </button>
         </form>
       )}

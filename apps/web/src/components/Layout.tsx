@@ -1,20 +1,22 @@
+import { t } from '../i18n';
+import { LanguageSelector } from '../i18n/LanguageSelector';
 import { useEffect, useState, type ReactNode } from 'react';
 import { NavLink, useLocation, useNavigate } from 'react-router-dom';
 import { useAuth } from '../auth/AuthContext';
 
 const navigation = [
-  { to: '/', label: 'Главная', icon: '⌂' },
-  { to: '/courses', label: 'Маршруты', icon: '▤' },
-  { to: '/learning', label: 'Обучение', icon: '▶' },
-  { to: '/onboarding', label: 'Анкета и диагностика', icon: '✓' },
-  { to: '/plan', label: 'Мой план', icon: '≡' },
-  { to: '/assistant', label: 'Помощник', icon: '◉' },
-  { to: '/schedule', label: 'Расписание', icon: '▦' },
-  { to: '/progress', label: 'Прогресс', icon: '↗' },
-  { to: '/feedback', label: 'Комментарии преподавателя', icon: '✎' },
-  { to: '/admin/providers', label: 'AI и расходы', icon: '⚙' },
-  { to: '/operations', label: 'Обслуживание', icon: '⚒' },
-  { to: '/teacher', label: 'Мои ученики', icon: '◇' },
+  { to: '/', label: t('Главная'), icon: '⌂' },
+  { to: '/courses', label: t('Маршруты'), icon: '▤' },
+  { to: '/learning', label: t('Обучение'), icon: '▶' },
+  { to: '/onboarding', label: t('Анкета и диагностика'), icon: '✓' },
+  { to: '/plan', label: t('Мой план'), icon: '≡' },
+  { to: '/assistant', label: t('Помощник'), icon: '◉' },
+  { to: '/schedule', label: t('Расписание'), icon: '▦' },
+  { to: '/progress', label: t('Прогресс'), icon: '↗' },
+  { to: '/feedback', label: t('Комментарии преподавателя'), icon: '✎' },
+  { to: '/admin/providers', label: t('AI и расходы'), icon: '⚙' },
+  { to: '/operations', label: t('Обслуживание'), icon: '⚒' },
+  { to: '/teacher', label: t('Мои ученики'), icon: '◇' },
 ];
 export function Layout({ children, devTools }: { children: ReactNode; devTools: boolean }) {
   const [open, setOpen] = useState(false);
@@ -37,17 +39,17 @@ export function Layout({ children, devTools }: { children: ReactNode; devTools: 
           user.role === 'student' && item.to === '/'
             ? { ...item, to: '/student' }
             : item.to === '/plan' && user.role !== 'student'
-              ? { ...item, label: 'Планы учеников' }
+              ? { ...item, label: t('Планы учеников') }
               : item.to === '/onboarding' && user.role !== 'student'
-                ? { ...item, label: 'Анкеты и диагностика учеников' }
+                ? { ...item, label: t('Анкеты и диагностика учеников') }
                 : item.to === '/operations' && user.role === 'admin'
-                  ? { ...item, label: 'Администратор' }
+                  ? { ...item, label: t('Администратор') }
                   : item,
         )
     : [
-        { to: '/', label: 'Главная', icon: '⌂' },
-        { to: '/login', label: 'Войти', icon: '→' },
-        { to: '/register', label: 'Регистрация', icon: '+' },
+        { to: '/', label: t('Главная'), icon: '⌂' },
+        { to: '/login', label: t('Войти'), icon: '→' },
+        { to: '/register', label: t('Регистрация'), icon: '+' },
       ];
   const location = useLocation();
   useEffect(() => {
@@ -56,11 +58,11 @@ export function Layout({ children, devTools }: { children: ReactNode; devTools: 
   return (
     <div className="app-shell">
       <a className="skip-link" href="#content">
-        К содержимому
+        {t('К содержимому')}
       </a>
       <aside className="sidebar">
         <div className="brand-row">
-          <NavLink to="/" className="brand" aria-label="ЛУЧ — главная">
+          <NavLink to="/" className="brand" aria-label={t('ЛУЧ — главная')}>
             <svg viewBox="0 0 40 40" width="40" height="40" aria-hidden="true">
               <rect width="40" height="40" rx="12" fill="currentColor" />
               <path
@@ -72,13 +74,11 @@ export function Layout({ children, devTools }: { children: ReactNode; devTools: 
                 strokeLinejoin="round"
               />
             </svg>
-            <span>
-              ЛУЧ<small>Языки для жизни</small>
-            </span>
+            <span>{t('ЛУЧ')}</span>
           </NavLink>
           <button
             className="menu-toggle"
-            aria-label={open ? 'Закрыть меню' : 'Открыть меню'}
+            aria-label={open ? t('Закрыть меню') : t('Открыть меню')}
             aria-expanded={open}
             aria-controls="main-nav"
             onClick={() => setOpen(!open)}
@@ -89,7 +89,7 @@ export function Layout({ children, devTools }: { children: ReactNode; devTools: 
         <nav
           id="main-nav"
           className={open ? 'navigation open' : 'navigation'}
-          aria-label="Основная навигация"
+          aria-label={t('Основная навигация')}
         >
           {visibleNavigation.map((item) => (
             <NavLink key={item.to} to={item.to} end={item.to === '/'}>
@@ -100,24 +100,23 @@ export function Layout({ children, devTools }: { children: ReactNode; devTools: 
           {user && user.role === 'superadmin' && (
             <NavLink to={auth.session.dashboardPath ?? '/student'}>
               <span aria-hidden="true">◇</span>
-              Суперадмин
+              {t('Суперадмин')}
             </NavLink>
           )}
           {devTools && (!user || user.role === 'superadmin') && (
             <NavLink to="/system">
-              <span aria-hidden="true">⚙</span>Проверка системы
+              <span aria-hidden="true">⚙</span>
+              {t('Проверка системы')}
             </NavLink>
           )}
         </nav>
         <div className="sidebar-note">
-          <strong>Русский · English</strong>
-          <p>Учитесь в своём темпе.</p>
-          <span className="badge">Начальная версия</span>
+          <LanguageSelector />
         </div>
       </aside>
       <div className="workspace">
         <header className="topbar">
-          <span>Языковая платформа</span>
+          <span>{t('ЛУЧ')}</span>
           <div className="topbar-account">
             {user ? (
               <>
@@ -129,14 +128,14 @@ export function Layout({ children, devTools }: { children: ReactNode; devTools: 
                     void auth
                       .logout()
                       .then(() => navigate('/login', { replace: true }))
-                      .catch((error: Error) => setLogoutError(error.message));
+                      .catch((error: Error) => setLogoutError(t(error.message)));
                   }}
                 >
-                  Выйти
+                  {t('Выйти')}
                 </button>
               </>
             ) : (
-              <span className="pill">РКИ и английский</span>
+              <span className="pill">{t('РКИ и английский')}</span>
             )}
           </div>
         </header>
@@ -148,7 +147,7 @@ export function Layout({ children, devTools }: { children: ReactNode; devTools: 
           )}
           {children}
         </main>
-        <footer>ЛУЧ · Персональное обучение</footer>
+        <footer>{t('ЛУЧ')}</footer>
       </div>
     </div>
   );

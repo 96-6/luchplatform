@@ -1,3 +1,4 @@
+import { t, dateLocale } from '../i18n';
 import { useEffect, useState, type FormEvent } from 'react';
 import {
   providerSettingsSchema,
@@ -12,22 +13,22 @@ import { useResource } from '../lib/useResource';
 import { LoadingState, ErrorState } from '../components/States';
 type View = z.infer<typeof providerSettingsSchema>;
 const usd = (micros: number) =>
-  `${(micros / 1_000_000).toLocaleString('ru-RU', { minimumFractionDigits: 6, maximumFractionDigits: 6 })} USD`;
+  `${(micros / 1_000_000).toLocaleString(dateLocale, { minimumFractionDigits: 6, maximumFractionDigits: 6 })} USD`;
 const moneyLabels = {
-  lifetimeMicros: 'Общий бюджет, USD',
-  dailyMicros: 'Лимит в день, USD',
-  monthlyMicros: 'Лимит в месяц, USD',
-  perUserDailyMicros: 'На одного ученика в день, USD',
+  lifetimeMicros: t('Общий бюджет, USD'),
+  dailyMicros: t('Лимит в день, USD'),
+  monthlyMicros: t('Лимит в месяц, USD'),
+  perUserDailyMicros: t('На одного ученика в день, USD'),
 };
 const numberLabels = {
-  requestsPerUserDay: 'Запросов на ученика в день',
-  maxOutputTokens: 'Максимум токенов ответа',
-  maxTtsCharacters: 'Максимум символов озвучивания',
-  maxRecordingSeconds: 'Максимум секунд голосовой записи',
-  maxVideoSeconds: 'Максимум секунд видео HeyGen',
-  maxVideoCharacters: 'Максимум символов реплики HeyGen',
-  maxConcurrent: 'Одновременных запросов',
-  pricingValidityHours: 'Срок подтверждения цены, часы',
+  requestsPerUserDay: t('Запросов на ученика в день'),
+  maxOutputTokens: t('Максимум токенов ответа'),
+  maxTtsCharacters: t('Максимум символов озвучивания'),
+  maxRecordingSeconds: t('Максимум секунд голосовой записи'),
+  maxVideoSeconds: t('Максимум секунд видео HeyGen'),
+  maxVideoCharacters: t('Максимум символов реплики HeyGen'),
+  maxConcurrent: t('Одновременных запросов'),
+  pricingValidityHours: t('Срок подтверждения цены, часы'),
 };
 export function ProviderPage() {
   const resource = useResource('/admin/providers', providerSettingsSchema),
@@ -45,7 +46,7 @@ export function ProviderPage() {
     setMessage('');
     try {
       setView(await api(path, providerSettingsSchema, { body }));
-      setMessage('Настройки сохранены.');
+      setMessage(t('Настройки сохранены.'));
       setLedgerRevision((r) => r + 1);
     } catch (e) {
       setError(e as Error);
@@ -61,31 +62,37 @@ export function ProviderPage() {
     );
   return (
     <>
-      <h1>AI, озвучивание и расходы</h1>
+      <h1>{t('AI, озвучивание и расходы')}</h1>
       <p>
-        Генеративные варианты — OpenAI или NeuroAPI. Listening, распознавание Scribe и голосовые
-        ответы — ElevenLabs. Видеоаватары — HeyGen. При недоступности генерации задания продолжаются
-        из учебного банка.
+        {t(
+          'Генеративные варианты — OpenAI или NeuroAPI. Listening, распознавание Scribe и голосовые ответы — ElevenLabs. Видеоаватары — HeyGen. При недоступности генерации задания продолжаются из учебного банка.',
+        )}
       </p>
       <section className="notice">
         <p>
-          Обращения разрешаются после проверки лимитов. Учёт ведётся в USD по заданным верхним
-          ценам, день и месяц — UTC. Неопределённый сбой сохраняет зарезервированную сумму.
+          {t(
+            'Обращения разрешаются после проверки лимитов. Учёт ведётся в USD по заданным верхним ценам, день и месяц — UTC. Неопределённый сбой сохраняет зарезервированную сумму.',
+          )}
         </p>
         <p>
-          Цены нужно сверять с вашим тарифом, включая пиковые надбавки. Для ограничения общего счёта
-          задайте лимиты также у провайдера: здесь учитываются вызовы этого приложения.
+          {t(
+            'Цены нужно сверять с вашим тарифом, включая пиковые надбавки. Для ограничения общего счёта задайте лимиты также у провайдера: здесь учитываются вызовы этого приложения.',
+          )}
         </p>
       </section>
       <section className="panel">
-        <h2>Учтённые расходы</h2>
+        <h2>{t('Учтённые расходы')}</h2>
         <p>
-          Всего: {usd(view.spend.lifetimeMicros)} · Сегодня: {usd(view.spend.dailyMicros)} · Этот
-          месяц: {usd(view.spend.monthlyMicros)}
+          {t('Всего: ')}
+          {usd(view.spend.lifetimeMicros)} {t(' · Сегодня: ')}
+          {usd(view.spend.dailyMicros)} {t(' · Этот месяц: ')}
+          {usd(view.spend.monthlyMicros)}
         </p>
         <p>
-          Запросов в работе: {view.spend.pending}. Общий бюджет: {usd(view.ceilings.lifetimeMicros)}
-          .
+          {t('Запросов в работе: ')}
+          {view.spend.pending}
+          {t('. Общий бюджет: ')}
+          {usd(view.ceilings.lifetimeMicros)}.
         </p>
       </section>
       {message && <p role="status">{message}</p>}
@@ -103,9 +110,9 @@ export function ProviderPage() {
         <CeilingsForm key={`ceilings-${view.revision}`} view={view} busy={busy} save={save} />
       )}
       {view.canManageSecrets && <AvatarBindings changed={resource.refresh} />}
-      <h2>Подключения и цены</h2>
+      <h2>{t('Подключения и цены')}</h2>
       {!view.canManageSecrets && (
-        <p>Ключи, модели, цены и верхние ограничения меняет суперадмин.</p>
+        <p>{t('Ключи, модели, цены и верхние ограничения меняет суперадмин.')}</p>
       )}
       <div className="provider-grid">
         {view.providers.map((p) => (
@@ -201,7 +208,7 @@ function ControlsForm({ view, busy, save }: { view: View; busy: boolean; save: S
   }
   return (
     <section className="panel">
-      <h2>Настройки адаптации</h2>
+      <h2>{t('Настройки адаптации')}</h2>
       <form onSubmit={submit}>
         <fieldset disabled={busy}>
           <label className="checkbox">
@@ -210,7 +217,7 @@ function ControlsForm({ view, busy, save }: { view: View; busy: boolean; save: S
               checked={data.enabled}
               onChange={(e) => setData({ ...data, enabled: e.target.checked })}
             />
-            Генерировать варианты дополнительных заданий
+            {t('Генерировать варианты дополнительных заданий')}
           </label>
           <label className="checkbox">
             <input
@@ -224,7 +231,7 @@ function ControlsForm({ view, busy, save }: { view: View; busy: boolean; save: S
                 })
               }
             />
-            Разрешить озвучивание ElevenLabs
+            {t('Разрешить озвучивание ElevenLabs')}
           </label>
           <label className="checkbox">
             <input
@@ -233,7 +240,7 @@ function ControlsForm({ view, busy, save }: { view: View; busy: boolean; save: S
               disabled={!data.listeningEnabled}
               onChange={(e) => setData({ ...data, withListening: e.target.checked })}
             />
-            Добавлять listening-варианты при генерации
+            {t('Добавлять listening-варианты при генерации')}
           </label>
           <label className="checkbox">
             <input
@@ -242,7 +249,7 @@ function ControlsForm({ view, busy, save }: { view: View; busy: boolean; save: S
               disabled={!view.canManageSecrets}
               onChange={(e) => setData({ ...data, videoEnabled: e.target.checked })}
             />
-            Разрешить генерацию видео HeyGen
+            {t('Разрешить генерацию видео HeyGen')}
           </label>
           <label className="checkbox">
             <input
@@ -250,7 +257,7 @@ function ControlsForm({ view, busy, save }: { view: View; busy: boolean; save: S
               checked={data.transcriptionEnabled}
               onChange={(e) => setData({ ...data, transcriptionEnabled: e.target.checked })}
             />
-            Разрешить распознавание ElevenLabs Scribe
+            {t('Разрешить распознавание ElevenLabs Scribe')}
           </label>
           <label className="checkbox">
             <input
@@ -258,9 +265,9 @@ function ControlsForm({ view, busy, save }: { view: View; busy: boolean; save: S
               checked={data.assistantSpeechEnabled}
               onChange={(e) => setData({ ...data, assistantSpeechEnabled: e.target.checked })}
             />
-            Озвучивать ответы помощника через ElevenLabs
+            {t('Озвучивать ответы помощника через ElevenLabs')}
           </label>
-          <label htmlFor="ai-strategy">Выбор текстового провайдера</label>
+          <label htmlFor="ai-strategy">{t('Выбор текстового провайдера')}</label>
           <select
             id="ai-strategy"
             value={data.strategy}
@@ -268,11 +275,11 @@ function ControlsForm({ view, busy, save }: { view: View; busy: boolean; save: S
               setData({ ...data, strategy: e.target.value as AiControls['strategy'] })
             }
           >
-            <option value="cheapest">Меньшая стоимость по настроенным ценам</option>
+            <option value="cheapest">{t('Меньшая стоимость по настроенным ценам')}</option>
             <option value="openai">OpenAI</option>
             <option value="neuroapi">NeuroAPI</option>
           </select>
-          <label htmlFor="review-delay">Повторение через, часы</label>
+          <label htmlFor="review-delay">{t('Повторение через, часы')}</label>
           <input
             id="review-delay"
             type="number"
@@ -293,10 +300,11 @@ function ControlsForm({ view, busy, save }: { view: View; busy: boolean; save: S
             />
           </div>
           <p className="muted">
-            При выключенном AI адаптация работает по правилам. Нулевой денежный лимит запрещает
-            новые платные вызовы. Доступ к ключам здесь не предоставляется.
+            {t(
+              'При выключенном AI адаптация работает по правилам. Нулевой денежный лимит запрещает новые платные вызовы. Доступ к ключам здесь не предоставляется.',
+            )}
           </p>
-          <button>Сохранить настройки адаптации</button>
+          <button>{t('Сохранить настройки адаптации')}</button>
         </fieldset>
       </form>
     </section>
@@ -306,7 +314,7 @@ function CeilingsForm({ view, busy, save }: { view: View; busy: boolean; save: S
   const [data, setData] = useState(view.ceilings);
   return (
     <section className="panel">
-      <h2>Ограничения суперадмина</h2>
+      <h2>{t('Ограничения суперадмина')}</h2>
       <form
         onSubmit={(e) => {
           e.preventDefault();
@@ -322,10 +330,11 @@ function CeilingsForm({ view, busy, save }: { view: View; busy: boolean; save: S
             />
           </div>
           <p className="muted">
-            Администратор может менять рабочие настройки только в этих пределах. Снижение
-            ограничений уменьшает соответствующие рабочие лимиты.
+            {t(
+              'Администратор может менять рабочие настройки только в этих пределах. Снижение ограничений уменьшает соответствующие рабочие лимиты.',
+            )}
           </p>
-          <button>Сохранить верхние ограничения</button>
+          <button>{t('Сохранить верхние ограничения')}</button>
         </fieldset>
       </form>
     </section>
@@ -381,14 +390,15 @@ function ProviderForm({
     <section className="panel" data-testid={`provider-${p.id}`}>
       <h3>{name}</h3>
       <p>
-        Ключ: {p.keyConfigured ? 'настроен' : 'не настроен'} ·{' '}
-        {p.enabled ? 'подключение включено' : 'выключено'}
+        {t('Ключ: ')}
+        {p.keyConfigured ? t('настроен') : t('не настроен')} ·{' '}
+        {p.enabled ? t('подключение включено') : t('выключено')}
       </p>
       <p className="muted">
-        Цена подтверждена:{' '}
+        {t('Цена подтверждена:')}{' '}
         {p.pricingConfirmedAt
-          ? new Date(p.pricingConfirmedAt).toLocaleString('ru-RU')
-          : 'не подтверждена'}
+          ? new Date(p.pricingConfirmedAt).toLocaleString(dateLocale)
+          : t('не подтверждена')}
       </p>
       <form
         onSubmit={(e) => {
@@ -416,9 +426,13 @@ function ProviderForm({
               checked={data.enabled}
               onChange={(e) => setData({ ...data, enabled: e.target.checked })}
             />
-            Включить {name}
+            {t('Включить ')}
+            {name}
           </label>
-          <label htmlFor={`${p.id}-model`}>Модель {name}</label>
+          <label htmlFor={`${p.id}-model`}>
+            {t('Модель ')}
+            {name}
+          </label>
           <input
             id={`${p.id}-model`}
             maxLength={100}
@@ -428,30 +442,32 @@ function ProviderForm({
           />
           {p.id === 'heygen' ? (
             <>
-              {rate('minuteRate', 'Верхняя цена HeyGen, USD за минуту видео')}
+              {rate('minuteRate', t('Верхняя цена HeyGen, USD за минуту видео'))}
               <p>
-                Движки: avatar_iv, avatar_v или avatar_iii. Голоса и аватары настраиваются выше.
+                {t(
+                  'Движки: avatar_iv, avatar_v или avatar_iii. Голоса и аватары настраиваются выше.',
+                )}
               </p>
             </>
           ) : p.id === 'elevenlabs_stt' ? (
             <>
-              {rate('minuteRate', 'Верхняя цена Scribe, USD за минуту записи')}
+              {rate('minuteRate', t('Верхняя цена Scribe, USD за минуту записи'))}
               <p>
-                Модели scribe_v2 и scribe_v1. До 30 секунд на реплику; для короткого запроса
-                резервируется цена одной полной минуты. Ключ ElevenLabs задаётся здесь или через
-                ELEVENLABS_API_KEY на сервере.
+                {t(
+                  'Модели scribe_v2 и scribe_v1. До 30 секунд на реплику; для короткого запроса резервируется цена одной полной минуты. Ключ ElevenLabs задаётся здесь или через ELEVENLABS_API_KEY на сервере.',
+                )}
               </p>
             </>
           ) : p.id === 'elevenlabs' ? (
             <>
-              {rate('characterRate', 'Верхняя цена USD за 1000 символов')}
-              <label htmlFor="voice-ru">Голос ElevenLabs для РКИ</label>
+              {rate('characterRate', t('Верхняя цена USD за 1000 символов'))}
+              <label htmlFor="voice-ru">{t('Голос ElevenLabs для РКИ')}</label>
               <input
                 id="voice-ru"
                 value={data.voiceRu}
                 onChange={(e) => setData({ ...data, voiceRu: e.target.value })}
               />
-              <label htmlFor="voice-en">Голос ElevenLabs для английского</label>
+              <label htmlFor="voice-en">{t('Голос ElevenLabs для английского')}</label>
               <input
                 id="voice-en"
                 value={data.voiceEn}
@@ -460,8 +476,8 @@ function ProviderForm({
             </>
           ) : (
             <>
-              {rate('inputRate', `Цена входа ${name}, USD за 1 млн токенов`)}
-              {rate('outputRate', `Цена выхода ${name}, USD за 1 млн токенов`)}
+              {rate('inputRate', t('Цена входа {0}, USD за 1 млн токенов', [name]))}
+              {rate('outputRate', t('Цена выхода {0}, USD за 1 млн токенов', [name]))}
             </>
           )}
           <label className="checkbox">
@@ -470,11 +486,15 @@ function ProviderForm({
               checked={confirmPricing}
               onChange={(e) => setConfirmPricing(e.target.checked)}
             />
-            Подтверждаю верхние цены текущего тарифа {name}
+            {t('Подтверждаю верхние цены текущего тарифа ')}
+            {name}
           </label>
           {writable && (
             <>
-              <label htmlFor={`${p.id}-key`}>Новый ключ {name}</label>
+              <label htmlFor={`${p.id}-key`}>
+                {t('Новый ключ ')}
+                {name}
+              </label>
               <input
                 id={`${p.id}-key`}
                 type="password"
@@ -482,7 +502,7 @@ function ProviderForm({
                 maxLength={512}
                 value={key}
                 disabled={clearKey}
-                placeholder="Пустое поле сохраняет прежний ключ"
+                placeholder={t('Пустое поле сохраняет прежний ключ')}
                 onChange={(e) => setKey(e.target.value)}
               />
               <label className="checkbox">
@@ -497,11 +517,17 @@ function ProviderForm({
                     }
                   }}
                 />
-                Удалить ключ {name} и выключить подключение
+                {t('Удалить ключ ')}
+                {name} {t(' и выключить подключение')}
               </label>
             </>
           )}
-          {writable && <button>Сохранить подключение {name}</button>}
+          {writable && (
+            <button>
+              {t('Сохранить подключение ')}
+              {name}
+            </button>
+          )}
         </fieldset>
       </form>
     </section>
@@ -512,32 +538,32 @@ function ProviderLedger() {
   if (state.status === 'loading') return <LoadingState />;
   if (state.status === 'error') return <ErrorState error={state.error} retry={refresh} />;
   const labels = {
-    reserved: 'В работе',
-    success: 'Получен результат',
-    failed: 'Сбой',
-    unknown: 'Неопределённый результат',
-    overrun: 'Превышение оценки расходов',
+    reserved: t('В работе'),
+    success: t('Получен результат'),
+    failed: t('Сбой'),
+    unknown: t('Неопределённый результат'),
+    overrun: t('Превышение оценки расходов'),
   };
   return (
     <section className="panel">
-      <h2>Последние запросы к провайдерам</h2>
+      <h2>{t('Последние запросы к провайдерам')}</h2>
       {!state.data.items.length ? (
-        <p>Платных запросов ещё нет.</p>
+        <p>{t('Платных запросов ещё нет.')}</p>
       ) : (
         <div className="table-wrap">
           <table>
             <thead>
               <tr>
-                <th>Дата</th>
-                <th>Сервис</th>
-                <th>Статус</th>
-                <th>Учтено</th>
+                <th>{t('Дата')}</th>
+                <th>{t('Сервис')}</th>
+                <th>{t('Статус')}</th>
+                <th>{t('Учтено')}</th>
               </tr>
             </thead>
             <tbody>
               {state.data.items.map((r) => (
                 <tr key={r.id}>
-                  <td>{new Date(r.createdAt).toLocaleString('ru-RU')}</td>
+                  <td>{new Date(r.createdAt).toLocaleString(dateLocale)}</td>
                   <td>
                     {r.provider}
                     <br />

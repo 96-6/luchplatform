@@ -1,9 +1,10 @@
+import { translate, translateMessage, type Locale } from './localization.js';
 import { z } from 'zod';
 
 export const navigationQuerySchema = z.strictObject({ path: z.string().min(1).max(2048) });
 export const navigationAccessSchema = z.object({ path: z.string() });
-export function pageStatusTitle(status: number) {
-  return (
+export function pageStatusTitle(status: number, locale: Locale = 'ru') {
+  return translate(
     (
       {
         400: 'Некорректная ссылка',
@@ -13,17 +14,25 @@ export function pageStatusTitle(status: number) {
         410: 'Ссылка больше недоступна',
         503: 'Сервис временно недоступен',
       } as Record<number, string>
-    )[status] ?? 'Не удалось открыть страницу'
+    )[status] ?? 'Не удалось открыть страницу',
+    locale,
   );
 }
-export function pageErrorDocument(status: number, message: string, requestId: string) {
+export const PAGE_ERROR_STYLES = `:root{font-family:Inter,-apple-system,BlinkMacSystemFont,"Segoe UI",sans-serif;color:#213a36;background:#f4f6f3;line-height:1.6;color-scheme:light}*{box-sizing:border-box}body{margin:0;min-height:100vh;display:grid;place-items:center;padding:24px}main{width:min(100%,680px)}.brand{display:flex;align-items:center;gap:12px;font-weight:750;font-size:22px;text-decoration:none;margin-bottom:28px;color:#184e45}.brand svg{background:#184e45;color:white;border-radius:12px;padding:9px}.card{background:white;border:1px solid #dce6df;border-radius:20px;padding:clamp(24px,5vw,48px);box-shadow:0 16px 50px #213a360a}.status{display:inline-block;background:#fff3cf;border:1px solid #e9ce83;color:#795819;border-radius:10px;font-size:14px;font-weight:700;padding:6px 12px}h1{font-size:clamp(25px,4vw,36px);line-height:1.25;letter-spacing:-.03em;margin:20px 0 16px}p{margin:0 0 24px;overflow-wrap:anywhere;white-space:pre-line}.actions{display:flex;gap:10px;flex-wrap:wrap;margin-top:28px}.button{display:inline-flex;justify-content:center;align-items:center;padding:11px 18px;background:#184e45;color:#fff;text-decoration:none;font-weight:650;border:1px solid #184e45;border-radius:10px}.secondary{color:#184e45;background:#edf3ef;border-color:#edf3ef}a:focus-visible{outline:3px solid #cf941c;outline-offset:4px}.request{color:#667d74;font-size:12px;margin:24px 0 0}.register{display:inline-block;color:#476359;font-size:13px;margin-top:20px}@media(max-width:480px){body{padding:16px}.actions{flex-direction:column}.button{width:100%}}`;
+export function pageErrorDocument(
+  status: number,
+  message: string,
+  requestId: string,
+  locale: Locale = 'ru',
+) {
   const escape = (value: string) =>
     value.replace(
       /[&<>"']/g,
       (c) => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;' })[c]!,
     );
-  const title = pageStatusTitle(status);
-  return `<!doctype html><html lang="ru"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1"><meta name="referrer" content="no-referrer"><title>${status} · ${title} · ЛУЧ</title></head><body><main><section role="alert"><h1>${status} · ${title}</h1><p>${escape(message)}</p></section><p><a href="/">На главную</a> · <a href="/login">Войти в аккаунт</a> · <a href="/register">Регистрация и новое письмо</a></p><p>Код обращения: ${escape(requestId)}</p></main></body></html>`;
+  const text = (source: string) => escape(translate(source, locale));
+  const title = pageStatusTitle(status, locale);
+  return `<!doctype html><html lang="${locale}"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1"><meta name="referrer" content="no-referrer"><title>${status} · ${escape(title)} · ${locale === 'en' ? 'LUCH' : 'ЛУЧ'}</title><style>${PAGE_ERROR_STYLES}</style></head><body><main><a class="brand" href="/"><svg width="40" height="40" viewBox="0 0 24 24" aria-hidden="true"><path d="M3 20 12 3l9 17M7 14h10" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round"/></svg>${locale === 'en' ? 'LUCH' : 'ЛУЧ'}</a><section class="card" role="alert"><span class="status">${status}</span><h1>${escape(title)}</h1><p>${escape(translateMessage(message, locale))}</p><div class="actions"><a class="button" href="/">${text('На главную')}</a><a class="button secondary" href="/login">${text('Войти в аккаунт')}</a></div>${status === 410 ? `<a class="register" href="/register">${text('Запросить новое письмо')}</a>` : ''}<p class="request">${text('Код обращения:')} ${escape(requestId)}</p></section></main></body></html>`;
 }
 type Role = 'student' | 'teacher' | 'admin' | 'superadmin';
 const learning: Role[] = ['student', 'teacher', 'superadmin'];

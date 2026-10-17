@@ -1,3 +1,4 @@
+import { t, dateLocale } from '../i18n';
 import { useEffect, useState } from 'react';
 import { Link } from 'react-router-dom';
 import { skillStatesSchema, planChangesPageSchema } from '@luch/contracts';
@@ -6,17 +7,17 @@ import { useResource } from '../lib/useResource';
 import { api } from '../lib/api';
 import { LoadingState, ErrorState } from '../components/States';
 const stateLabels = {
-  learning: 'Первые наблюдения',
-  needs_practice: 'Нужна практика',
-  supported: 'Успех с помощью',
-  demonstrated: 'Самостоятельный успех',
-  confirmed: 'Подтверждён повторением',
+  learning: t('Первые наблюдения'),
+  needs_practice: t('Нужна практика'),
+  supported: t('Успех с помощью'),
+  demonstrated: t('Самостоятельный успех'),
+  confirmed: t('Подтверждён повторением'),
 };
 const outcomeLabels = {
-  mistake: 'Ошибка',
-  independent_success: 'Самостоятельный успех',
-  hinted_success: 'Успех с подсказкой',
-  assisted_success: 'Успех с помощью / после обратной связи',
+  mistake: t('Ошибка'),
+  independent_success: t('Самостоятельный успех'),
+  hinted_success: t('Успех с подсказкой'),
+  assisted_success: t('Успех с помощью / после обратной связи'),
 };
 export function SkillStates({ userId }: { userId: string }) {
   const { state, refresh } = useResource(`/learning/skills?userId=${userId}`, skillStatesSchema);
@@ -24,13 +25,14 @@ export function SkillStates({ userId }: { userId: string }) {
   if (state.status === 'error') return <ErrorState error={state.error} retry={refresh} />;
   return (
     <section className="panel">
-      <h2>Состояние навыков</h2>
+      <h2>{t('Состояние навыков')}</h2>
       <p className="muted">
-        Наблюдения по фактическим ответам. Демонстрационные результаты не подтверждают уровень
-        языка.
+        {t(
+          'Наблюдения по фактическим ответам. Демонстрационные результаты не подтверждают уровень языка.',
+        )}
       </p>
       {!state.data.items.length ? (
-        <p>Пока нет завершённых проверок или тренировочных ответов.</p>
+        <p>{t('Пока нет завершённых проверок или тренировочных ответов.')}</p>
       ) : (
         <ul className="skill-state-list">
           {state.data.items.map((s) => (
@@ -41,12 +43,17 @@ export function SkillStates({ userId }: { userId: string }) {
                 {s.packageVersion}
               </p>
               <p>
-                Самостоятельно: {s.independentSuccesses} · С подсказкой: {s.hintedSuccesses} · С
-                другой помощью: {s.assistedSuccesses} · Ошибки: {s.mistakes}
+                {t('Самостоятельно: ')}
+                {s.independentSuccesses} {t(' · С подсказкой: ')}
+                {s.hintedSuccesses} {t(' · С другой помощью: ')}
+                {s.assistedSuccesses} {t(' · Ошибки: ')}
+                {s.mistakes}
               </p>
               <p className="muted">
-                Диагностических ответов: {s.diagnosticAttempts} · Контрольных: {s.controlAttempts} ·
-                Последний результат: {outcomeLabels[s.lastOutcome]}
+                {t('Диагностических ответов: ')}
+                {s.diagnosticAttempts} {t(' · Контрольных: ')}
+                {s.controlAttempts} {t(' · Последний результат: ')}
+                {outcomeLabels[s.lastOutcome]}
               </p>
             </li>
           ))}
@@ -56,10 +63,10 @@ export function SkillStates({ userId }: { userId: string }) {
   );
 }
 const teacherChangeLabels: Record<string, string> = {
-  teacher_assignment_added: 'Назначение преподавателя',
-  teacher_assignment_rescheduled: 'Изменён срок задания',
-  teacher_assignment_cancelled: 'Назначение отменено',
-  assessment_reviewed: 'Проверка преподавателя',
+  teacher_assignment_added: t('Назначение преподавателя'),
+  teacher_assignment_rescheduled: t('Изменён срок задания'),
+  teacher_assignment_cancelled: t('Назначение отменено'),
+  assessment_reviewed: t('Проверка преподавателя'),
 };
 export function PlanChanges({ id }: { id: string }) {
   const [page, setPage] = useState<z.infer<typeof planChangesPageSchema> | null>(null),
@@ -98,14 +105,14 @@ export function PlanChanges({ id }: { id: string }) {
   }
   return (
     <section className="panel">
-      <h2>История изменений плана</h2>
+      <h2>{t('История изменений плана')}</h2>
       {!page && !error && <LoadingState />}
       {error && (
         <ErrorState error={error} retry={() => (page ? void more() : setRevision((r) => r + 1))} />
       )}
       {page &&
         (!page.items.length ? (
-          <p>Изменений после диагностики пока нет. Они появятся по результатам практики.</p>
+          <p>{t('Изменений после диагностики пока нет. Они появятся по результатам практики.')}</p>
         ) : (
           <ol className="change-list">
             {page.items.map((c) => (
@@ -113,26 +120,36 @@ export function PlanChanges({ id }: { id: string }) {
                 <p>
                   <strong>
                     {teacherChangeLabels[c.action] ??
-                      (c.outcome ? outcomeLabels[c.outcome] : 'Решение преподавателя')}
+                      (c.outcome ? outcomeLabels[c.outcome] : t('Решение преподавателя'))}
                   </strong>{' '}
                   ·{' '}
                   <time dateTime={c.createdAt}>
-                    {new Date(c.createdAt).toLocaleString('ru-RU')}
+                    {new Date(c.createdAt).toLocaleString(dateLocale)}
                   </time>
                 </p>
-                {c.createdByName && <p className="muted">Автор: {c.createdByName}</p>}
-                <p className="content-text">{c.reason}</p>
-                {c.assignmentId && (
-                  <Link to={`/plan/${id}#assignment-${c.assignmentId}`}>Назначение →</Link>
+                {c.createdByName && (
+                  <p className="muted">
+                    {t('Автор: ')}
+                    {c.createdByName}
+                  </p>
                 )}
-                <p className="muted">Навык: {c.skillName}</p>
+                <p className="content-text">
+                  {c.action.startsWith('teacher_') ? c.reason : t(c.reason)}
+                </p>
+                {c.assignmentId && (
+                  <Link to={`/plan/${id}#assignment-${c.assignmentId}`}>{t('Назначение →')}</Link>
+                )}
+                <p className="muted">
+                  {t('Навык: ')}
+                  {c.skillName}
+                </p>
               </li>
             ))}
           </ol>
         ))}
       {page?.nextCursor && (
         <button className="secondary" disabled={busy} onClick={() => void more()}>
-          Предыдущие изменения
+          {t('Предыдущие изменения')}
         </button>
       )}
     </section>

@@ -35,7 +35,7 @@ test('shows the loading state until the API responds', async ({ page }) => {
   await page.goto('/', { waitUntil: 'domcontentloaded' });
   await expect(page.getByText('Подключаемся к платформе…')).toBeVisible();
   release();
-  await expect(page.getByRole('heading', { name: /Больше уверенности/ })).toBeVisible();
+  await expect(page.getByRole('heading', { name: 'ЛУЧ', exact: true })).toBeVisible();
 });
 
 test('shows an API error and recovers with retry', async ({ page }) => {
@@ -56,7 +56,7 @@ test('shows an API error and recovers with retry', async ({ page }) => {
   await expect(page.getByRole('alert')).toContainText('Тестовый сбой соединения');
   await page.unroute('**/api/v1/system');
   await page.getByRole('button', { name: 'Повторить', exact: true }).click();
-  await expect(page.getByRole('heading', { name: /Больше уверенности/ })).toBeVisible();
+  await expect(page.getByRole('heading', { name: 'ЛУЧ', exact: true })).toBeVisible();
 });
 
 test('rejects an invalid server response and allows recovery', async ({ page }) => {
@@ -71,7 +71,7 @@ test('opens all sections and preserves a nested URL after refresh', async ({ pag
   const failures: string[] = [];
   page.on('pageerror', (error) => failures.push(error.message));
   await page.goto('/');
-  await expect(page.getByRole('heading', { name: /Больше уверенности/ })).toBeVisible();
+  await expect(page.getByRole('heading', { name: 'ЛУЧ', exact: true })).toBeVisible();
   await page.screenshot({ path: 'test-results/home.png', fullPage: true });
   for (const [path, title] of [
     ['/login', 'Вход в аккаунт'],

@@ -1,3 +1,4 @@
+import { t } from '../i18n';
 import { useRef, useState, type FormEvent } from 'react';
 import { accountAuthenticatorSchema, type User } from '@luch/contracts';
 import type { z } from 'zod';
@@ -7,30 +8,33 @@ type Setup = z.infer<typeof accountAuthenticatorSchema>;
 function SetupCard({ setup, close }: { setup: Setup; close: () => void }) {
   return (
     <section className="credential-setup">
-      <h3>Authenticator для {setup.user.email}</h3>
+      <h3>
+        {t('Authenticator для ')}
+        {setup.user.email}
+      </h3>
       <img
         className="auth-qr"
         src={setup.qrDataUrl}
         width={240}
         height={240}
-        alt="QR-код Authenticator пользователя"
+        alt={t('QR-код Authenticator пользователя')}
       />
       <details>
-        <summary>Ключ для ручного подключения</summary>
+        <summary>{t('Ключ для ручного подключения')}</summary>
         <code className="manual-key" data-testid="admin-manual-key">
           {setup.manualKey}
         </code>
       </details>
       <p>
         {setup.user.emailVerified && setup.user.authenticatorEnabled
-          ? 'Аккаунт готов к входу по почте и текущему коду Authenticator.'
-          : 'Подключение ещё не завершено.'}
+          ? t('Аккаунт готов к входу по почте и текущему коду Authenticator.')
+          : t('Подключение ещё не завершено.')}
       </p>
       {setup.user.isBlocked && (
-        <p>Доступ аккаунта заблокирован. Измените доступ в карточке пользователя.</p>
+        <p>{t('Доступ аккаунта заблокирован. Измените доступ в карточке пользователя.')}</p>
       )}
       <button type="button" className="secondary" onClick={close}>
-        Скрыть QR-код
+        {t('Скрыть QR-код')}
       </button>
     </section>
   );
@@ -66,14 +70,15 @@ export function AdminCreateAccount({ created }: { created: (user: User) => void 
   }
   return (
     <section className="panel">
-      <h2>Создать пользователя</h2>
+      <h2>{t('Создать пользователя')}</h2>
       <p>
-        Аккаунт будет сразу подтверждён. Для входа пользователь сканирует QR-код и вводит почту с
-        текущим кодом Authenticator.
+        {t(
+          'Аккаунт будет сразу подтверждён. Для входа пользователь сканирует QR-код и вводит почту с текущим кодом Authenticator.',
+        )}
       </p>
       <form onSubmit={(event) => void submit(event)}>
         <fieldset disabled={busy}>
-          <label htmlFor="admin-new-email">Почта нового пользователя</label>
+          <label htmlFor="admin-new-email">{t('Почта нового пользователя')}</label>
           <input
             id="admin-new-email"
             type="email"
@@ -82,7 +87,7 @@ export function AdminCreateAccount({ created }: { created: (user: User) => void 
             value={email}
             onChange={(e) => setEmail(e.target.value)}
           />
-          <label htmlFor="admin-new-name">Имя нового пользователя</label>
+          <label htmlFor="admin-new-name">{t('Имя нового пользователя')}</label>
           <input
             id="admin-new-name"
             required
@@ -91,23 +96,23 @@ export function AdminCreateAccount({ created }: { created: (user: User) => void 
             value={name}
             onChange={(e) => setName(e.target.value)}
           />
-          <label htmlFor="admin-new-role">Роль нового пользователя</label>
+          <label htmlFor="admin-new-role">{t('Роль нового пользователя')}</label>
           <select
             id="admin-new-role"
             value={role}
             onChange={(e) => setRole(e.target.value as User['role'])}
           >
-            <option value="student">Ученик</option>
-            <option value="teacher">Преподаватель</option>
-            <option value="admin">Администратор</option>
-            <option value="superadmin">Суперадмин</option>
+            <option value="student">{t('Ученик')}</option>
+            <option value="teacher">{t('Преподаватель')}</option>
+            <option value="admin">{t('Администратор')}</option>
+            <option value="superadmin">{t('Суперадмин')}</option>
           </select>
-          <button>Создать и показать QR-код</button>
+          <button>{t('Создать и показать QR-код')}</button>
         </fieldset>
       </form>
       {error && (
         <p role="alert" className="error">
-          {error.message}
+          {t(error.message)}
         </p>
       )}
       {setup && <SetupCard setup={setup} close={() => setSetup(null)} />}
@@ -149,22 +154,23 @@ export function AdminAuthenticator({ userId, changed }: { userId: string; change
   }
   return (
     <section>
-      <h3>Управление Authenticator</h3>
+      <h3>{t('Управление Authenticator')}</h3>
       <div className="form-actions">
         <button className="secondary" disabled={busy} onClick={() => void show()}>
-          Показать QR-код 2FA
+          {t('Показать QR-код 2FA')}
         </button>
         <button className="secondary" disabled={busy} onClick={() => void reset()}>
-          Сбросить 2FA и создать новый QR
+          {t('Сбросить 2FA и создать новый QR')}
         </button>
       </div>
       <p className="muted">
-        Сброс заменяет ключ и завершает все сессии этого пользователя. Новый ключ сразу действует
-        для входа.
+        {t(
+          'Сброс заменяет ключ и завершает все сессии этого пользователя. Новый ключ сразу действует для входа.',
+        )}
       </p>
       {error && (
         <p role="alert" className="error">
-          {error.message}
+          {t(error.message)}
         </p>
       )}
       {setup && (

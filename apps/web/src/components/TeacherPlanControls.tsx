@@ -1,3 +1,4 @@
+import { t } from '../i18n';
 import { useRef, useState, type FormEvent } from 'react';
 import {
   teacherExerciseBankSchema,
@@ -44,18 +45,19 @@ export function TeacherAssignExercise({ plan, changed }: { plan: PlanView; chang
       setDone(true);
       changed();
     } catch (e) {
-      setError((e as Error).message);
+      setError(t((e as Error).message));
       if (e instanceof ApiError && e.status && e.status < 500) pending.current = null;
     } finally {
       setBusy(false);
     }
   }
   return (
-    <section className="panel" aria-label="Назначение преподавателя">
-      <h2>Назначить упражнение</h2>
+    <section className="panel" aria-label={t('Назначение преподавателя')}>
+      <h2>{t('Назначить упражнение')}</h2>
       <p>
-        Выберите задание из закреплённого маршрута. Ученик получит его в своём плане с указанной
-        причиной.
+        {t(
+          'Выберите задание из закреплённого маршрута. Ученик получит его в своём плане с указанной причиной.',
+        )}
       </p>
       {state.status === 'loading' ? (
         <LoadingState />
@@ -64,30 +66,30 @@ export function TeacherAssignExercise({ plan, changed }: { plan: PlanView; chang
       ) : (
         <form onSubmit={(e) => void submit(e)}>
           <fieldset disabled={busy || Boolean(pending.current)}>
-            <label htmlFor="teacher-exercise">Упражнение для ученика</label>
+            <label htmlFor="teacher-exercise">{t('Упражнение для ученика')}</label>
             <select
               id="teacher-exercise"
               required
               value={exerciseId}
               onChange={(e) => setExerciseId(e.target.value)}
             >
-              <option value="">Выберите упражнение</option>
+              <option value="">{t('Выберите упражнение')}</option>
               {state.data.items.map((e) => (
                 <option key={e.id} value={e.id}>
-                  {e.lessonTitle} · {e.purpose === 'control' ? 'Контроль' : 'Тренировка'} ·{' '}
+                  {e.lessonTitle} · {e.purpose === 'control' ? t('Контроль') : t('Тренировка')} ·{' '}
                   {e.instruction}
                 </option>
               ))}
             </select>
-            <label htmlFor="teacher-due">Открыть задание с даты</label>
+            <label htmlFor="teacher-due">{t('Открыть задание с даты')}</label>
             <input
               id="teacher-due"
               type="datetime-local"
               value={due}
               onChange={(e) => setDue(e.target.value)}
             />
-            <p className="muted">Время вашего устройства. Пустая дата — доступно сразу.</p>
-            <label htmlFor="teacher-reason">Причина назначения</label>
+            <p className="muted">{t('Время вашего устройства. Пустая дата — доступно сразу.')}</p>
+            <label htmlFor="teacher-reason">{t('Причина назначения')}</label>
             <textarea
               id="teacher-reason"
               rows={3}
@@ -99,10 +101,10 @@ export function TeacherAssignExercise({ plan, changed }: { plan: PlanView; chang
           </fieldset>
           <button disabled={busy || !exerciseId || !reason.trim()}>
             {busy
-              ? 'Сохраняем назначение…'
+              ? t('Сохраняем назначение…')
               : pending.current
-                ? 'Повторить назначение'
-                : 'Назначить ученику'}
+                ? t('Повторить назначение')
+                : t('Назначить ученику')}
           </button>
         </form>
       )}
@@ -111,7 +113,7 @@ export function TeacherAssignExercise({ plan, changed }: { plan: PlanView; chang
           {error}
         </p>
       )}
-      {done && <p role="status">Упражнение назначено. Оно доступно ученику в плане.</p>}
+      {done && <p role="status">{t('Упражнение назначено. Оно доступно ученику в плане.')}</p>}
     </section>
   );
 }
@@ -148,7 +150,7 @@ export function TeacherEditAssignment({
       setReason('');
       changed();
     } catch (e) {
-      setError((e as Error).message);
+      setError(t((e as Error).message));
       if (e instanceof ApiError && e.status && e.status < 500) {
         pending.current = null;
         if (['ASSIGNMENT_CHANGED', 'ASSIGNMENT_LOCKED'].includes(e.code ?? '')) changed();
@@ -160,31 +162,31 @@ export function TeacherEditAssignment({
   if (a.status !== 'pending') return null;
   return (
     <details className="teacher-assignment-edit">
-      <summary>Изменить назначение</summary>
+      <summary>{t('Изменить назначение')}</summary>
       <form onSubmit={(e) => void submit(e)}>
         <fieldset disabled={busy || Boolean(pending.current)}>
-          <label htmlFor={`teacher-action-${a.id}`}>Изменение назначения</label>
+          <label htmlFor={`teacher-action-${a.id}`}>{t('Изменение назначения')}</label>
           <select
             id={`teacher-action-${a.id}`}
             value={action}
             onChange={(e) => setAction(e.target.value as typeof action)}
           >
-            <option value="reschedule">Изменить срок</option>
-            <option value="cancel">Отменить назначение</option>
+            <option value="reschedule">{t('Изменить срок')}</option>
+            <option value="cancel">{t('Отменить назначение')}</option>
           </select>
           {action === 'reschedule' && (
             <>
-              <label htmlFor={`teacher-due-${a.id}`}>Новая дата доступности</label>
+              <label htmlFor={`teacher-due-${a.id}`}>{t('Новая дата доступности')}</label>
               <input
                 id={`teacher-due-${a.id}`}
                 type="datetime-local"
                 value={due}
                 onChange={(e) => setDue(e.target.value)}
               />
-              <p className="muted">Пустая дата делает задание доступным сразу.</p>
+              <p className="muted">{t('Пустая дата делает задание доступным сразу.')}</p>
             </>
           )}
-          <label htmlFor={`teacher-change-reason-${a.id}`}>Причина изменения</label>
+          <label htmlFor={`teacher-change-reason-${a.id}`}>{t('Причина изменения')}</label>
           <textarea
             id={`teacher-change-reason-${a.id}`}
             rows={2}
@@ -196,10 +198,10 @@ export function TeacherEditAssignment({
         </fieldset>
         <button className="secondary" disabled={busy || !reason.trim()}>
           {busy
-            ? 'Сохраняем изменение…'
+            ? t('Сохраняем изменение…')
             : pending.current
-              ? 'Повторить изменение'
-              : 'Сохранить изменение назначения'}
+              ? t('Повторить изменение')
+              : t('Сохранить изменение назначения')}
         </button>
       </form>
       {error && (

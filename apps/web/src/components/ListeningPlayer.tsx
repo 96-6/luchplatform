@@ -1,3 +1,4 @@
+import { t } from '../i18n';
 import { useState } from 'react';
 import { listeningResultSchema } from '@luch/contracts';
 import { api, ApiError } from '../lib/api';
@@ -37,32 +38,35 @@ export function ListeningPlayer({
   return (
     <section className="panel">
       <h3>Listening</h3>
-      <p>Прослушайте учебную реплику и ответьте на вопрос. Озвучивание — ElevenLabs.</p>
+      <p>{t('Прослушайте учебную реплику и ответьте на вопрос. Озвучивание — ElevenLabs.')}</p>
       {url ? (
         <audio
           controls
           src={url}
           preload="metadata"
-          aria-label="Аудиозадание"
-          onError={() => setError(new Error('Аудио не удалось загрузить. Повторите подготовку.'))}
+          aria-label={t('Аудиозадание')}
+          onError={() =>
+            setError(new Error(t('Аудио не удалось загрузить. Повторите подготовку.')))
+          }
         />
       ) : editable ? (
         <button type="button" disabled={busy} onClick={() => void prepare()}>
-          {busy ? 'Готовим аудио…' : 'Подготовить аудиозадание'}
+          {busy ? t('Готовим аудио…') : t('Подготовить аудиозадание')}
         </button>
       ) : (
-        <p>Аудио подготавливается из кабинета ученика.</p>
+        <p>{t('Аудио подготавливается из кабинета ученика.')}</p>
       )}
       {error && (
         <div className="state error" role="alert">
-          <p>{error.message}</p>
+          <p>{t(error.message)}</p>
           <p>
-            Техническая ошибка не создаёт учебную попытку. Можно вернуться в план и выбрать другое
-            готовое назначение.
+            {t(
+              'Техническая ошибка не создаёт учебную попытку. Можно вернуться в план и выбрать другое готовое назначение.',
+            )}
           </p>
           {editable && (
             <button type="button" disabled={busy} onClick={() => void prepare()}>
-              Повторить подготовку аудио
+              {t('Повторить подготовку аудио')}
             </button>
           )}
         </div>

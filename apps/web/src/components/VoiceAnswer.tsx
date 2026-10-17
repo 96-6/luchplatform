@@ -1,3 +1,4 @@
+import { t, dateLocale } from '../i18n';
 import { useEffect, useRef, useState } from 'react';
 import { Link, useNavigate } from 'react-router-dom';
 import {
@@ -79,7 +80,7 @@ export function VoiceAnswer({
     mounted.current = true;
     controller.current = new AbortController();
     void load().catch((e) => {
-      if (mounted.current) setError((e as Error).message);
+      if (mounted.current) setError(t((e as Error).message));
     });
     return () => {
       mounted.current = false;
@@ -91,7 +92,7 @@ export function VoiceAnswer({
   useEffect(() => {
     if (input?.status !== 'processing') return;
     const timer = setTimeout(() => {
-      void load().catch((e) => setError((e as Error).message));
+      void load().catch((e) => setError(t((e as Error).message)));
     }, 1500);
     return () => clearTimeout(timer);
   }, [input]);
@@ -149,7 +150,7 @@ export function VoiceAnswer({
       }
     } catch (e) {
       if (mounted.current) {
-        setError((e as Error).message);
+        setError(t((e as Error).message));
         if (e instanceof ApiError && e.status && e.status < 500) {
           pending.current = null;
           if (e.code === 'TURN_CHANGED' || e.code === 'ANSWER_ALREADY_SAVED') await refresh();
@@ -191,7 +192,7 @@ export function VoiceAnswer({
             setRecording(false);
             setBusy(false);
             onBusy(false);
-            setError((e as Error).message);
+            setError(t((e as Error).message));
             setFallback(true);
           }
         });
@@ -203,8 +204,10 @@ export function VoiceAnswer({
         setFallback(true);
         setError(
           e instanceof DOMException && e.name === 'NotAllowedError'
-            ? 'Доступ к микрофону не разрешён. Разрешите его в браузере или введите реплику текстом.'
-            : (e as Error).message,
+            ? t(
+                'Доступ к микрофону не разрешён. Разрешите его в браузере или введите реплику текстом.',
+              )
+            : t((e as Error).message),
         );
       }
     }
@@ -221,7 +224,7 @@ export function VoiceAnswer({
       );
       navigate(`/learning/runs/${result.run.id}`);
     } catch (e) {
-      setError((e as Error).message);
+      setError(t((e as Error).message));
     } finally {
       setBusy(false);
     }
@@ -232,24 +235,27 @@ export function VoiceAnswer({
       : [];
   const needConfirmation = input?.status === 'ready';
   return (
-    <section className="panel voice-answer" aria-label="Голосовой ответ">
-      <h2>Голосовой ответ</h2>
+    <section className="panel voice-answer" aria-label={t('Голосовой ответ')}>
+      <h2>{t('Голосовой ответ')}</h2>
       <p className="muted">
-        Сначала проверьте распознанную реплику. Оценивается подтверждённый текст, а не произношение.
-        Технический сбой не снижает учебную оценку.
+        {t(
+          'Сначала проверьте распознанную реплику. Оценивается подтверждённый текст, а не произношение. Технический сбой не снижает учебную оценку.',
+        )}
       </p>
       {canAnswer && (
         <>
-          {!session && <p role="status">Проверяем доступность записи…</p>}
+          {!session && <p role="status">{t('Проверяем доступность записи…')}</p>}
           {session && !session.enabled && (
-            <p>Распознавание пока недоступно. Можно ответить текстом.</p>
+            <p>{t('Распознавание пока недоступно. Можно ответить текстом.')}</p>
           )}
           {recording ? (
             <div>
               <p role="status">
-                Идёт запись: {seconds} из {session?.maxSeconds} сек.
+                {t('Идёт запись: ')}
+                {seconds} {t(' из ')}
+                {session?.maxSeconds} {t(' сек.')}
               </p>
-              <button onClick={() => recorder.current?.stop()}>Завершить запись</button>
+              <button onClick={() => recorder.current?.stop()}>{t('Завершить запись')}</button>
               <button
                 className="secondary"
                 onClick={() => {
@@ -261,7 +267,7 @@ export function VoiceAnswer({
                   onBusy(false);
                 }}
               >
-                Отменить запись
+                {t('Отменить запись')}
               </button>
             </div>
           ) : (
@@ -275,7 +281,7 @@ export function VoiceAnswer({
               }
               onClick={() => void start()}
             >
-              {busy ? 'Обрабатываем реплику…' : 'Начать запись'}
+              {busy ? t('Обрабатываем реплику…') : t('Начать запись')}
             </button>
           )}
           {!recording && (
@@ -287,7 +293,7 @@ export function VoiceAnswer({
                 setError('');
               }}
             >
-              Ввести реплику текстом
+              {t('Ввести реплику текстом')}
             </button>
           )}
         </>
@@ -295,8 +301,8 @@ export function VoiceAnswer({
       {(busy || input?.status === 'processing') && !recording && (
         <p role="status">
           {input?.status === 'processing'
-            ? 'Распознаём запись через ElevenLabs…'
-            : 'Сохраняем реплику…'}
+            ? t('Распознаём запись через ElevenLabs…')
+            : t('Сохраняем реплику…')}
         </p>
       )}
       {input?.error && (
@@ -309,7 +315,7 @@ export function VoiceAnswer({
                 void perform({ kind: 'retry', id: input.id, operationId: crypto.randomUUID() })
               }
             >
-              Повторить распознавание
+              {t('Повторить распознавание')}
             </button>
           )}
         </div>
@@ -320,7 +326,7 @@ export function VoiceAnswer({
           disabled={busy || Boolean(pending.current)}
           onClick={() => void perform({ kind: 'discard', id: input.id })}
         >
-          Записать заново
+          {t('Записать заново')}
         </button>
       )}
       {canAnswer && (needConfirmation || fallback) && (
@@ -341,7 +347,7 @@ export function VoiceAnswer({
         >
           <fieldset disabled={busy || recording || Boolean(pending.current)}>
             <label htmlFor={`voice-text-${turnId}`}>
-              {needConfirmation && !fallback ? 'Распознанная реплика' : 'Текст реплики'}
+              {needConfirmation && !fallback ? t('Распознанная реплика') : t('Текст реплики')}
             </label>
             <textarea
               id={`voice-text-${turnId}`}
@@ -353,13 +359,13 @@ export function VoiceAnswer({
             />
             {choice.length > 0 && (
               <>
-                <label htmlFor={`voice-option-${turnId}`}>Вариант ответа по реплике</label>
+                <label htmlFor={`voice-option-${turnId}`}>{t('Вариант ответа по реплике')}</label>
                 <select
                   id={`voice-option-${turnId}`}
                   value={optionId}
                   onChange={(e) => setOptionId(e.target.value)}
                 >
-                  <option value="">Определить по точному тексту реплики</option>
+                  <option value="">{t('Определить по точному тексту реплики')}</option>
                   {choice.map((o) => (
                     <option key={o.id} value={o.id}>
                       {o.text}
@@ -367,15 +373,16 @@ export function VoiceAnswer({
                   ))}
                 </select>
                 <p className="muted">
-                  Если распознанный текст не совпадает с вариантом, выберите его сами перед
-                  проверкой.
+                  {t(
+                    'Если распознанный текст не совпадает с вариантом, выберите его сами перед проверкой.',
+                  )}
                 </p>
               </>
             )}
             <button disabled={!text.trim()}>
               {needConfirmation && !fallback
-                ? 'Подтвердить реплику и проверить'
-                : 'Отправить текстовый ответ'}
+                ? t('Подтвердить реплику и проверить')
+                : t('Отправить текстовый ответ')}
             </button>
           </fieldset>
         </form>
@@ -384,16 +391,18 @@ export function VoiceAnswer({
         <div className="voice-feedback" role="status">
           <p>
             <strong>
-              {input.source === 'voice' ? 'Подтверждённая реплика' : 'Текстовый ответ'}:
+              {input.source === 'voice' ? t('Подтверждённая реплика') : t('Текстовый ответ')}:
             </strong>{' '}
             {input.confirmedText}
           </p>
-          {input.edited && <p className="muted">Распознанный текст исправлен перед проверкой.</p>}
+          {input.edited && (
+            <p className="muted">{t('Распознанный текст исправлен перед проверкой.')}</p>
+          )}
           <p>
             <strong>
               {view.current?.attempt?.teacherReview
-                ? 'Первоначальный ответ демо-помощника:'
-                : 'Демо-помощник:'}
+                ? t('Первоначальный ответ демо-помощника:')
+                : t('Демо-помощник:')}
             </strong>{' '}
             {input.reply}
           </p>
@@ -408,21 +417,26 @@ export function VoiceAnswer({
           {assignment && (
             <div>
               <p>
-                {assignment.kind === 'review' ? 'Назначено повторение' : 'Следующее упражнение'}:{' '}
-                {assignment.title}
+                {assignment.kind === 'review'
+                  ? t('Назначено повторение')
+                  : t('Следующее упражнение')}
+                : {assignment.title}
               </p>
               {assignment.dueAt && (
-                <p>Доступно с {new Date(assignment.dueAt).toLocaleString('ru-RU')}</p>
+                <p>
+                  {t('Доступно с ')}
+                  {new Date(assignment.dueAt).toLocaleString(dateLocale)}
+                </p>
               )}
               {(!assignment.dueAt || new Date(assignment.dueAt).getTime() <= Date.now()) &&
                 editable && (
                   <button disabled={busy} onClick={() => void openAssignment()}>
-                    Открыть назначенное упражнение
+                    {t('Открыть назначенное упражнение')}
                   </button>
                 )}
               <p>
                 <Link to={`/plan/${assignment.planId}#assignment-${assignment.id}`}>
-                  Назначение и причина в плане →
+                  {t('Назначение и причина в плане →')}
                 </Link>
               </p>
             </div>
@@ -432,16 +446,18 @@ export function VoiceAnswer({
       {error && (
         <div role="alert" className="error">
           <p>{error}</p>
-          <p>Можно продолжить с текстовым ответом. Техническая ошибка не считается учебной.</p>
+          <p>
+            {t('Можно продолжить с текстовым ответом. Техническая ошибка не считается учебной.')}
+          </p>
           <button
             className="secondary"
             disabled={busy}
             onClick={() => {
               if (pending.current) void perform(pending.current);
-              else void load().catch((e) => setError((e as Error).message));
+              else void load().catch((e) => setError(t((e as Error).message)));
             }}
           >
-            Повторить операцию
+            {t('Повторить операцию')}
           </button>
           {pending.current && !busy && (
             <button
@@ -452,7 +468,7 @@ export function VoiceAnswer({
                 setFallback(true);
               }}
             >
-              Перейти к текстовому вводу
+              {t('Перейти к текстовому вводу')}
             </button>
           )}
         </div>

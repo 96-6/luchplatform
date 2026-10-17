@@ -1,3 +1,5 @@
+import { t } from '../i18n';
+import { errorText, locale } from '../i18n';
 import { API_PREFIX, envelopeSchema, errorSchema } from '@luch/contracts';
 import { z } from 'zod';
 let csrfToken: string | null = null;
@@ -30,9 +32,10 @@ export async function api<T extends z.ZodType>(
       method: options.body === undefined ? 'GET' : 'POST',
       headers:
         options.body === undefined
-          ? {}
+          ? { 'accept-language': locale }
           : {
               'content-type': 'application/json',
+              'accept-language': locale,
               ...(csrfToken ? { 'x-csrf-token': csrfToken } : {}),
             },
       ...(options.body === undefined ? {} : { body: JSON.stringify(options.body) }),
@@ -45,22 +48,23 @@ export async function api<T extends z.ZodType>(
       const parsed = errorSchema.safeParse(payload);
       throw parsed.success
         ? new ApiError(
-            parsed.data.error.message,
+            errorText(t(parsed.data.error.message)),
             parsed.data.error.requestId,
             parsed.data.error.code,
             response.status,
           )
-        : new ApiError('Сервис временно недоступен. Повторите попытку.');
+        : new ApiError(t('Сервис временно недоступен. Повторите попытку.'));
     }
     const result = envelopeSchema(z.unknown()).safeParse(payload);
-    if (!result.success) throw new ApiError('Получен неполный ответ сервера. Повторите попытку.');
+    if (!result.success)
+      throw new ApiError(t('Получен неполный ответ сервера. Повторите попытку.'));
     const data = schema.safeParse(result.data.data);
-    if (!data.success) throw new ApiError('Получен неполный ответ сервера. Повторите попытку.');
+    if (!data.success) throw new ApiError(t('Получен неполный ответ сервера. Повторите попытку.'));
     return data.data;
   } catch (error) {
     if (error instanceof ApiError) throw error;
     throw new ApiError(
-      'Не удалось связаться с сервером. Проверьте соединение и повторите попытку.',
+      t('Не удалось связаться с сервером. Проверьте соединение и повторите попытку.'),
     );
   } finally {
     clearTimeout(timer);

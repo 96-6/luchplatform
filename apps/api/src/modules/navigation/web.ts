@@ -2,7 +2,7 @@ import { access, realpath } from 'node:fs/promises';
 import { resolve, sep } from 'node:path';
 import type { FastifyInstance, FastifyReply } from 'fastify';
 import staticFiles from '@fastify/static';
-import { navigationQuerySchema, pageErrorDocument } from '@luch/contracts';
+import { navigationQuerySchema, pageErrorDocument, resolveLocale } from '@luch/contracts';
 import type { AuthService } from '../auth/service.js';
 import { AppError } from '../../errors.js';
 import { NavigationService } from './service.js';
@@ -13,7 +13,14 @@ export function pageError(reply: FastifyReply, status: number, message: string, 
     .type('text/html; charset=utf-8')
     .header('cache-control', 'no-store')
     .header('referrer-policy', 'no-referrer')
-    .send(pageErrorDocument(status, message, requestId));
+    .send(
+      pageErrorDocument(
+        status,
+        message,
+        requestId,
+        resolveLocale(reply.request.headers.cookie, reply.request.headers['accept-language']),
+      ),
+    );
 }
 export async function registerWebAccess(app: FastifyInstance, auth: AuthService, webRoot: string) {
   const navigation = new NavigationService(auth);

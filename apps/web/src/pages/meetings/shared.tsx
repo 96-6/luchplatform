@@ -1,3 +1,4 @@
+import { t, dateLocale } from '../../i18n';
 import { useCallback, useEffect, useRef, useState } from 'react';
 import { Link } from 'react-router-dom';
 import { z } from 'zod';
@@ -7,10 +8,10 @@ import { useResource } from '../../lib/useResource';
 import { ErrorState, LoadingState } from '../../components/States';
 export const okSchema = z.object({ ok: z.boolean() });
 export const statusLabels = {
-  scheduled: 'Запланировано',
-  live: 'Идёт встреча',
-  completed: 'Завершено',
-  cancelled: 'Отменено',
+  scheduled: t('Запланировано'),
+  live: t('Идёт встреча'),
+  completed: t('Завершено'),
+  cancelled: t('Отменено'),
 };
 export const browserZone = () => Intl.DateTimeFormat().resolvedOptions().timeZone || 'UTC';
 export function dateParts(date: Date, zone: string) {
@@ -35,13 +36,13 @@ export function zonedDate(local: string, zone: string) {
     ms += target - observed;
   }
   if (!Number.isFinite(ms) || dateParts(new Date(ms), zone) !== `${day}T${time}`)
-    throw Error('Это местное время отсутствует из-за перевода часов. Выберите другое время.');
+    throw Error(t('Это местное время отсутствует из-за перевода часов. Выберите другое время.'));
   return new Date(ms).toISOString();
 }
 export const addDay = (day: string, n: number) =>
   new Date(new Date(`${day}T12:00:00Z`).getTime() + n * 86400000).toISOString().slice(0, 10);
 export const meetingTime = (m: Meeting, zone = m.timeZone) =>
-  new Intl.DateTimeFormat('ru-RU', {
+  new Intl.DateTimeFormat(dateLocale, {
     timeZone: zone,
     day: 'numeric',
     month: 'long',
@@ -95,8 +96,8 @@ export function UpcomingMeetings() {
     meetingsPageSchema,
   );
   return (
-    <section className="panel" aria-label="Ближайшие видеозанятия">
-      <h2>Видеозанятия</h2>
+    <section className="panel" aria-label={t('Ближайшие видеозанятия')}>
+      <h2>{t('Видеозанятия')}</h2>
       {state.status === 'loading' ? (
         <LoadingState />
       ) : state.status === 'error' ? (
@@ -116,14 +117,19 @@ export function UpcomingMeetings() {
                 <p>
                   {meetingTime(m, browserZone())} · {statusLabels[m.status]}
                 </p>
-                {m.summaryComment && <p>Итог: {m.summaryComment}</p>}
+                {m.summaryComment && (
+                  <p>
+                    {t('Итог: ')}
+                    {m.summaryComment}
+                  </p>
+                )}
               </li>
             ))}
         </ul>
       ) : (
-        <p>Назначенных видеозанятий пока нет.</p>
+        <p>{t('Назначенных видеозанятий пока нет.')}</p>
       )}
-      <Link to="/schedule">Открыть расписание →</Link>
+      <Link to="/schedule">{t('Открыть расписание →')}</Link>
     </section>
   );
 }
