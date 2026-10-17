@@ -100,11 +100,11 @@ export const usersSchema = z.array(userSchema);
 export const accountUpdateSchema = z
   .strictObject({
     isBlocked: z.boolean(),
-    isActive: z.boolean().default(true),
-    blockReason: z.string().trim().max(1000).default(''),
+    isActive: z.boolean().optional(),
+    blockReason: z.string().trim().max(1000).optional(),
     accessVerified: z.boolean(),
   })
-  .refine((input) => input.isActive || !input.isBlocked, {
+  .refine((input) => input.isActive !== false || !input.isBlocked, {
     path: ['isBlocked'],
     message: 'Выберите деактивацию или блокировку.',
   });

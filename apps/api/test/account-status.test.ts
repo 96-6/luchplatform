@@ -93,6 +93,13 @@ describe('account access status', () => {
         payload: { isActive, isBlocked, blockReason, accessVerified: true },
       });
     expect((await status(false)).statusCode).toBe(200);
+    const legacyDeactivate = await app.inject({
+      method: 'POST',
+      url: `/api/v1/admin/accounts/${setup.user.id}`,
+      headers: admin,
+      payload: { isBlocked: false, accessVerified: true },
+    });
+    expect(legacyDeactivate.json().data.isActive).toBe(false);
     let denied = await login(input.email, setup.manualKey);
     expect(denied.statusCode).toBe(403);
     expect(denied.json().error).toMatchObject({
@@ -105,6 +112,13 @@ describe('account access status', () => {
     const student = headers(signed);
     const reason = 'Нарушение правил <img src=x onerror=alert(1)>';
     expect((await status(true, true, reason)).statusCode).toBe(200);
+    const legacyBan = await app.inject({
+      method: 'POST',
+      url: `/api/v1/admin/accounts/${setup.user.id}`,
+      headers: admin,
+      payload: { isBlocked: true, accessVerified: true },
+    });
+    expect(legacyBan.json().data.blockReason).toBe(reason);
     const expired = await app.inject({ url: '/api/v1/auth/session', headers: student });
     expect(expired.json().data.user).toBeNull();
     denied = await login(input.email, setup.manualKey);

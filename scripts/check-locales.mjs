@@ -16,6 +16,15 @@ async function scan(folder) {
         true,
       );
       function visit(node) {
+        if (ts.isJsxText(node) && /[А-Яа-яЁё]/.test(node.text))
+          missing.add('Unlocalized JSX: ' + normalize(node.text));
+        if (
+          ts.isJsxAttribute(node) &&
+          node.initializer &&
+          ts.isStringLiteral(node.initializer) &&
+          /[А-Яа-яЁё]/.test(node.initializer.text)
+        )
+          missing.add('Unlocalized attribute: ' + node.initializer.text);
         if (
           ts.isCallExpression(node) &&
           ts.isIdentifier(node.expression) &&
