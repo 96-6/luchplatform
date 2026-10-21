@@ -28,7 +28,13 @@ export async function passwordUI(page: Page, email: string, password = testPassw
 }
 export async function secondFactorUI(page: Page, email: string, secret: string, offset = 0) {
   await page.getByLabel('Код Authenticator').fill(otp(email, secret, offset));
+  const response = page.waitForResponse(
+    (r) => r.url().endsWith('/api/v1/auth/login/confirm') && r.request().method() === 'POST',
+  );
   await page.getByRole('button', { name: 'Подтвердить вход', exact: true }).click();
+  const verified = await response;
+  expect(verified.status(), await verified.text()).toBe(200);
+  return verified;
 }
 export async function signInUI(
   page: Page,
@@ -40,7 +46,8 @@ export async function signInUI(
   await page.goto('/login');
   const response = await passwordUI(page, email, password);
   expect(response.status(), await response.text()).toBe(200);
-  await secondFactorUI(page, email, secret, offset);
+  const verified = await secondFactorUI(page, email, secret, offset);
+  await expect(page).toHaveURL((await verified.json()).data.dashboardPath);
 }
 export async function newPasswordUI(page: Page, prefix: string, password = testPassword) {
   await page.locator(`#${prefix}-password`).fill(password);

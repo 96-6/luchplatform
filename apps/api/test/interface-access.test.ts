@@ -255,6 +255,14 @@ describe('page access, links and operator interfaces', () => {
       expect((await navigation(path, g.superadmin)).statusCode, path).toBe(400);
     expect(() => pageTarget('/learning/runs/%252fadmin')).toThrow();
   });
+  it('directs expired password links to password recovery in styled HTTP and SPA errors', async () => {
+    const path = `/set-password?token=${token()}`;
+    const response = await get(path);
+    expect(response.statusCode).toBe(410);
+    expect(response.body).toContain('href="/forgot-password"');
+    expect(response.body).toContain('class="card"');
+    expect((await navigation(path)).statusCode).toBe(410);
+  });
   it('checks temporary verification/enrollment state without consuming a link or revealing setup secrets in HTML', async () => {
     const id = randomUUID(),
       value = token();

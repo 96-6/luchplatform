@@ -190,6 +190,21 @@ describe('password and separate second factor', () => {
     expect((await confirm(headers, a.code())).json().error.code).toBe('LOGIN_EXPIRED');
     expect((await confirm(pending(await primary(a.user.email)), a.code())).statusCode).toBe(200);
   });
+  it('cancels pending second-factor proof on logout', async () => {
+    const a = await account(),
+      headers = pending(await primary(a.user.email));
+    const loggedOut = await f.app.inject({
+      method: 'POST',
+      url: '/api/v1/auth/logout',
+      headers,
+      payload: {},
+    });
+    expect(loggedOut.statusCode).toBe(200);
+    expect((await confirm(headers, a.code())).statusCode).toBe(401);
+    expect(
+      (await f.app.inject({ url: '/api/v1/auth/login/challenge', headers })).json().data,
+    ).toBeNull();
+  });
   it('serializes concurrent submissions of one challenge into one session', async () => {
     const a = await account(),
       headers = pending(await primary(a.user.email)),

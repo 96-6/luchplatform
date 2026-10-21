@@ -24,6 +24,7 @@ export function pageErrorDocument(
   message: string,
   requestId: string,
   locale: Locale = 'ru',
+  recoveryPath: '/register' | '/forgot-password' = '/register',
 ) {
   const escape = (value: string) =>
     value.replace(
@@ -32,7 +33,7 @@ export function pageErrorDocument(
     );
   const text = (source: string) => escape(translate(source, locale));
   const title = pageStatusTitle(status, locale);
-  return `<!doctype html><html lang="${locale}"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1"><meta name="referrer" content="no-referrer"><title>${status} · ${escape(title)} · ${locale === 'en' ? 'LUCH' : 'ЛУЧ'}</title><style>${PAGE_ERROR_STYLES}</style></head><body><main><a class="brand" href="/"><svg width="40" height="40" viewBox="0 0 24 24" aria-hidden="true"><path d="M3 20 12 3l9 17M7 14h10" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round"/></svg>${locale === 'en' ? 'LUCH' : 'ЛУЧ'}</a><section class="card" role="alert"><span class="status">${status}</span><h1>${escape(title)}</h1><p>${escape(translateMessage(message, locale))}</p><div class="actions"><a class="button" href="/">${text('На главную')}</a><a class="button secondary" href="/login">${text('Войти в аккаунт')}</a></div>${status === 410 ? `<a class="register" href="/register">${text('Запросить новое письмо')}</a>` : ''}<p class="request">${text('Код обращения:')} ${escape(requestId)}</p></section></main></body></html>`;
+  return `<!doctype html><html lang="${locale}"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1"><meta name="referrer" content="no-referrer"><title>${status} · ${escape(title)} · ${locale === 'en' ? 'LUCH' : 'ЛУЧ'}</title><style>${PAGE_ERROR_STYLES}</style></head><body><main><a class="brand" href="/"><svg width="40" height="40" viewBox="0 0 24 24" aria-hidden="true"><path d="M3 20 12 3l9 17M7 14h10" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round"/></svg>${locale === 'en' ? 'LUCH' : 'ЛУЧ'}</a><section class="card" role="alert"><span class="status">${status}</span><h1>${escape(title)}</h1><p>${escape(translateMessage(message, locale))}</p><div class="actions"><a class="button" href="/">${text('На главную')}</a><a class="button secondary" href="/login">${text('Войти в аккаунт')}</a></div>${status === 410 ? `<a class="register" href="${recoveryPath}">${text('Запросить новое письмо')}</a>` : ''}<p class="request">${text('Код обращения:')} ${escape(requestId)}</p></section></main></body></html>`;
 }
 type Role = 'student' | 'teacher' | 'admin' | 'superadmin';
 const learning: Role[] = ['student', 'teacher', 'superadmin'];

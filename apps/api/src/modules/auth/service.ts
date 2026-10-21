@@ -562,7 +562,7 @@ export class AuthService {
         await tx.query<UserRow>('SELECT * FROM users WHERE email=$1 FOR UPDATE', [email])
       ).rows[0]!;
       if (!user.is_demo || user.role !== role || !user.email_verified_at || !user.totp_enabled_at)
-        throw new AppError(401, 'INVALID_CREDENTIALS', 'Неверный код Authenticator.');
+        throw new AppError(401, 'INVALID_CREDENTIALS', 'Неверная почта или пароль.');
       if ((await getPolicy(tx)).vpnCheckEnabled && !user.access_verified)
         throw new AppError(
           403,

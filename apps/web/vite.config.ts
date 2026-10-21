@@ -99,6 +99,7 @@ export default defineConfig(({ mode }) => {
                   error.success ? error.data.error.message : 'Не удалось открыть страницу.',
                   error.success ? error.data.error.requestId : 'dev-page',
                   locale,
+                  pathname === '/set-password' ? '/forgot-password' : '/register',
                 ),
               );
             } catch {

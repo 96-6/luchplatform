@@ -164,19 +164,21 @@ export function LoginPage() {
             {t(error.message)}
           </p>
         )}
-        <button disabled={busy}>
-          {busy ? t('Входим…') : step ? t('Подтвердить вход') : t('Войти')}
-        </button>
-        {step && (
-          <button
-            type="button"
-            className="secondary"
-            disabled={busy}
-            onClick={() => void restart()}
-          >
-            {t('Вернуться к почте и паролю')}
+        <div className="form-actions">
+          <button disabled={busy}>
+            {busy ? t('Входим…') : step ? t('Подтвердить вход') : t('Войти')}
           </button>
-        )}
+          {step && (
+            <button
+              type="button"
+              className="secondary"
+              disabled={busy}
+              onClick={() => void restart()}
+            >
+              {t('Вернуться к почте и паролю')}
+            </button>
+          )}
+        </div>
       </form>
       {!step && (
         <p className="auth-links">

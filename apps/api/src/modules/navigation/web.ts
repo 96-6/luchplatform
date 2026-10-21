@@ -19,6 +19,7 @@ export function pageError(reply: FastifyReply, status: number, message: string, 
         message,
         requestId,
         resolveLocale(reply.request.headers.cookie, reply.request.headers['accept-language']),
+        reply.request.url.split('?')[0] === '/set-password' ? '/forgot-password' : '/register',
       ),
     );
 }

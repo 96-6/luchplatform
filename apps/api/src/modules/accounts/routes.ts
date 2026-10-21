@@ -182,6 +182,7 @@ export async function registerAccountRoutes(app: FastifyInstance, auth: AuthServ
     const id = idOf(request.params);
     await readUser(actor, id);
     await db.transaction(async (tx) => {
+      await tx.query('SELECT id FROM users WHERE id=$1 FOR UPDATE', [id]);
       await auth.invalidateCredentials(tx, id);
       await audit(tx, actor.user.id, 'sessions.revoked', id);
     });

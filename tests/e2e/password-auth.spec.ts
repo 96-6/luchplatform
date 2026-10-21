@@ -63,9 +63,9 @@ test('registration, password-first enrollment, separate 2FA and email recovery w
     await recovery.getByLabel('Почта', { exact: true }).fill(email);
     await recovery.getByLabel('Символы с картинки').fill('ABCDE');
     await recovery.getByRole('button', { name: 'Отправить ссылку', exact: true }).click();
-    await expect(recovery.getByRole('status')).toContainText(
-      'письмо для установки нового пароля отправлено',
-    );
+    await expect(
+      recovery.getByRole('status').filter({ hasText: 'Если аккаунт существует' }),
+    ).toContainText('письмо для установки нового пароля отправлено');
     await recovery
       .getByRole('link', { name: 'Посмотреть письмо в демо-почте', exact: true })
       .click();
@@ -74,7 +74,9 @@ test('registration, password-first enrollment, separate 2FA and email recovery w
     await newPasswordUI(recovery, 'reset', replacement);
     await recovery.getByRole('button', { name: 'Сохранить пароль', exact: true }).click();
     await expect(recovery).toHaveURL(/\/login$/);
-    await expect(recovery.getByRole('status')).toContainText('Пароль сохранён');
+    await expect(recovery.getByRole('status').filter({ hasText: 'Пароль сохранён' })).toContainText(
+      'Пароль сохранён',
+    );
     expect((await page.reload())?.status()).toBe(401);
     await expect(page.getByRole('heading', { name: 'Требуется вход', exact: true })).toBeVisible();
     expect((await passwordUI(recovery, email, testPassword)).status()).toBe(401);
@@ -150,5 +152,51 @@ test('superadmin password reset is available in the account card and English for
     await mobile.screenshot({ path: 'test-results/auth-recovery-en-mobile.png', fullPage: true });
   } finally {
     await english.close();
+  }
+});
+
+test('a signed-in user changes their own password with a fresh second factor', async ({
+  page,
+  browser,
+}) => {
+  await root(page);
+  const email = `self-password-ui-${crypto.randomUUID()}@example.test`;
+  const rootSession = (await (await page.request.get('/api/v1/auth/session')).json()).data;
+  const created = await page.request.post('/api/v1/admin/accounts', {
+    headers: { 'x-csrf-token': rootSession.csrfToken },
+    data: {
+      email,
+      name: 'Смена своего пароля',
+      role: 'student',
+      password: testPassword,
+      operationId: crypto.randomUUID(),
+    },
+  });
+  expect(created.status(), await created.text()).toBe(200);
+  const setup = (await created.json()).data,
+    context = await browser.newContext({ locale: 'ru-RU' });
+  try {
+    const student = await context.newPage();
+    await signInUI(student, email, setup.manualKey);
+    await expect(student).toHaveURL(/\/student$/);
+    await student.getByRole('link', { name: 'Безопасность аккаунта', exact: true }).click();
+    await expect(
+      student.getByRole('heading', { name: 'Безопасность аккаунта', exact: true }),
+    ).toBeVisible();
+    await student.getByLabel('Текущий пароль', { exact: true }).fill(testPassword);
+    const replacement = 'Self service browser passphrase 2026!';
+    await newPasswordUI(student, 'change', replacement);
+    await student.getByLabel('Код Authenticator').fill(otp(email, setup.manualKey, 30000));
+    await student.screenshot({ path: 'test-results/auth-account-security.png', fullPage: true });
+    await student.getByRole('button', { name: 'Изменить пароль', exact: true }).click();
+    await expect(student).toHaveURL(/\/login$/);
+    await expect(student.getByRole('status').filter({ hasText: 'Пароль сохранён' })).toBeVisible();
+    expect((await passwordUI(student, email, testPassword)).status()).toBe(401);
+    expect((await passwordUI(student, email, replacement)).status()).toBe(200);
+    await expect(
+      student.getByRole('heading', { name: 'Подтверждение входа', exact: true }),
+    ).toBeVisible();
+  } finally {
+    await context.close();
   }
 });

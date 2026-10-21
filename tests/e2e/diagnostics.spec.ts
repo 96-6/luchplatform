@@ -224,6 +224,7 @@ test('questionnaire, English resume, two different skill results and reviewer ac
     const created = await admin.request.post('/api/v1/admin/accounts', {
       headers: { 'x-csrf-token': adminSession.csrfToken },
       data: {
+        password: testPassword,
         email: teacherEmail,
         name: 'Преподаватель диагностики',
         role: 'teacher',
