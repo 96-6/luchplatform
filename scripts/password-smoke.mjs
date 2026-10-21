@@ -5,6 +5,7 @@ import { loadSettings } from '../apps/api/dist/config.js';
 import { createDatabase } from '../apps/api/dist/db/database.js';
 import { AccountCrypto, createTotp } from '../apps/api/dist/modules/auth/crypto.js';
 import { Passwords } from '../apps/api/dist/modules/auth/password.js';
+import { CaptchaService } from '../apps/api/dist/modules/security/captcha.js';
 
 const settings = loadSettings();
 if (settings.APP_ENV === 'production' || !settings.ENABLE_DEV_TOOLS)
@@ -37,7 +38,16 @@ try {
         await passwords.protect(password),
       ],
     );
-    const first = await post('/auth/login', { email, password });
+    const captchaAnswer = randomBytes(3).toString('hex').slice(0, 5).toUpperCase();
+    const captcha = await new CaptchaService(db, crypto, () => captchaAnswer).issue(
+      '127.0.0.1',
+      'login',
+    );
+    const first = await post('/auth/login', {
+      email,
+      password,
+      captcha: { id: captcha.id, answer: captchaAnswer },
+    });
     assert.equal(first.status, 200);
     const challenge = (await first.json()).data;
     assert.equal(challenge.step, 'totp');
