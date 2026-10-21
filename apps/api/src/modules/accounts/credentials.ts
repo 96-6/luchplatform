@@ -122,13 +122,22 @@ export class AccountCredentials {
         email: input.email,
         name: input.name,
         role: input.role,
-        password: input.password,
       }),
     );
     const passwordHash = await new Passwords(this.crypto).protect(input.password);
     const user = await this.db.transaction(async (tx) => {
       const operation = await this.lockOperation(tx, actor, input.operationId);
-      if (operation) return this.replay(tx, operation, 'create', payloadHash);
+      if (operation) {
+        const replayed = await this.replay(tx, operation, 'create', payloadHash);
+        if (
+          !(await new Passwords(this.crypto).matches(
+            input.password,
+            replayed.password_hash_ciphertext,
+          ))
+        )
+          throw new AppError(409, 'OPERATION_CONFLICT', 'Эта операция уже использована.');
+        return replayed;
+      }
       const secret = createTotp(input.email).secret.base32;
       const row = (
         await tx.query<UserRow>(
@@ -189,7 +198,7 @@ export class AccountCredentials {
     this.assertAdmin(actor);
     if (id === actor.user.id)
       throw new AppError(409, 'SELF_PASSWORD_RESET', 'Измените свой пароль в настройках аккаунта.');
-    const payloadHash = this.crypto.mac(canonicalJson({ id, password: input.password }));
+    const payloadHash = this.crypto.mac(canonicalJson({ id }));
     const passwordHash = await new Passwords(this.crypto).protect(input.password);
     return this.db.transaction(async (tx) => {
       const operation = await this.lockOperation(tx, actor, input.operationId);
@@ -210,6 +219,10 @@ export class AccountCredentials {
             'CREDENTIALS_CHANGED',
             'Данные входа изменились. Обновите страницу.',
           );
+        if (
+          !(await new Passwords(this.crypto).matches(input.password, user.password_hash_ciphertext))
+        )
+          throw new AppError(409, 'OPERATION_CONFLICT', 'Эта операция уже использована.');
         return publicUser(user);
       }
       const updated = (

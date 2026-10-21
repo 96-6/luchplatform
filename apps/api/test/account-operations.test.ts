@@ -331,6 +331,14 @@ describe('local account operations', () => {
     expect(created.map((r) => r.statusCode)).toEqual([200, 200]);
     expect(created[0]!.json().data).toEqual(created[1]!.json().data);
     const id = created[0]!.json().data.user.id as string;
+    const changedPassword = await app.inject({
+      method: 'POST',
+      url: '/api/v1/admin/accounts',
+      headers: admin.headers,
+      payload: { ...input, password: 'Another fixture password 2026!' },
+    });
+    expect(changedPassword.statusCode).toBe(409);
+    expect((await login(input.email, created[0]!.json().data.manualKey)).statusCode).toBe(200);
     expect(
       (
         await app.inject({
