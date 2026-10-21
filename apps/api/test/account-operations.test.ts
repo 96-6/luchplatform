@@ -1,3 +1,4 @@
+import { fixturePassword, passwordLogin } from './helpers/password.js';
 import { randomBytes, randomUUID } from 'node:crypto';
 import { afterAll, beforeAll, beforeEach, describe, expect, it } from 'vitest';
 import { accountAuthenticatorSchema, sessionSchema } from '@luch/contracts';
@@ -61,6 +62,7 @@ async function create(admin: Headers, role = 'student') {
   const input = {
     email: `admin-made-${randomUUID()}@example.test`,
     name: 'Созданный пользователь',
+    password: fixturePassword,
     role,
     operationId: randomUUID(),
   };
@@ -74,11 +76,7 @@ async function create(admin: Headers, role = 'student') {
   return { input, setup: accountAuthenticatorSchema.parse(response.json().data) };
 }
 async function login(email: string, secret: string) {
-  return app.inject({
-    method: 'POST',
-    url: '/api/v1/auth/login',
-    payload: { email, code: createTotp(email, secret).generate() },
-  });
+  return passwordLogin(app, { payload: { email, code: createTotp(email, secret).generate() } });
 }
 
 describe('local account operations', () => {
@@ -94,7 +92,7 @@ describe('local account operations', () => {
       const r = await app.inject({ method: 'POST', url: '/api/v1/auth/login', payload });
       expect(r.statusCode, r.body).toBe(401);
       expect(r.json().error.code).toBe('INVALID_CREDENTIALS');
-      expect(r.json().error.message).toBe('Неверная почта или код Authenticator.');
+      expect(r.json().error.message).toBe('Неверная почта или пароль.');
     }
     expect((await db.query('SELECT * FROM users')).rows).toHaveLength(0);
   });
@@ -316,6 +314,7 @@ describe('local account operations', () => {
       input = {
         email: 'duplicate@example.test',
         name: 'Повтор операции',
+        password: fixturePassword,
         role: 'student',
         operationId: randomUUID(),
       };
@@ -332,6 +331,14 @@ describe('local account operations', () => {
     expect(created.map((r) => r.statusCode)).toEqual([200, 200]);
     expect(created[0]!.json().data).toEqual(created[1]!.json().data);
     const id = created[0]!.json().data.user.id as string;
+    const changedPassword = await app.inject({
+      method: 'POST',
+      url: '/api/v1/admin/accounts',
+      headers: admin.headers,
+      payload: { ...input, password: 'Another fixture password 2026!' },
+    });
+    expect(changedPassword.statusCode).toBe(409);
+    expect((await login(input.email, created[0]!.json().data.manualKey)).statusCode).toBe(200);
     expect(
       (
         await app.inject({

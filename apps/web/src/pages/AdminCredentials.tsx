@@ -1,8 +1,11 @@
 import { t } from '../i18n';
 import { useRef, useState, type FormEvent } from 'react';
-import { accountAuthenticatorSchema, type User } from '@luch/contracts';
+import { accountAuthenticatorSchema, userSchema, type User } from '@luch/contracts';
 import type { z } from 'zod';
 import { api } from '../lib/api';
+import { Link } from 'react-router-dom';
+import { useAuth } from '../auth/AuthContext';
+import { PasswordFields } from '../components/PasswordFields';
 
 type Setup = z.infer<typeof accountAuthenticatorSchema>;
 function SetupCard({ setup, close }: { setup: Setup; close: () => void }) {
@@ -26,8 +29,10 @@ function SetupCard({ setup, close }: { setup: Setup; close: () => void }) {
         </code>
       </details>
       <p>
-        {setup.user.emailVerified && setup.user.authenticatorEnabled
-          ? t('Аккаунт готов к входу по почте и текущему коду Authenticator.')
+        {setup.user.emailVerified &&
+        setup.user.authenticatorEnabled &&
+        setup.user.passwordConfigured
+          ? t('Аккаунт готов к входу по почте, паролю и коду Authenticator.')
           : t('Подключение ещё не завершено.')}
       </p>
       {setup.user.isBlocked && (
@@ -43,6 +48,8 @@ export function AdminCreateAccount({ created }: { created: (user: User) => void 
   const [email, setEmail] = useState(''),
     [name, setName] = useState(''),
     [role, setRole] = useState<User['role']>('student');
+  const [password, setPassword] = useState(''),
+    [confirmation, setConfirmation] = useState('');
   const [busy, setBusy] = useState(false),
     [error, setError] = useState<Error | null>(null),
     [setup, setSetup] = useState<Setup | null>(null);
@@ -51,17 +58,20 @@ export function AdminCreateAccount({ created }: { created: (user: User) => void 
     event.preventDefault();
     setBusy(true);
     setError(null);
-    const input = { email: email.trim().toLowerCase(), name: name.trim(), role },
+    const input = { email: email.trim().toLowerCase(), name: name.trim(), role, password },
       payload = JSON.stringify(input);
     if (pending.current?.payload !== payload)
       pending.current = { payload, operationId: crypto.randomUUID() };
     try {
+      if (password !== confirmation) throw new Error(t('Пароли не совпадают.'));
       const value = await api('/admin/accounts', accountAuthenticatorSchema, {
         body: { ...input, operationId: pending.current.operationId },
       });
       setSetup(value);
       created(value.user);
       pending.current = null;
+      setPassword('');
+      setConfirmation('');
     } catch (failure) {
       setError(failure as Error);
     } finally {
@@ -73,7 +83,7 @@ export function AdminCreateAccount({ created }: { created: (user: User) => void 
       <h2>{t('Создать пользователя')}</h2>
       <p>
         {t(
-          'Аккаунт будет сразу подтверждён. Для входа пользователь сканирует QR-код и вводит почту с текущим кодом Authenticator.',
+          'Задайте начальный пароль. Пользователь подключает Authenticator по QR-коду, затем входит с почтой, паролем и одноразовым кодом.',
         )}
       </p>
       <form onSubmit={(event) => void submit(event)}>
@@ -107,6 +117,13 @@ export function AdminCreateAccount({ created }: { created: (user: User) => void 
             <option value="admin">{t('Администратор')}</option>
             <option value="superadmin">{t('Суперадмин')}</option>
           </select>
+          <PasswordFields
+            prefix="admin-new"
+            password={password}
+            confirmation={confirmation}
+            setPassword={setPassword}
+            setConfirmation={setConfirmation}
+          />
           <button>{t('Создать и показать QR-код')}</button>
         </fieldset>
       </form>
@@ -181,6 +198,86 @@ export function AdminAuthenticator({ userId, changed }: { userId: string; change
             changed();
           }}
         />
+      )}
+    </section>
+  );
+}
+
+export function AdminPassword({
+  userId,
+  configured,
+  changed,
+}: {
+  userId: string;
+  configured: boolean;
+  changed: () => void;
+}) {
+  const { session } = useAuth();
+  const [password, setPassword] = useState('');
+  const [confirmation, setConfirmation] = useState('');
+  const [busy, setBusy] = useState(false);
+  const [error, setError] = useState<Error | null>(null);
+  const [saved, setSaved] = useState(false);
+  const pending = useRef<{ password: string; operationId: string } | null>(null);
+  async function submit(event: FormEvent) {
+    event.preventDefault();
+    setBusy(true);
+    setError(null);
+    setSaved(false);
+    try {
+      if (password !== confirmation) throw new Error(t('Пароли не совпадают.'));
+      if (pending.current?.password !== password)
+        pending.current = { password, operationId: crypto.randomUUID() };
+      await api(`/admin/accounts/${userId}/password/reset`, userSchema, {
+        body: { password, operationId: pending.current.operationId },
+      });
+      setPassword('');
+      setConfirmation('');
+      pending.current = null;
+      setSaved(true);
+      changed();
+    } catch (failure) {
+      setError(failure as Error);
+    } finally {
+      setBusy(false);
+    }
+  }
+  return (
+    <section>
+      <h3>{t('Пароль аккаунта')}</h3>
+      <p>{configured ? t('Пароль установлен') : t('Пароль ещё не установлен')}</p>
+      {userId === session.user?.id ? (
+        <Link to="/account/security">{t('Изменить свой пароль')}</Link>
+      ) : (
+        <>
+          <p className="muted">
+            {t(
+              'Можно задать новый пароль. Прежний пароль недоступен для просмотра. Сброс завершит все сессии пользователя и сохранит его Authenticator.',
+            )}
+          </p>
+          <form onSubmit={(event) => void submit(event)}>
+            <fieldset disabled={busy}>
+              <PasswordFields
+                prefix="admin-reset"
+                password={password}
+                confirmation={confirmation}
+                setPassword={setPassword}
+                setConfirmation={setConfirmation}
+              />
+              <button className="secondary">{t('Задать новый пароль пользователю')}</button>
+            </fieldset>
+          </form>
+          {error && (
+            <p role="alert" className="error inline-message">
+              {t(error.message)}
+            </p>
+          )}
+          {saved && (
+            <p role="status" className="success">
+              {t('Новый пароль установлен. Все сессии пользователя завершены.')}
+            </p>
+          )}
+        </>
       )}
     </section>
   );

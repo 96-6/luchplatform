@@ -5,7 +5,7 @@ import type { z } from 'zod';
 import { api } from '../lib/api';
 import { useSecurity } from './SecurityGate';
 
-export function useCaptcha(purpose: 'login' | 'register' | 'enrollment') {
+export function useCaptcha(purpose: 'login' | 'register' | 'enrollment' | 'password') {
   const { policy } = useSecurity();
   const [image, setImage] = useState<z.infer<typeof captchaSchema> | null>(null);
   const [answer, setAnswer] = useState('');

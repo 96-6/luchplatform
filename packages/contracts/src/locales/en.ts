@@ -1872,4 +1872,83 @@ export const english = {
   'Сервис временно недоступен': 'Service temporarily unavailable',
   'Введите 6 цифр из Authenticator': 'Enter the 6 digits from Authenticator',
   'Язык интерфейса': 'Interface language',
+  'Безопасность аккаунта': 'Account security',
+  'Новый пароль': 'New password',
+  'От 12 до 128 символов. Можно использовать длинную фразу и менеджер паролей.':
+    'Use 12 to 128 characters. You can use a long passphrase and a password manager.',
+  'Повторите новый пароль': 'Confirm new password',
+  'Пароль установлен': 'Password set',
+  'Пароль ещё не установлен': 'Password not set yet',
+  'Аккаунт готов к входу по почте, паролю и коду Authenticator.':
+    'The account is ready to sign in with email, password and an Authenticator code.',
+  'Пароли не совпадают.': 'Passwords do not match.',
+  'Задайте начальный пароль. Пользователь подключает Authenticator по QR-коду, затем входит с почтой, паролем и одноразовым кодом.':
+    'Set an initial password. The user adds the QR code to Authenticator and signs in with email, password and a one-time code.',
+  'Пароль аккаунта': 'Account password',
+  'Изменить свой пароль': 'Change your password',
+  'Можно задать новый пароль. Прежний пароль недоступен для просмотра. Сброс завершит все сессии пользователя и сохранит его Authenticator.':
+    'You can set a new password. The previous password cannot be viewed. A reset ends all user sessions and keeps their Authenticator.',
+  'Задать новый пароль пользователю': 'Set a new password for this user',
+  'Новый пароль установлен. Все сессии пользователя завершены.':
+    'The new password is set. All user sessions have ended.',
+  'Подтверждение входа': 'Verify sign-in',
+  'Введите текущий код из приложения Authenticator. Это второй шаг входа.':
+    'Enter the current code from your Authenticator app. This is the second sign-in step.',
+  'Введите почту и пароль. На следующем шаге подтвердите вход кодом Authenticator.':
+    'Enter your email and password. Next, verify sign-in with an Authenticator code.',
+  'Почта подтверждена. Войдите с выбранным паролем, чтобы подключить 2FA.':
+    'Email verified. Sign in with your chosen password to set up 2FA.',
+  'Пароль сохранён. Войдите с новым паролем и кодом Authenticator.':
+    'Password saved. Sign in with your new password and an Authenticator code.',
+  Пароль: 'Password',
+  'Подтвердить вход': 'Verify sign-in',
+  'Вернуться к почте и паролю': 'Back to email and password',
+  'Установить или восстановить пароль': 'Set or recover your password',
+  'Открыть демо-почту для настройки входа →': 'Open demo mail to set up sign-in →',
+  'Выберите пароль, подтвердите почту и подключите Authenticator для второго шага входа.':
+    'Choose a password, verify your email and set up Authenticator for the second sign-in step.',
+  'Подтвердите адрес, затем войдите с паролем для подключения Authenticator.':
+    'Verify your email, then sign in with your password to set up Authenticator.',
+  'Откройте письмо, чтобы подтвердить почту или установить пароль.':
+    'Open the email to verify your address or set a password.',
+  'Открыть последнее письмо': 'Open latest email',
+  'Открыть письмо': 'Open email',
+  'Укажите почту аккаунта. Мы отправим ссылку для установки нового пароля. Подключённый Authenticator сохранится.':
+    'Enter your account email. We will send a link to set a new password. Your existing Authenticator will stay connected.',
+  'Отправить ссылку': 'Send link',
+  'Установка пароля': 'Set password',
+  'После сохранения все прежние сессии будут завершены. Для входа понадобится новый пароль и Authenticator.':
+    'Saving ends all previous sessions. You will need your new password and Authenticator to sign in.',
+  'Сохранить пароль': 'Save password',
+  'Запросить новую ссылку': 'Request a new link',
+  'Изменить пароль': 'Change password',
+  'Подтвердите изменение текущим паролем и новым кодом Authenticator. Все сессии на ваших устройствах завершатся.':
+    'Confirm the change with your current password and a fresh Authenticator code. Sessions on all your devices will end.',
+  'Текущий пароль': 'Current password',
+  'Неверная почта или пароль.': 'Incorrect email or password.',
+  'Время входа истекло. Введите почту и пароль заново.':
+    'Sign-in expired. Enter your email and password again.',
+  'Если аккаунт существует, письмо для установки нового пароля отправлено. Проверьте почту.':
+    'If the account exists, an email to set a new password has been sent. Check your inbox.',
+  'Пароль установлен. Войдите с новым паролем и кодом Authenticator.':
+    'Password set. Sign in with your new password and an Authenticator code.',
+  'Текущий пароль неверен.': 'The current password is incorrect.',
+  'Данные входа изменились. Войдите заново.': 'Your sign-in details have changed. Sign in again.',
+  'Данные входа изменились. Обновите страницу.': 'Sign-in details have changed. Refresh the page.',
+  'Пароль изменён. Войдите заново на своих устройствах.':
+    'Password changed. Sign in again on your devices.',
+  'Измените свой пароль в настройках аккаунта.': 'Change your password in account settings.',
+  'Подтвердите почту по ссылке из письма.': 'Verify your email using the link in the message.',
+  'Пароль должен содержать не менее 12 символов.':
+    'Your password must contain at least 12 characters.',
+  'Пароль должен содержать не более 128 символов.':
+    'Your password must contain at most 128 characters.',
+  'ЛУЧ: установка пароля': 'LUCH: set your password',
+  'Войдите с почтой и паролем, чтобы подключить Authenticator.':
+    'Sign in with your email and password to set up Authenticator.',
+  'Время подключения истекло. Войдите с почтой и паролем заново.':
+    'Setup expired. Sign in with your email and password again.',
+  'Неверный код Authenticator.': 'Incorrect Authenticator code.',
+  'Неверный код Authenticator. Дождитесь нового кода.':
+    'Incorrect Authenticator code. Wait for a new code.',
 } as const;

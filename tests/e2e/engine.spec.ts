@@ -1,3 +1,12 @@
+import {
+  testPassword,
+  apiPasswordLogin,
+  signInUI,
+  newPasswordUI,
+  passwordUI,
+  secondFactorUI,
+  enrollAPI,
+} from './password.helpers';
 import { readFile } from 'node:fs/promises';
 import { expect, test, type Page } from '@playwright/test';
 import { Secret, TOTP } from 'otpauth';
@@ -21,42 +30,7 @@ async function enroll(
   email: string,
   role: 'student' | 'teacher' | 'superadmin' = 'student',
 ) {
-  const captcha = async (purpose: string) => ({
-    id: (await (await page.request.get(`/api/v1/auth/captcha?purpose=${purpose}`)).json()).data.id,
-    answer: 'ABCDE',
-  });
-  if (role !== 'superadmin')
-    expect(
-      (
-        await page.request.post('/api/v1/auth/register', {
-          data: {
-            email,
-            name: role === 'student' ? 'Ученик движка' : 'Преподаватель движка',
-            role,
-            captcha: await captcha('register'),
-          },
-        })
-      ).status(),
-    ).toBe(202);
-  const inbox = await page.request.get(`/api/v1/dev/mail?email=${encodeURIComponent(email)}`),
-    link = new URL((await inbox.json()).data[0].verificationUrl);
-  expect(
-    (
-      await page.request.post('/api/v1/auth/verify-email', {
-        data: { token: link.searchParams.get('token') },
-      })
-    ).status(),
-  ).toBe(200);
-  const key = (await (await page.request.get('/api/v1/auth/enrollment')).json()).data
-    .manualKey as string;
-  expect(
-    (
-      await page.request.post('/api/v1/auth/enrollment/confirm', {
-        data: { code: code(email, key), captcha: await captcha('enrollment') },
-      })
-    ).status(),
-  ).toBe(200);
-  return key;
+  return enrollAPI(page, email, role, role !== 'superadmin');
 }
 async function choose(page: Page, exerciseId: string, incorrect = false) {
   const exercise = demo.exercises.find((item) => item.id === exerciseId)!;
@@ -77,7 +51,7 @@ async function loginFixture(page: Page, prefix: string) {
     captcha = (await (await page.request.get('/api/v1/auth/captcha?purpose=login')).json()).data;
   expect(
     (
-      await page.request.post('/api/v1/auth/login', {
+      await apiPasswordLogin(page, {
         data: {
           email,
           code: code(email, keys[email]!),
@@ -169,10 +143,7 @@ test('luch engine saves both languages, resumes after login and shares all evide
   }
   await page.getByRole('button', { name: 'Выйти', exact: true }).click();
   await expect(page.getByRole('heading', { name: 'Вход в аккаунт', exact: true })).toBeVisible();
-  await page.getByLabel('Почта', { exact: true }).fill(email);
-  await page.getByLabel('Код Authenticator').fill(code(email, key, 30000));
-  await page.getByLabel('Символы с картинки').fill('ABCDE');
-  await page.getByRole('button', { name: 'Войти', exact: true }).click();
+  await signInUI(page, email, key, 30000);
   await expect(page.getByRole('heading', { name: 'Кабинет ученика', exact: true })).toBeVisible();
   await page.getByRole('link', { name: 'Продолжить урок →', exact: true }).click();
   await expect(page.getByRole('heading', { name: 'Задание 2 из 2', exact: true })).toBeVisible();

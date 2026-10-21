@@ -1,3 +1,4 @@
+import { fixturePassword, fixturePasswordHash, passwordLogin } from './helpers/password.js';
 import { randomBytes, randomUUID } from 'node:crypto';
 import { readFile } from 'node:fs/promises';
 import { resolve } from 'node:path';
@@ -63,8 +64,15 @@ async function user(role: User['role'] = 'student') {
     secret = createTotp(email).secret.base32;
   const row = (
     await db.query<UserRow>(
-      'INSERT INTO users (id,email,full_name,role,email_verified_at,totp_enabled_at,totp_secret_ciphertext,access_verified) VALUES ($1,$2,$3,$4,now(),now(),$5,true) RETURNING *',
-      [id, email, 'Главная ученика', role, crypto.encrypt(secret)],
+      'INSERT INTO users (id,email,full_name,role,email_verified_at,totp_enabled_at,totp_secret_ciphertext,access_verified,password_hash_ciphertext,password_changed_at) VALUES ($1,$2,$3,$4,now(),now(),$5,true,$6,now()) RETURNING *',
+      [
+        id,
+        email,
+        'Главная ученика',
+        role,
+        crypto.encrypt(secret),
+        await fixturePasswordHash(crypto),
+      ],
     )
   ).rows[0]!;
   return { user: publicUser(row), tokenHash: 'test', sessionId: randomUUID() } satisfies Actor;
@@ -72,7 +80,7 @@ async function user(role: User['role'] = 'student') {
 async function headers(actor: Actor) {
   const row = (await db.query<UserRow>('SELECT * FROM users WHERE id=$1', [actor.user.id]))
     .rows[0]!;
-  const response = await app.inject({
+  const response = await passwordLogin(app, {
     method: 'POST',
     url: '/api/v1/auth/login',
     payload: {

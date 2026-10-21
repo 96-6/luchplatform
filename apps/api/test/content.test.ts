@@ -1,3 +1,4 @@
+import { fixturePassword, fixturePasswordHash, passwordLogin } from './helpers/password.js';
 import { randomBytes, randomUUID } from 'node:crypto';
 import { mkdtemp, readFile, rm } from 'node:fs/promises';
 import { join, resolve } from 'node:path';
@@ -63,10 +64,10 @@ async function login(role: User['role'] = 'student') {
     email = `content-test-${id}@example.test`,
     secret = createTotp(email).secret.base32;
   await db.query(
-    'INSERT INTO users (id,email,full_name,role,email_verified_at,totp_enabled_at,totp_secret_ciphertext,access_verified) VALUES ($1,$2,$3,$4,now(),now(),$5,true)',
-    [id, email, 'Content test', role, crypto.encrypt(secret)],
+    'INSERT INTO users (id,email,full_name,role,email_verified_at,totp_enabled_at,totp_secret_ciphertext,access_verified,password_hash_ciphertext,password_changed_at) VALUES ($1,$2,$3,$4,now(),now(),$5,true,$6,now())',
+    [id, email, 'Content test', role, crypto.encrypt(secret), await fixturePasswordHash(crypto)],
   );
-  const response = await app.inject({
+  const response = await passwordLogin(app, {
     method: 'POST',
     url: '/api/v1/auth/login',
     payload: { email, code: createTotp(email, secret).generate() },

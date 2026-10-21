@@ -1,3 +1,4 @@
+import { fixturePassword, passwordLogin } from './helpers/password.js';
 import { randomBytes, randomUUID } from 'node:crypto';
 import { afterAll, beforeAll, beforeEach, describe, expect, it } from 'vitest';
 import { accountAuthenticatorSchema, sessionSchema } from '@luch/contracts';
@@ -61,6 +62,7 @@ async function create(admin: Headers, role = 'student') {
   const input = {
     email: `admin-made-${randomUUID()}@example.test`,
     name: 'Созданный пользователь',
+    password: fixturePassword,
     role,
     operationId: randomUUID(),
   };
@@ -74,11 +76,7 @@ async function create(admin: Headers, role = 'student') {
   return { input, setup: accountAuthenticatorSchema.parse(response.json().data) };
 }
 async function login(email: string, secret: string) {
-  return app.inject({
-    method: 'POST',
-    url: '/api/v1/auth/login',
-    payload: { email, code: createTotp(email, secret).generate() },
-  });
+  return passwordLogin(app, { payload: { email, code: createTotp(email, secret).generate() } });
 }
 
 describe('account access status', () => {

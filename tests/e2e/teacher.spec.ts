@@ -1,3 +1,11 @@
+import {
+  testPassword,
+  signInUI,
+  newPasswordUI,
+  passwordUI,
+  secondFactorUI,
+  enrollAPI,
+} from './password.helpers';
 import { readFile } from 'node:fs/promises';
 import { expect, test, type Page, type Browser } from '@playwright/test';
 import { Secret, TOTP } from 'otpauth';
@@ -14,20 +22,7 @@ async function login(page: Page, prefix: string, offset = 0) {
   const k = await keys(),
     email = `${prefix}-${test.info().retry}@example.test`;
   await page.request.post('/__e2e/isolate', { headers: { 'x-e2e-fixture': k.testIsolationToken } });
-  await page.goto('/login');
-  await page.getByLabel('Почта', { exact: true }).fill(email);
-  await page.getByLabel('Код Authenticator').fill(
-    new TOTP({
-      issuer: 'ЛУЧ',
-      label: email,
-      secret: Secret.fromBase32(k[email]),
-      digits: 6,
-      period: 30,
-      algorithm: 'SHA1',
-    }).generate({ timestamp: Date.now() + offset }),
-  );
-  await page.getByLabel('Символы с картинки').fill('ABCDE');
-  await page.getByRole('button', { name: 'Войти', exact: true }).click();
+  await signInUI(page, email, k[email], offset);
   await expect(page).toHaveURL(prefix.endsWith('-tutor') ? /\/teacher$/ : /\/student$/);
   return (await (await page.request.get('/api/v1/auth/session')).json()).data;
 }

@@ -1,3 +1,11 @@
+import {
+  testPassword,
+  signInUI,
+  newPasswordUI,
+  passwordUI,
+  secondFactorUI,
+  enrollAPI,
+} from './password.helpers';
 import { readFile } from 'node:fs/promises';
 import { expect, test, type Page } from '@playwright/test';
 import { Secret, TOTP } from 'otpauth';
@@ -34,17 +42,8 @@ async function localLogin(page: Page, alias: string) {
   ).toBeVisible();
 }
 async function ordinaryLogin(page: Page, email: string, secret: string) {
-  await page.goto('/login');
-  await page.getByLabel('Почта', { exact: true }).fill(email);
-  await page.getByLabel('Код Authenticator').fill(code(email, secret));
-  await page.getByLabel('Символы с картинки').fill('ABCDE');
-  const logged = page.waitForResponse(
-    (r) => r.url().endsWith('/api/v1/auth/login') && r.request().method() === 'POST',
-  );
-  await page.getByRole('button', { name: 'Войти', exact: true }).click();
-  const response = await logged;
-  expect(response.status()).toBe(200);
-  const accepted = (await response.json()).data;
+  await signInUI(page, email, secret);
+  const accepted = (await (await page.request.get('/api/v1/auth/session')).json()).data;
   await expect(page).toHaveURL(accepted.dashboardPath);
 }
 async function session(page: Page) {
@@ -121,11 +120,12 @@ test('superadmin creates a ready account, shows its QR and resets 2FA for ordina
   await page.goto('/login');
   await page.getByLabel('Почта', { exact: true }).fill('invalid');
   await page.getByRole('button', { name: 'Войти', exact: true }).click();
-  await expect(page.getByRole('alert')).toContainText('Неверная почта или код Authenticator.');
+  await expect(page.getByRole('alert')).toContainText('Неверная почта или пароль.');
   await localLogin(page, await adminAlias());
   const email = `created-in-browser-${Date.now()}@example.test`;
   await page.getByLabel('Почта нового пользователя').fill(email);
   await page.getByLabel('Имя нового пользователя').fill('Создан без SMTP');
+  await newPasswordUI(page, 'admin-new');
   await page.getByRole('button', { name: 'Создать и показать QR-код', exact: true }).click();
   await expect(page.locator('.credential-setup')).toContainText('Аккаунт готов к входу');
   await expect(page.getByAltText('QR-код Authenticator пользователя')).toBeVisible();
@@ -224,6 +224,7 @@ test('questionnaire, English resume, two different skill results and reviewer ac
     const created = await admin.request.post('/api/v1/admin/accounts', {
       headers: { 'x-csrf-token': adminSession.csrfToken },
       data: {
+        password: testPassword,
         email: teacherEmail,
         name: 'Преподаватель диагностики',
         role: 'teacher',

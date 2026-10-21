@@ -1,3 +1,11 @@
+import {
+  testPassword,
+  signInUI,
+  newPasswordUI,
+  passwordUI,
+  secondFactorUI,
+  enrollAPI,
+} from './password.helpers';
 import { readFile } from 'node:fs/promises';
 import { expect, test, type Page } from '@playwright/test';
 import { TOTP, Secret } from 'otpauth';
@@ -7,23 +15,11 @@ const bank = contentPackageSchema.parse(
   JSON.parse(await readFile(new URL('../../content/demo/luch-demo.json', import.meta.url), 'utf8')),
 );
 async function login(page: Page, prefix: string, offset = 0) {
-  const email = `${prefix}-${test.info().retry}@example.test`;
-  const keys = JSON.parse(
-    await readFile(new URL('../../data/e2e-accounts.json', import.meta.url), 'utf8'),
-  ) as Record<string, string>;
-  const code = new TOTP({
-    issuer: 'ЛУЧ',
-    label: email,
-    secret: Secret.fromBase32(keys[email]!),
-    digits: 6,
-    period: 30,
-    algorithm: 'SHA1',
-  }).generate({ timestamp: Date.now() + offset });
-  await page.goto('/login');
-  await page.getByLabel('Почта', { exact: true }).fill(email);
-  await page.getByLabel('Код Authenticator').fill(code);
-  await page.getByLabel('Символы с картинки').fill('ABCDE');
-  await page.getByRole('button', { name: 'Войти', exact: true }).click();
+  const email = `${prefix}-${test.info().retry}@example.test`,
+    keys = JSON.parse(
+      await readFile(new URL('../../data/e2e-accounts.json', import.meta.url), 'utf8'),
+    );
+  await signInUI(page, email, keys[email], offset);
   await expect(page).toHaveURL(
     prefix === 'plan-admin' ? /\/admin$/ : prefix === 'plan-teacher' ? /\/teacher$/ : /\/student$/,
   );

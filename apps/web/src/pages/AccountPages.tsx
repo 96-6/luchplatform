@@ -26,6 +26,9 @@ export function UserSummary({ user }: { user: User }) {
                 ? t('Администратор')
                 : t('Суперадмин')}
         </span>
+        <span className="badge">
+          {user.passwordConfigured ? t('Пароль установлен') : t('Пароль ещё не установлен')}
+        </span>
         {user.isDemo && <span className="badge">{t('Демо-аккаунт')}</span>}
         <span className="badge">
           {user.emailVerified ? t('Почта подтверждена') : t('Почта не подтверждена')}

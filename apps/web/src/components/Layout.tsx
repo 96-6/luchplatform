@@ -17,6 +17,7 @@ const navigation = [
   { to: '/admin/providers', label: t('AI и расходы'), icon: '⚙' },
   { to: '/operations', label: t('Обслуживание'), icon: '⚒' },
   { to: '/teacher', label: t('Мои ученики'), icon: '◇' },
+  { to: '/account/security', label: t('Безопасность аккаунта'), icon: '⚿' },
 ];
 export function Layout({ children, devTools }: { children: ReactNode; devTools: boolean }) {
   const [open, setOpen] = useState(false);

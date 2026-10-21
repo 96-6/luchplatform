@@ -63,6 +63,7 @@ jobs:
           docker compose --env-file .env.compose exec -T app node apps/api/dist/modules/content/cli.js export --package luch-demo --file /tmp/luch-demo-export.json
           docker compose --env-file .env.compose exec -T app node apps/api/dist/modules/content/cli.js validate --file /tmp/luch-demo-export.json
           docker compose --env-file .env.compose exec -T app node apps/api/dist/modules/content/cli.js import --file /tmp/luch-demo-export.json
+          docker compose --env-file .env.compose exec -T app node scripts/password-smoke.mjs
           docker compose --env-file .env.compose exec -T app node scripts/engine-smoke.mjs
           docker compose --env-file .env.compose exec -T app node scripts/diagnostic-smoke.mjs
           docker compose --env-file .env.compose restart app
@@ -71,6 +72,7 @@ jobs:
             sleep 1
           done
           node scripts/compose-smoke.mjs verify
+          docker compose --env-file .env.compose exec -T app node scripts/password-smoke.mjs verify
           docker compose --env-file .env.compose exec -T app node scripts/engine-smoke.mjs verify
           docker compose --env-file .env.compose exec -T app node scripts/diagnostic-smoke.mjs verify
           docker compose --env-file .env.compose exec -T app node scripts/plan-smoke.mjs

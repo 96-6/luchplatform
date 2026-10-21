@@ -1,13 +1,14 @@
 import { randomUUID } from 'node:crypto';
 import QRCode from 'qrcode';
 import type { z } from 'zod';
-import type { adminAccountCreateSchema } from '@luch/contracts';
+import type { adminAccountCreateSchema, adminPasswordResetSchema } from '@luch/contracts';
 import type { Database, QueryExecutor } from '../../db/database.js';
 import type { Actor } from '../auth/service.js';
 import { AppError } from '../../errors.js';
 import { AccountCrypto, createTotp, hashToken } from '../auth/crypto.js';
 import { canonicalJson } from '../content/service.js';
 import { audit, publicUser, type UserRow } from './repository.js';
+import { Passwords } from '../auth/password.js';
 
 type Operation = {
   target_id: string;
@@ -75,8 +76,10 @@ export class AccountCredentials {
     const row = await this.user(tx, operation.target_id);
     if (
       !row.totp_secret_ciphertext ||
-      this.crypto.mac(this.crypto.decrypt(row.totp_secret_ciphertext)) !==
-        operation.credential_fingerprint
+      this.crypto.mac(
+        this.crypto.decrypt(row.totp_secret_ciphertext) +
+          (kind === 'create' ? ':' + row.password_hash_ciphertext : ''),
+      ) !== operation.credential_fingerprint
     )
       throw new AppError(
         409,
@@ -96,7 +99,14 @@ export class AccountCredentials {
   ) {
     await tx.query(
       'INSERT INTO admin_account_operations (actor_id,operation_id,target_id,kind,payload_hash,credential_fingerprint) VALUES ($1,$2,$3,$4,$5,$6)',
-      [actor.user.id, operationId, user.id, kind, payloadHash, this.crypto.mac(secret)],
+      [
+        actor.user.id,
+        operationId,
+        user.id,
+        kind,
+        payloadHash,
+        this.crypto.mac(secret + (kind === 'create' ? ':' + user.password_hash_ciphertext : '')),
+      ],
     );
     await audit(
       tx,
@@ -107,17 +117,39 @@ export class AccountCredentials {
   }
   async create(actor: Actor, input: z.infer<typeof adminAccountCreateSchema>) {
     this.assertAdmin(actor);
-    const payloadHash = hashToken(
-      canonicalJson({ email: input.email, name: input.name, role: input.role }),
+    const payloadHash = this.crypto.mac(
+      canonicalJson({
+        email: input.email,
+        name: input.name,
+        role: input.role,
+      }),
     );
+    const passwordHash = await new Passwords(this.crypto).protect(input.password);
     const user = await this.db.transaction(async (tx) => {
       const operation = await this.lockOperation(tx, actor, input.operationId);
-      if (operation) return this.replay(tx, operation, 'create', payloadHash);
+      if (operation) {
+        const replayed = await this.replay(tx, operation, 'create', payloadHash);
+        if (
+          !(await new Passwords(this.crypto).matches(
+            input.password,
+            replayed.password_hash_ciphertext,
+          ))
+        )
+          throw new AppError(409, 'OPERATION_CONFLICT', 'Эта операция уже использована.');
+        return replayed;
+      }
       const secret = createTotp(input.email).secret.base32;
       const row = (
         await tx.query<UserRow>(
-          'INSERT INTO users (id,email,full_name,role,email_verified_at,totp_enabled_at,totp_secret_ciphertext,access_verified) VALUES ($1,$2,$3,$4,now(),now(),$5,true) ON CONFLICT (email) DO NOTHING RETURNING *',
-          [randomUUID(), input.email, input.name, input.role, this.crypto.encrypt(secret)],
+          'INSERT INTO users (id,email,full_name,role,email_verified_at,totp_enabled_at,totp_secret_ciphertext,access_verified,password_hash_ciphertext,password_changed_at) VALUES ($1,$2,$3,$4,now(),now(),$5,true,$6,now()) ON CONFLICT (email) DO NOTHING RETURNING *',
+          [
+            randomUUID(),
+            input.email,
+            input.name,
+            input.role,
+            this.crypto.encrypt(secret),
+            passwordHash,
+          ],
         )
       ).rows[0];
       if (!row)
@@ -141,7 +173,7 @@ export class AccountCredentials {
         secret = createTotp(original.email).secret.base32;
       const row = (
         await tx.query<UserRow>(
-          'UPDATE users SET email_verified_at=COALESCE(email_verified_at,now()),totp_enabled_at=now(),totp_secret_ciphertext=$2,last_totp_counter=-1 WHERE id=$1 RETURNING *',
+          'UPDATE users SET email_verified_at=COALESCE(email_verified_at,now()),totp_enabled_at=now(),totp_secret_ciphertext=$2,last_totp_counter=-1,auth_revision=auth_revision+1 WHERE id=$1 RETURNING *',
           [id, this.crypto.encrypt(secret)],
         )
       ).rows[0]!;
@@ -153,9 +185,77 @@ export class AccountCredentials {
         'UPDATE auth_tokens SET consumed_at=now() WHERE user_id=$1 AND consumed_at IS NULL',
         [id],
       );
+      await tx.query(
+        'UPDATE auth_login_challenges SET consumed_at=now() WHERE user_id=$1 AND consumed_at IS NULL',
+        [id],
+      );
       await this.record(tx, actor, operationId, row, 'reset', payloadHash, secret);
       return row;
     });
     return this.setup(user);
+  }
+  async resetPassword(actor: Actor, id: string, input: z.infer<typeof adminPasswordResetSchema>) {
+    this.assertAdmin(actor);
+    if (id === actor.user.id)
+      throw new AppError(409, 'SELF_PASSWORD_RESET', 'Измените свой пароль в настройках аккаунта.');
+    const payloadHash = this.crypto.mac(canonicalJson({ id }));
+    const passwordHash = await new Passwords(this.crypto).protect(input.password);
+    return this.db.transaction(async (tx) => {
+      const operation = await this.lockOperation(tx, actor, input.operationId);
+      const user = await this.user(tx, id);
+      if (operation) {
+        if (
+          operation.kind !== 'password' ||
+          operation.target_id !== id ||
+          operation.payload_hash !== payloadHash
+        )
+          throw new AppError(409, 'OPERATION_CONFLICT', 'Эта операция уже использована.');
+        if (
+          this.crypto.mac('password-hash:' + user.password_hash_ciphertext) !==
+          operation.credential_fingerprint
+        )
+          throw new AppError(
+            409,
+            'CREDENTIALS_CHANGED',
+            'Данные входа изменились. Обновите страницу.',
+          );
+        if (
+          !(await new Passwords(this.crypto).matches(input.password, user.password_hash_ciphertext))
+        )
+          throw new AppError(409, 'OPERATION_CONFLICT', 'Эта операция уже использована.');
+        return publicUser(user);
+      }
+      const updated = (
+        await tx.query<UserRow>(
+          'UPDATE users SET password_hash_ciphertext=$1,password_changed_at=now(),auth_revision=auth_revision+1 WHERE id=$2 RETURNING *',
+          [passwordHash, id],
+        )
+      ).rows[0]!;
+      await tx.query(
+        'UPDATE auth_sessions SET revoked_at=now() WHERE user_id=$1 AND revoked_at IS NULL',
+        [id],
+      );
+      await tx.query(
+        'UPDATE auth_tokens SET consumed_at=now() WHERE user_id=$1 AND consumed_at IS NULL',
+        [id],
+      );
+      await tx.query(
+        'UPDATE auth_login_challenges SET consumed_at=now() WHERE user_id=$1 AND consumed_at IS NULL',
+        [id],
+      );
+      await tx.query(
+        'INSERT INTO admin_account_operations (actor_id,operation_id,target_id,kind,payload_hash,credential_fingerprint) VALUES ($1,$2,$3,$4,$5,$6)',
+        [
+          actor.user.id,
+          input.operationId,
+          id,
+          'password',
+          payloadHash,
+          this.crypto.mac('password-hash:' + passwordHash),
+        ],
+      );
+      await audit(tx, actor.user.id, 'password.admin_reset', id);
+      return publicUser(updated);
+    });
   }
 }

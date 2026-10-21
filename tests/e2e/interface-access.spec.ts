@@ -1,3 +1,12 @@
+import {
+  testPassword,
+  apiPasswordLogin,
+  signInUI,
+  newPasswordUI,
+  passwordUI,
+  secondFactorUI,
+  enrollAPI,
+} from './password.helpers';
 import { test, expect, type Page } from '@playwright/test';
 import { login, link, root, csrf, keys, preparePlan } from './meetings.helpers';
 import { resolve } from 'node:path';
@@ -245,6 +254,7 @@ test('verification and Authenticator pages require a live one-time link and enro
       (
         await page.request.post('/api/v1/auth/register', {
           data: {
+            password: testPassword,
             email,
             name: 'Проверка временной ссылки',
             role: 'student',
@@ -255,12 +265,14 @@ test('verification and Authenticator pages require a live one-time link and enro
     ).toBe(202);
     await page.goto(`/demo-mail?email=${encodeURIComponent(email)}`);
     const confirmation = page.getByRole('link', {
-      name: 'Открыть последнее письмо подтверждения',
+      name: 'Открыть последнее письмо',
       exact: true,
     });
     const old = await confirmation.getAttribute('href');
     await confirmation.click();
     await page.getByRole('button', { name: 'Подтвердить почту', exact: true }).click();
+    await expect(page.getByRole('heading', { name: 'Вход в аккаунт', exact: true })).toBeVisible();
+    expect((await passwordUI(page, email)).status()).toBe(200);
     await expect(
       page.getByRole('heading', { name: 'Подключить Authenticator', exact: true }),
     ).toBeVisible();

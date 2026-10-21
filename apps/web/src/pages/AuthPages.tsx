@@ -1,14 +1,18 @@
 import { t, dateLocale } from '../i18n';
-import { useState, type FormEvent } from 'react';
-import { Link, useNavigate, useSearchParams } from 'react-router-dom';
+import { useEffect, useState, type FormEvent } from 'react';
+import { Link, useLocation, useNavigate, useSearchParams } from 'react-router-dom';
 import {
   completionSchema,
   enrollmentSchema,
   mailSchema,
   messageSchema,
   sessionSchema,
+  loginResponseSchema,
+  loginChallengeSchema,
+  type Session,
 } from '@luch/contracts';
-import { api } from '../lib/api';
+import { api, ApiError } from '../lib/api';
+import { PasswordFields } from '../components/PasswordFields';
 import { useResource } from '../lib/useResource';
 import { LoadingState, ErrorState } from '../components/States';
 import { useAuth } from '../auth/AuthContext';
@@ -17,80 +21,179 @@ import { CaptchaField, useCaptcha } from '../auth/Captcha';
 
 export function LoginPage() {
   const [email, setEmail] = useState('');
+  const [password, setPassword] = useState('');
   const [code, setCode] = useState('');
+  const [step, setStep] = useState<{ csrfToken: string; expiresAt: string } | null>(null);
+  const [checking, setChecking] = useState(true);
   const [busy, setBusy] = useState(false);
   const [error, setError] = useState<Error | null>(null);
   const captcha = useCaptcha('login');
   const auth = useAuth();
   const navigate = useNavigate();
+  const location = useLocation();
   const { policy } = useSecurity();
+  useEffect(() => {
+    const controller = new AbortController();
+    void api('/auth/login/challenge', loginChallengeSchema, { signal: controller.signal })
+      .then(
+        (value) => {
+          if (!controller.signal.aborted && value?.step === 'totp') setStep(value);
+        },
+        (failure) => {
+          if (!controller.signal.aborted) setError(failure as Error);
+        },
+      )
+      .finally(() => {
+        if (!controller.signal.aborted) setChecking(false);
+      });
+    return () => controller.abort();
+  }, []);
+  function accept(session: Session) {
+    auth.accept(session);
+    navigate(session.dashboardPath ?? '/student', { replace: true });
+  }
   async function submit(event: FormEvent) {
     event.preventDefault();
     setBusy(true);
     setError(null);
     try {
-      const check = captcha.image && captcha.answer.trim() ? captcha.submission() : undefined;
-      const session = await api('/auth/login', sessionSchema, {
-        body: { email: email.trim(), code, ...(check ? { captcha: check } : {}) },
-      });
-      auth.accept(session);
-      navigate(session.dashboardPath ?? '/student', { replace: true });
+      if (step) {
+        accept(
+          await api('/auth/login/confirm', sessionSchema, {
+            body: { code },
+            loginCsrf: step.csrfToken,
+          }),
+        );
+      } else {
+        const check = captcha.image && captcha.answer.trim() ? captcha.submission() : undefined;
+        const result = await api('/auth/login', loginResponseSchema, {
+          body: { email: email.trim(), password, ...(check ? { captcha: check } : {}) },
+        });
+        setPassword('');
+        if ('step' in result) {
+          if (result.step === 'enrollment') navigate('/authenticator', { replace: true });
+          else setStep(result);
+        } else accept(result);
+      }
     } catch (failure) {
       setError(failure as Error);
-      captcha.refresh();
+      setCode('');
+      if (failure instanceof ApiError && failure.code === 'LOGIN_EXPIRED') setStep(null);
+      if (!step) captcha.refresh();
     } finally {
       setBusy(false);
     }
   }
+  async function restart() {
+    setBusy(true);
+    try {
+      await auth.logout();
+      setStep(null);
+      setCode('');
+      setError(null);
+      captcha.refresh();
+    } catch (failure) {
+      setError(failure as Error);
+    } finally {
+      setBusy(false);
+    }
+  }
+  if (checking) return <LoadingState />;
   return (
     <section className="auth-card panel">
-      <h1>{t('Вход в аккаунт')}</h1>
-      <p>{t('Введите почту и текущий код из вашего приложения Authenticator.')}</p>
-      <form
-        noValidate
-        onSubmit={(event) => {
-          void submit(event);
-        }}
-      >
-        <label htmlFor="login-email">{t('Почта')}</label>
-        <input
-          id="login-email"
-          type="text"
-          inputMode="email"
-          autoComplete="email"
-          value={email}
-          onChange={(event) => setEmail(event.target.value)}
-          required
-          maxLength={254}
-        />
-        <label htmlFor="login-code">{t('Код Authenticator')}</label>
-        <input
-          id="login-code"
-          inputMode="numeric"
-          pattern="[0-9]{6}"
-          maxLength={6}
-          autoComplete="one-time-code"
-          value={code}
-          onChange={(event) => setCode(event.target.value.replace(/\D/g, ''))}
-          required
-        />
-        <CaptchaField captcha={captcha} />
+      <h1>{step ? t('Подтверждение входа') : t('Вход в аккаунт')}</h1>
+      <p>
+        {step
+          ? t('Введите текущий код из приложения Authenticator. Это второй шаг входа.')
+          : t('Введите почту и пароль. На следующем шаге подтвердите вход кодом Authenticator.')}
+      </p>
+      {location.state?.verified && !step && (
+        <p className="success" role="status">
+          {t('Почта подтверждена. Войдите с выбранным паролем, чтобы подключить 2FA.')}
+        </p>
+      )}
+      {location.state?.passwordChanged && !step && (
+        <p className="success" role="status">
+          {t('Пароль сохранён. Войдите с новым паролем и кодом Authenticator.')}
+        </p>
+      )}
+      <form noValidate onSubmit={(event) => void submit(event)}>
+        {step ? (
+          <>
+            <label htmlFor="login-code">{t('Код Authenticator')}</label>
+            <input
+              id="login-code"
+              inputMode="numeric"
+              pattern="[0-9]{6}"
+              maxLength={6}
+              autoComplete="one-time-code"
+              autoFocus
+              value={code}
+              onChange={(event) => setCode(event.target.value.replace(/\D/g, ''))}
+              required
+            />
+          </>
+        ) : (
+          <>
+            <label htmlFor="login-email">{t('Почта')}</label>
+            <input
+              id="login-email"
+              type="text"
+              inputMode="email"
+              autoComplete="username"
+              value={email}
+              onChange={(event) => setEmail(event.target.value)}
+              required
+              maxLength={254}
+            />
+            <label htmlFor="login-password">{t('Пароль')}</label>
+            <input
+              id="login-password"
+              type="password"
+              autoComplete="current-password"
+              value={password}
+              onChange={(event) => setPassword(event.target.value)}
+              maxLength={128}
+              required
+            />
+            <CaptchaField captcha={captcha} />
+          </>
+        )}
         {error && (
           <p className="error inline-message" role="alert">
             {t(error.message)}
           </p>
         )}
-        <button disabled={busy}>{busy ? t('Входим…') : t('Войти')}</button>
+        <div className="form-actions">
+          <button disabled={busy}>
+            {busy ? t('Входим…') : step ? t('Подтвердить вход') : t('Войти')}
+          </button>
+          {step && (
+            <button
+              type="button"
+              className="secondary"
+              disabled={busy}
+              onClick={() => void restart()}
+            >
+              {t('Вернуться к почте и паролю')}
+            </button>
+          )}
+        </div>
       </form>
+      {!step && (
+        <p className="auth-links">
+          <Link to="/forgot-password">{t('Установить или восстановить пароль')}</Link>
+        </p>
+      )}
       <p className="auth-links">
         {t('Нет аккаунта? ')}
         <Link to="/register">{t('Создать аккаунт')}</Link>
       </p>
-      {policy.localMailboxEnabled && (
+      {policy.localMailboxEnabled && !step && (
         <div className="notice">
           <strong>{t('Демонстрационные аккаунты')}</strong>
           <p>student@example.test · teacher@example.test · admin@example.test</p>
-          <Link to="/demo-mail">{t('Открыть демо-почту и подключить Authenticator →')}</Link>
+          <Link to="/demo-mail">{t('Открыть демо-почту для настройки входа →')}</Link>
         </div>
       )}
     </section>
@@ -99,6 +202,8 @@ export function LoginPage() {
 export function RegisterPage() {
   const [email, setEmail] = useState('');
   const [name, setName] = useState('');
+  const [password, setPassword] = useState('');
+  const [confirmation, setConfirmation] = useState('');
   const [role, setRole] = useState<'student' | 'teacher'>('student');
   const [busy, setBusy] = useState(false);
   const [error, setError] = useState<Error | null>(null);
@@ -110,16 +215,20 @@ export function RegisterPage() {
     setBusy(true);
     setError(null);
     try {
+      if (password !== confirmation) throw new Error(t('Пароли не совпадают.'));
       const check = captcha.submission();
       const result = await api('/auth/register', messageSchema, {
         body: {
           email: email.trim().toLowerCase(),
           name: name.trim(),
+          password,
           role,
           ...(check ? { captcha: check } : {}),
         },
       });
       setMessage(t(result.message));
+      setPassword('');
+      setConfirmation('');
       captcha.refresh();
     } catch (failure) {
       setError(failure as Error);
@@ -132,7 +241,7 @@ export function RegisterPage() {
     <section className="auth-card panel">
       <h1>{t('Создать аккаунт')}</h1>
       <p>
-        {t('Подтвердите почту, затем подключите Authenticator по QR-коду. Пароль не требуется.')}
+        {t('Выберите пароль, подтвердите почту и подключите Authenticator для второго шага входа.')}
       </p>
       <form
         onSubmit={(event) => {
@@ -158,6 +267,13 @@ export function RegisterPage() {
           autoComplete="email"
           maxLength={254}
           required
+        />
+        <PasswordFields
+          prefix="register"
+          password={password}
+          confirmation={confirmation}
+          setPassword={setPassword}
+          setConfirmation={setConfirmation}
         />
         <label htmlFor="register-role">{t('Я регистрируюсь как')}</label>
         <select
@@ -206,7 +322,7 @@ export function VerifyEmailPage() {
     setBusy(true);
     try {
       await api('/auth/verify-email', messageSchema, { body: { token: value } });
-      navigate('/authenticator', { replace: true });
+      navigate('/login', { replace: true, state: { verified: true } });
     } catch (failure) {
       setError(failure as Error);
     } finally {
@@ -218,7 +334,7 @@ export function VerifyEmailPage() {
       <h1>{t('Подтверждение почты')}</h1>
       {value ? (
         <>
-          <p>{t('Подтвердите адрес, чтобы перейти к подключению Authenticator.')}</p>
+          <p>{t('Подтвердите адрес, затем войдите с паролем для подключения Authenticator.')}</p>
           <button
             disabled={busy}
             onClick={() => {
@@ -283,7 +399,7 @@ export function AuthenticatorPage() {
     return (
       <>
         <ErrorState error={state.error} retry={refresh} />
-        <Link to="/register">{t('Запросить новое письмо')}</Link>
+        <Link to="/login">{t('Вернуться ко входу')}</Link>
       </>
     );
   return (
@@ -417,14 +533,12 @@ function LocalInbox({ email }: { email: string }) {
             <time dateTime={mail.createdAt}>
               {new Date(mail.createdAt).toLocaleString(dateLocale)}
             </time>
-            <p>{t('Перейдите по ссылке, чтобы подтвердить почту и подключить Authenticator.')}</p>
+            <p>{t('Откройте письмо, чтобы подтвердить почту или установить пароль.')}</p>
             <Link
               className="text-link"
               to={`${new URL(mail.verificationUrl).pathname}${new URL(mail.verificationUrl).search}`}
             >
-              {index === 0
-                ? t('Открыть последнее письмо подтверждения')
-                : t('Открыть письмо подтверждения')}
+              {index === 0 ? t('Открыть последнее письмо') : t('Открыть письмо')}
             </Link>
           </article>
         ))

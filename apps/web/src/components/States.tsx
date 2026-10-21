@@ -1,7 +1,7 @@
 import { t, locale } from '../i18n';
 import { pageStatusTitle } from '@luch/contracts';
 import { ApiError } from '../lib/api';
-import { Link } from 'react-router-dom';
+import { Link, useLocation } from 'react-router-dom';
 export function StatusState({
   status,
   message,
@@ -12,6 +12,7 @@ export function StatusState({
   requestId?: string | undefined;
 }) {
   const title = pageStatusTitle(status, locale);
+  const location = useLocation();
   return (
     <section className="state error" role="alert" data-testid="page-status" data-status={status}>
       <span className="status-badge">{status}</span>
@@ -34,7 +35,10 @@ export function StatusState({
         {status === 410 && (
           <>
             {' '}
-            · <Link to="/register">{t('Запросить новое письмо')}</Link>
+            ·{' '}
+            <Link to={location.pathname === '/set-password' ? '/forgot-password' : '/register'}>
+              {t('Запросить новое письмо')}
+            </Link>
           </>
         )}
       </p>
