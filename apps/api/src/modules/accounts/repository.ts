@@ -11,6 +11,9 @@ export type UserRow = {
   totp_secret_ciphertext: string | null;
   totp_enabled_at: Date | string | null;
   last_totp_counter: string | number;
+  password_hash_ciphertext: string | null;
+  password_changed_at: Date | string | null;
+  auth_revision: number;
   is_demo: boolean;
   is_blocked: boolean;
   is_active: boolean;
@@ -26,6 +29,7 @@ export function publicUser(row: UserRow): User {
     role: row.role,
     emailVerified: Boolean(row.email_verified_at),
     authenticatorEnabled: Boolean(row.totp_enabled_at),
+    passwordConfigured: Boolean(row.password_hash_ciphertext),
     isDemo: row.is_demo,
     isBlocked: row.is_blocked,
     isActive: row.is_active,

@@ -1,3 +1,4 @@
+import { fixturePassword, fixturePasswordHash } from './helpers/password.js';
 import { randomUUID } from 'node:crypto';
 import { mkdtemp, mkdir, writeFile, symlink, rm } from 'node:fs/promises';
 import { tmpdir } from 'node:os';
@@ -257,12 +258,16 @@ describe('page access, links and operator interfaces', () => {
   it('checks temporary verification/enrollment state without consuming a link or revealing setup secrets in HTML', async () => {
     const id = randomUUID(),
       value = token();
-    await f.db.query('INSERT INTO users (id,email,full_name,role) VALUES ($1,$2,$3,$4)', [
-      id,
-      `pending-${id}@example.test`,
-      'Pending account',
-      'student',
-    ]);
+    await f.db.query(
+      'INSERT INTO users (id,email,full_name,role,password_hash_ciphertext) VALUES ($1,$2,$3,$4,$5)',
+      [
+        id,
+        `pending-${id}@example.test`,
+        'Pending account',
+        'student',
+        await fixturePasswordHash(f.crypto),
+      ],
+    );
     await f.db.query(
       "INSERT INTO auth_tokens (token_hash,user_id,kind,expires_at) VALUES ($1,$2,'email',now()+interval '30 minutes')",
       [hashToken(value), id],
@@ -284,7 +289,14 @@ describe('page access, links and operator interfaces', () => {
       payload: { token: value },
     });
     expect(verify.statusCode).toBe(200);
-    const cookie = verify.cookies.find((c) => c.name === 'luch_enrollment')!;
+    expect((await get('/authenticator')).statusCode).toBe(401);
+    const primary = await f.app.inject({
+      method: 'POST',
+      url: '/api/v1/auth/login',
+      payload: { email: `pending-${id}@example.test`, password: fixturePassword },
+    });
+    expect(primary.json().data.step).toBe('enrollment');
+    const cookie = primary.cookies.find((c) => c.name === 'luch_enrollment')!;
     const enrolled = await f.app.inject({
       url: '/authenticator',
       headers: { cookie: `${cookie.name}=${cookie.value}` },

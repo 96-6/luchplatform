@@ -1,3 +1,11 @@
+import {
+  testPassword,
+  signInUI,
+  newPasswordUI,
+  passwordUI,
+  secondFactorUI,
+  enrollAPI,
+} from './password.helpers';
 import { readFile } from 'node:fs/promises';
 import { randomBytes, randomUUID } from 'node:crypto';
 import { expect, test, type Page } from '@playwright/test';
@@ -37,20 +45,7 @@ async function login(page: Page, prefix: string) {
   );
 }
 async function ordinaryLogin(page: Page, email: string, key: string, heading: string) {
-  await page.goto('/login');
-  await page.getByLabel('Почта', { exact: true }).fill(email);
-  await page.getByLabel('Код Authenticator').fill(
-    new TOTP({
-      issuer: 'ЛУЧ',
-      label: email,
-      secret: Secret.fromBase32(key),
-      digits: 6,
-      period: 30,
-      algorithm: 'SHA1',
-    }).generate(),
-  );
-  await page.getByLabel('Символы с картинки').fill('ABCDE');
-  await page.getByRole('button', { name: 'Войти', exact: true }).click();
+  await signInUI(page, email, key);
   await expect(page.getByRole('heading', { name: heading, exact: true })).toBeVisible();
 }
 async function run(page: Page): Promise<RunView> {
@@ -285,6 +280,7 @@ test('root sets budgets and provider keys; a created administrator can change on
   await page.getByLabel('Почта нового пользователя').fill(email);
   await page.getByLabel('Имя нового пользователя').fill('Администратор адаптации');
   await page.getByLabel('Роль нового пользователя').selectOption('admin');
+  await newPasswordUI(page, 'admin-new');
   await page.getByRole('button', { name: 'Создать и показать QR-код', exact: true }).click();
   await expect(page.getByAltText('QR-код Authenticator пользователя')).toBeVisible();
   const key = (await page.getByTestId('admin-manual-key').textContent())!.trim();

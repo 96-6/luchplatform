@@ -12,14 +12,18 @@ import type { NetworkService } from '../security/network.js';
 import { getPolicy } from '../security/policy.js';
 import { AccountCrypto, createTotp, hashToken, token } from './crypto.js';
 import { localDebugRequest } from './local.js';
+import { Passwords } from './password.js';
 
 export const anonymousSession: Session = { user: null, csrfToken: null, dashboardPath: null };
 export type Actor = { user: User; tokenHash: string; sessionId: string };
-type TokenRow = { user_id: string; expires_at: Date | string };
+type TokenRow = { user_id: string; expires_at: Date | string; auth_revision: number };
+type LoginChallenge = TokenRow & { token_hash: string; attempts: number };
 
 export class AuthService {
   readonly sessionCookie: string;
   readonly enrollmentCookie: string;
+  readonly loginCookie: string;
+  readonly passwords: Passwords;
   constructor(
     readonly database: Database,
     readonly settings: Settings,
@@ -27,6 +31,8 @@ export class AuthService {
     readonly mail: MailService,
     readonly network: NetworkService,
   ) {
+    this.passwords = new Passwords(crypto);
+    this.loginCookie = settings.APP_ENV === 'production' ? '__Host-luch_login' : 'luch_login';
     this.sessionCookie = settings.APP_ENV === 'production' ? '__Host-luch_session' : 'luch_session';
     this.enrollmentCookie =
       settings.APP_ENV === 'production' ? '__Host-luch_enrollment' : 'luch_enrollment';
@@ -40,29 +46,35 @@ export class AuthService {
       maxAge,
     };
   }
-  private async emailToken(tx: QueryExecutor, user: UserRow) {
+  private async emailToken(tx: QueryExecutor, user: UserRow, kind: 'email' | 'password' = 'email') {
     const value = token();
     await tx.query(
-      "UPDATE auth_tokens SET consumed_at=now() WHERE user_id=$1 AND kind='email' AND consumed_at IS NULL",
-      [user.id],
+      'UPDATE auth_tokens SET consumed_at=now() WHERE user_id=$1 AND kind=$2 AND consumed_at IS NULL',
+      [user.id, kind],
     );
     await tx.query(
-      'INSERT INTO auth_tokens (token_hash,user_id,kind,expires_at) VALUES ($1,$2,$3,$4)',
-      [hashToken(value), user.id, 'email', new Date(Date.now() + 30 * 60 * 1000)],
+      'INSERT INTO auth_tokens (token_hash,user_id,kind,expires_at,auth_revision) VALUES ($1,$2,$3,$4,$5)',
+      [hashToken(value), user.id, kind, new Date(Date.now() + 30 * 60 * 1000), user.auth_revision],
     );
-    return this.mail.queue(tx, user.id, user.email, value);
+    return this.mail.queue(tx, user.id, user.email, value, kind);
   }
   async register(input: z.infer<typeof registerSchema>) {
+    const protectedHash = await this.passwords.protect(input.password);
     const mailId = await this.database.transaction(async (tx) => {
       const inserted = await tx.query<UserRow>(
-        'INSERT INTO users (id,email,full_name,role) VALUES ($1,$2,$3,$4) ON CONFLICT (email) DO NOTHING RETURNING *',
-        [randomUUID(), input.email, input.name, input.role],
+        'INSERT INTO users (id,email,full_name,role,password_hash_ciphertext,password_changed_at) VALUES ($1,$2,$3,$4,$5,now()) ON CONFLICT (email) DO NOTHING RETURNING *',
+        [randomUUID(), input.email, input.name, input.role, protectedHash],
       );
       const user =
         inserted.rows[0] ??
         (await tx.query<UserRow>('SELECT * FROM users WHERE email=$1 FOR UPDATE', [input.email]))
           .rows[0];
       if (!user || user.totp_enabled_at || user.is_blocked || !user.is_active) return null;
+      if (
+        !inserted.rows.length &&
+        !(await this.passwords.matches(input.password, user.password_hash_ciphertext))
+      )
+        return null;
       return this.emailToken(tx, user);
     });
     if (mailId) await this.mail.send(mailId);
@@ -82,47 +94,49 @@ export class AuthService {
         (await tx.query<UserRow>('SELECT * FROM users WHERE email=$1', [email.toLowerCase()]))
           .rows[0]!;
       if (user.role !== role) throw new Error('Existing account has a different role.');
-      const mailId = created.rows[0] ? await this.emailToken(tx, user) : null;
+      const mailId = created.rows[0] ? await this.emailToken(tx, user, 'password') : null;
       return { user: publicUser(user), mailId };
     });
     if (result.mailId) await this.mail.send(result.mailId);
     return result.user;
   }
   async verifyEmail(value: string, reply: FastifyReply) {
-    const enrollmentToken = token();
     await this.database.transaction(async (tx) => {
-      const consumed = await tx.query<TokenRow>(
-        "UPDATE auth_tokens SET consumed_at=now() WHERE token_hash=$1 AND kind='email' AND consumed_at IS NULL AND expires_at>now() RETURNING user_id,expires_at",
-        [hashToken(value)],
-      );
-      const tokenRow = consumed.rows[0];
-      if (!tokenRow)
+      const record = (
+        await tx.query<TokenRow>(
+          "SELECT user_id,expires_at,auth_revision FROM auth_tokens WHERE token_hash=$1 AND kind='email' AND consumed_at IS NULL AND expires_at>now()",
+          [hashToken(value)],
+        )
+      ).rows[0];
+      if (!record)
         throw new AppError(
           400,
           'LINK_EXPIRED',
           'Ссылка недействительна или устарела. Запросите новое письмо.',
         );
       const user = (
-        await tx.query<UserRow>('SELECT * FROM users WHERE id=$1 FOR UPDATE', [tokenRow.user_id])
+        await tx.query<UserRow>('SELECT * FROM users WHERE id=$1 FOR UPDATE', [record.user_id])
       ).rows[0];
-      if (!user || user.totp_enabled_at || user.is_blocked || !user.is_active)
+      if (
+        !user ||
+        user.is_blocked ||
+        !user.is_active ||
+        user.auth_revision !== record.auth_revision
+      )
         throw new AppError(400, 'LINK_EXPIRED', 'Ссылка недействительна или устарела.');
-      const secret = createTotp(user.email).secret.base32;
-      await tx.query(
-        'UPDATE users SET email_verified_at=COALESCE(email_verified_at,now()),totp_secret_ciphertext=$1 WHERE id=$2',
-        [this.crypto.encrypt(secret), user.id],
+      const consumed = await tx.query(
+        'UPDATE auth_tokens SET consumed_at=now() WHERE token_hash=$1 AND consumed_at IS NULL RETURNING token_hash',
+        [hashToken(value)],
       );
+      if (!consumed.rows.length)
+        throw new AppError(400, 'LINK_EXPIRED', 'Ссылка недействительна или устарела.');
       await tx.query(
-        "UPDATE auth_tokens SET consumed_at=now() WHERE user_id=$1 AND kind='enrollment' AND consumed_at IS NULL",
+        'UPDATE users SET email_verified_at=COALESCE(email_verified_at,now()) WHERE id=$1',
         [user.id],
-      );
-      await tx.query(
-        'INSERT INTO auth_tokens (token_hash,user_id,kind,expires_at) VALUES ($1,$2,$3,$4)',
-        [hashToken(enrollmentToken), user.id, 'enrollment', new Date(Date.now() + 10 * 60 * 1000)],
       );
       await audit(tx, user.id, 'email.verified', user.id);
     });
-    reply.setCookie(this.enrollmentCookie, enrollmentToken, this.cookieOptions(600));
+    reply.clearCookie(this.enrollmentCookie, { path: '/' });
   }
   private async enrollmentToken(request: FastifyRequest, tx: QueryExecutor = this.database) {
     const value = request.cookies[this.enrollmentCookie];
@@ -130,17 +144,17 @@ export class AuthService {
       throw new AppError(
         401,
         'ENROLLMENT_EXPIRED',
-        'Подтвердите почту, чтобы подключить Authenticator.',
+        'Войдите с почтой и паролем, чтобы подключить Authenticator.',
       );
     const result = await tx.query<TokenRow>(
-      "SELECT user_id,expires_at FROM auth_tokens WHERE token_hash=$1 AND kind='enrollment' AND consumed_at IS NULL AND expires_at>now()",
+      "SELECT user_id,expires_at,auth_revision FROM auth_tokens WHERE token_hash=$1 AND kind='enrollment' AND consumed_at IS NULL AND expires_at>now() AND auth_revision=(SELECT auth_revision FROM users WHERE id=auth_tokens.user_id)",
       [hashToken(value)],
     );
     if (!result.rows[0])
       throw new AppError(
         401,
         'ENROLLMENT_EXPIRED',
-        'Время подключения истекло. Запросите новое письмо.',
+        'Время подключения истекло. Войдите с почтой и паролем заново.',
       );
     return { ...result.rows[0], value };
   }
@@ -162,7 +176,13 @@ export class AuthService {
     const user = (
       await this.database.query<UserRow>('SELECT * FROM users WHERE id=$1', [record.user_id])
     ).rows[0];
-    if (!user?.totp_secret_ciphertext || user.totp_enabled_at || user.is_blocked || !user.is_active)
+    if (
+      !user?.totp_secret_ciphertext ||
+      !user.password_hash_ciphertext ||
+      user.totp_enabled_at ||
+      user.is_blocked ||
+      !user.is_active
+    )
       throw new AppError(401, 'ENROLLMENT_EXPIRED', 'Подключение Authenticator недоступно.');
     return { record, user };
   }
@@ -172,12 +192,12 @@ export class AuthService {
       !user.totp_secret_ciphertext ||
       (!enable && !user.totp_enabled_at)
     )
-      throw new AppError(401, 'INVALID_CREDENTIALS', 'Неверная почта или код Authenticator.');
+      throw new AppError(401, 'INVALID_CREDENTIALS', 'Неверный код Authenticator.');
     const totp = createTotp(user.email, this.crypto.decrypt(user.totp_secret_ciphertext));
     const now = Date.now();
     const delta = totp.validate({ token: code, window: 1, timestamp: now });
     if (delta === null)
-      throw new AppError(401, 'INVALID_CREDENTIALS', 'Неверная почта или код Authenticator.');
+      throw new AppError(401, 'INVALID_CREDENTIALS', 'Неверный код Authenticator.');
     assertAccountAccess(user);
     const counter = Math.floor(now / 30000) + delta;
     const updated = await tx.query<UserRow>(
@@ -188,7 +208,7 @@ export class AuthService {
       throw new AppError(
         401,
         'INVALID_CREDENTIALS',
-        'Неверная почта или код Authenticator. Дождитесь нового кода.',
+        'Неверный код Authenticator. Дождитесь нового кода.',
       );
     return updated.rows[0];
   }
@@ -207,7 +227,7 @@ export class AuthService {
     const value = token();
     const hashed = hashToken(value);
     await tx.query(
-      'INSERT INTO auth_sessions (id,token_hash,user_id,expires_at,local_debug) VALUES ($1,$2,$3,$4,$5)',
+      'INSERT INTO auth_sessions (id,token_hash,user_id,expires_at,local_debug,auth_revision) VALUES ($1,$2,$3,$4,$5,(SELECT auth_revision FROM users WHERE id=$3))',
       [
         randomUUID(),
         hashed,
@@ -233,7 +253,8 @@ export class AuthService {
       const user = (
         await tx.query<UserRow>('SELECT * FROM users WHERE id=$1 FOR UPDATE', [enrollment.user_id])
       ).rows[0];
-      if (!user) throw new AppError(401, 'ENROLLMENT_EXPIRED', 'Подключение недоступно.');
+      if (!user?.password_hash_ciphertext || user.auth_revision !== enrollment.auth_revision)
+        throw new AppError(401, 'ENROLLMENT_EXPIRED', 'Подключение недоступно.');
       const activated = publicUser(await this.acceptCode(tx, user, code, true));
       await tx.query('UPDATE auth_tokens SET consumed_at=now() WHERE token_hash=$1', [
         hashToken(enrollment.value),
@@ -260,15 +281,134 @@ export class AuthService {
     await this.network.linkUser(request, result.userId);
     return { session: result.session, awaitingReview: result.awaitingReview };
   }
-  async login(request: FastifyRequest, reply: FastifyReply, email: string, code: string) {
-    const found = await this.database.query<UserRow>('SELECT * FROM users WHERE email=$1', [email]);
-    if (!found.rows[0])
-      throw new AppError(401, 'INVALID_CREDENTIALS', 'Неверная почта или код Authenticator.');
+  async login(request: FastifyRequest, reply: FastifyReply, email: string, password: string) {
+    const original = (
+      await this.database.query<UserRow>('SELECT * FROM users WHERE email=$1', [email])
+    ).rows[0];
+    if (!(await this.passwords.matches(password, original?.password_hash_ciphertext)))
+      throw new AppError(401, 'INVALID_CREDENTIALS', 'Неверная почта или пароль.');
+    await this.network.check(request);
+    const value = token(),
+      expiresAt = new Date(Date.now() + 5 * 60 * 1000);
+    const result = await this.database.transaction(async (tx) => {
+      const user = (
+        await tx.query<UserRow>('SELECT * FROM users WHERE email=$1 FOR UPDATE', [email])
+      ).rows[0];
+      if (
+        !user ||
+        user.password_hash_ciphertext !== original!.password_hash_ciphertext ||
+        user.auth_revision !== original!.auth_revision
+      )
+        throw new AppError(401, 'INVALID_CREDENTIALS', 'Неверная почта или пароль.');
+      assertAccountAccess(user);
+      if (!user.email_verified_at)
+        throw new AppError(403, 'EMAIL_NOT_VERIFIED', 'Подтвердите почту по ссылке из письма.');
+      if (!user.totp_enabled_at) {
+        const secret = createTotp(email).secret.base32;
+        await tx.query(
+          'UPDATE users SET totp_secret_ciphertext=$1,last_totp_counter=-1 WHERE id=$2',
+          [this.crypto.encrypt(secret), user.id],
+        );
+        await tx.query(
+          "UPDATE auth_tokens SET consumed_at=now() WHERE user_id=$1 AND kind='enrollment' AND consumed_at IS NULL",
+          [user.id],
+        );
+        await tx.query(
+          "INSERT INTO auth_tokens (token_hash,user_id,kind,expires_at,auth_revision) VALUES ($1,$2,'enrollment',$3,$4)",
+          [hashToken(value), user.id, expiresAt, user.auth_revision],
+        );
+        return { step: 'enrollment' as const };
+      }
+      await tx.query(
+        'INSERT INTO auth_login_challenges (token_hash,user_id,auth_revision,expires_at) VALUES ($1,$2,$3,$4)',
+        [hashToken(value), user.id, user.auth_revision, expiresAt],
+      );
+      return {
+        step: 'totp' as const,
+        csrfToken: this.crypto.mac('login-csrf:' + hashToken(value)),
+        expiresAt: expiresAt.toISOString(),
+      };
+    });
+    reply.clearCookie(this.loginCookie, { path: '/' });
+    reply.clearCookie(this.enrollmentCookie, { path: '/' });
+    reply.setCookie(
+      result.step === 'totp' ? this.loginCookie : this.enrollmentCookie,
+      value,
+      this.cookieOptions(300),
+    );
+    return result;
+  }
+  private async challenge(request: FastifyRequest, tx: QueryExecutor = this.database) {
+    const value = request.cookies[this.loginCookie];
+    if (!value) return null;
+    return (
+      (
+        await tx.query<LoginChallenge>(
+          'SELECT c.* FROM auth_login_challenges c JOIN users u ON u.id=c.user_id WHERE c.token_hash=$1 AND c.consumed_at IS NULL AND c.expires_at>now() AND c.attempts<5 AND c.auth_revision=u.auth_revision AND u.totp_enabled_at IS NOT NULL AND u.password_hash_ciphertext IS NOT NULL',
+          [hashToken(value)],
+        )
+      ).rows[0] ?? null
+    );
+  }
+  async loginChallenge(request: FastifyRequest, reply: FastifyReply) {
+    const challenge = await this.challenge(request);
+    if (!challenge) {
+      reply.clearCookie(this.loginCookie, { path: '/' });
+      return null;
+    }
+    return {
+      step: 'totp' as const,
+      csrfToken: this.crypto.mac('login-csrf:' + challenge.token_hash),
+      expiresAt: new Date(challenge.expires_at).toISOString(),
+    };
+  }
+  async confirmLogin(request: FastifyRequest, reply: FastifyReply, code: string) {
+    const challenge = await this.challenge(request);
+    const csrf = request.headers['x-login-csrf'];
+    if (
+      !challenge ||
+      typeof csrf !== 'string' ||
+      !this.crypto.matches(csrf, this.crypto.mac('login-csrf:' + challenge.token_hash))
+    )
+      throw new AppError(
+        401,
+        'LOGIN_EXPIRED',
+        'Время входа истекло. Введите почту и пароль заново.',
+      );
+    // Count attempts outside the verification transaction so failures remain counted.
+    const attempted = await this.database.query(
+      'UPDATE auth_login_challenges SET attempts=attempts+1 WHERE token_hash=$1 AND attempts<5 AND consumed_at IS NULL AND expires_at>now() RETURNING token_hash',
+      [challenge.token_hash],
+    );
+    if (!attempted.rows.length)
+      throw new AppError(
+        401,
+        'LOGIN_EXPIRED',
+        'Время входа истекло. Введите почту и пароль заново.',
+      );
     await this.network.check(request);
     const created = await this.database.transaction(async (tx) => {
       const user = (
-        await tx.query<UserRow>('SELECT * FROM users WHERE email=$1 FOR UPDATE', [email])
-      ).rows[0]!;
+        await tx.query<UserRow>('SELECT * FROM users WHERE id=$1 FOR UPDATE', [challenge.user_id])
+      ).rows[0];
+      if (!user?.password_hash_ciphertext || user.auth_revision !== challenge.auth_revision)
+        throw new AppError(
+          401,
+          'LOGIN_EXPIRED',
+          'Время входа истекло. Введите почту и пароль заново.',
+        );
+      const current = (
+        await tx.query(
+          'SELECT token_hash FROM auth_login_challenges WHERE token_hash=$1 AND consumed_at IS NULL AND expires_at>now() FOR UPDATE',
+          [challenge.token_hash],
+        )
+      ).rows[0];
+      if (!current)
+        throw new AppError(
+          401,
+          'LOGIN_EXPIRED',
+          'Время входа истекло. Введите почту и пароль заново.',
+        );
       const accepted = publicUser(await this.acceptCode(tx, user, code, false));
       if ((await getPolicy(tx)).vpnCheckEnabled && !accepted.accessVerified)
         throw new AppError(
@@ -276,11 +416,128 @@ export class AuthService {
           'ACCESS_REVIEW_REQUIRED',
           'Доступ ожидает проверки администратором.',
         );
+      await tx.query('UPDATE auth_login_challenges SET consumed_at=now() WHERE token_hash=$1', [
+        challenge.token_hash,
+      ]);
       return this.newSession(tx, accepted, request);
     });
+    reply.clearCookie(this.loginCookie, { path: '/' });
     reply.setCookie(this.sessionCookie, created.value, this.cookieOptions(created.hours * 3600));
     await this.network.linkUser(request, created.session.user!.id);
     return created.session;
+  }
+  async requestPassword(email: string) {
+    const mailId = await this.database.transaction(async (tx) => {
+      const user = (
+        await tx.query<UserRow>('SELECT * FROM users WHERE email=$1 FOR UPDATE', [email])
+      ).rows[0];
+      if (!user || user.is_blocked || !user.is_active) return null;
+      return this.emailToken(tx, user, 'password');
+    });
+    if (mailId) {
+      try {
+        await this.mail.send(mailId);
+      } catch {
+        /* Keep account existence private; a repeat request retries delivery. */
+      }
+    }
+    return {
+      message:
+        'Если аккаунт существует, письмо для установки нового пароля отправлено. Проверьте почту.',
+    };
+  }
+  async invalidateCredentials(tx: QueryExecutor, userId: string) {
+    await tx.query(
+      'UPDATE auth_sessions SET revoked_at=now() WHERE user_id=$1 AND revoked_at IS NULL',
+      [userId],
+    );
+    await tx.query(
+      'UPDATE auth_tokens SET consumed_at=now() WHERE user_id=$1 AND consumed_at IS NULL',
+      [userId],
+    );
+    await tx.query(
+      'UPDATE auth_login_challenges SET consumed_at=now() WHERE user_id=$1 AND consumed_at IS NULL',
+      [userId],
+    );
+  }
+  async resetPassword(value: string, password: string, reply: FastifyReply) {
+    const protectedHash = await this.passwords.protect(password);
+    await this.database.transaction(async (tx) => {
+      const record = (
+        await tx.query<TokenRow>(
+          "SELECT user_id,expires_at,auth_revision FROM auth_tokens WHERE token_hash=$1 AND kind='password' AND consumed_at IS NULL AND expires_at>now()",
+          [hashToken(value)],
+        )
+      ).rows[0];
+      if (!record)
+        throw new AppError(
+          400,
+          'LINK_EXPIRED',
+          'Ссылка недействительна или устарела. Запросите новое письмо.',
+        );
+      const user = (
+        await tx.query<UserRow>('SELECT * FROM users WHERE id=$1 FOR UPDATE', [record.user_id])
+      ).rows[0];
+      if (
+        !user ||
+        user.is_blocked ||
+        !user.is_active ||
+        user.auth_revision !== record.auth_revision
+      )
+        throw new AppError(400, 'LINK_EXPIRED', 'Ссылка недействительна или устарела.');
+      const consumed = await tx.query(
+        'UPDATE auth_tokens SET consumed_at=now() WHERE token_hash=$1 AND consumed_at IS NULL AND expires_at>now() RETURNING token_hash',
+        [hashToken(value)],
+      );
+      if (!consumed.rows.length)
+        throw new AppError(400, 'LINK_EXPIRED', 'Ссылка недействительна или устарела.');
+      await tx.query(
+        'UPDATE users SET password_hash_ciphertext=$1,password_changed_at=now(),email_verified_at=COALESCE(email_verified_at,now()),auth_revision=auth_revision+1 WHERE id=$2',
+        [protectedHash, user.id],
+      );
+      await this.invalidateCredentials(tx, user.id);
+      await audit(tx, user.id, 'password.email_reset', user.id);
+    });
+    this.clearAuthCookies(reply);
+    return { message: 'Пароль установлен. Войдите с новым паролем и кодом Authenticator.' };
+  }
+  async changePassword(
+    actor: Actor,
+    currentPassword: string,
+    password: string,
+    code: string,
+    reply: FastifyReply,
+  ) {
+    const original = (
+      await this.database.query<UserRow>('SELECT * FROM users WHERE id=$1', [actor.user.id])
+    ).rows[0];
+    if (!(await this.passwords.matches(currentPassword, original?.password_hash_ciphertext)))
+      throw new AppError(401, 'INVALID_CREDENTIALS', 'Текущий пароль неверен.');
+    const protectedHash = await this.passwords.protect(password);
+    await this.database.transaction(async (tx) => {
+      const user = (
+        await tx.query<UserRow>('SELECT * FROM users WHERE id=$1 FOR UPDATE', [actor.user.id])
+      ).rows[0];
+      if (
+        !user ||
+        user.password_hash_ciphertext !== original!.password_hash_ciphertext ||
+        user.auth_revision !== original!.auth_revision
+      )
+        throw new AppError(409, 'CREDENTIALS_CHANGED', 'Данные входа изменились. Войдите заново.');
+      await this.acceptCode(tx, user, code, false);
+      await tx.query(
+        'UPDATE users SET password_hash_ciphertext=$1,password_changed_at=now(),auth_revision=auth_revision+1 WHERE id=$2',
+        [protectedHash, user.id],
+      );
+      await this.invalidateCredentials(tx, user.id);
+      await audit(tx, user.id, 'password.changed', user.id);
+    });
+    this.clearAuthCookies(reply);
+    return { message: 'Пароль изменён. Войдите заново на своих устройствах.' };
+  }
+  private clearAuthCookies(reply: FastifyReply) {
+    for (const name of [this.sessionCookie, this.enrollmentCookie, this.loginCookie])
+      reply.clearCookie(name, { path: '/' });
   }
   async localLogin(request: FastifyRequest, reply: FastifyReply, alias: string, code: string) {
     if (code !== '' || !localDebugRequest(this.settings, request)) return null;
@@ -305,7 +562,7 @@ export class AuthService {
         await tx.query<UserRow>('SELECT * FROM users WHERE email=$1 FOR UPDATE', [email])
       ).rows[0]!;
       if (!user.is_demo || user.role !== role || !user.email_verified_at || !user.totp_enabled_at)
-        throw new AppError(401, 'INVALID_CREDENTIALS', 'Неверная почта или код Authenticator.');
+        throw new AppError(401, 'INVALID_CREDENTIALS', 'Неверный код Authenticator.');
       if ((await getPolicy(tx)).vpnCheckEnabled && !user.access_verified)
         throw new AppError(
           403,
@@ -325,7 +582,7 @@ export class AuthService {
     const result = await this.database.query<
       UserRow & { session_id: string; token_hash: string; local_debug: boolean }
     >(
-      `SELECT u.*,s.id AS session_id,s.token_hash,s.local_debug FROM auth_sessions s JOIN users u ON u.id=s.user_id WHERE s.token_hash=$1 AND s.revoked_at IS NULL AND s.expires_at>now() AND u.is_blocked=false AND u.is_active=true AND u.email_verified_at IS NOT NULL AND u.totp_enabled_at IS NOT NULL`,
+      `SELECT u.*,s.id AS session_id,s.token_hash,s.local_debug FROM auth_sessions s JOIN users u ON u.id=s.user_id WHERE s.token_hash=$1 AND s.revoked_at IS NULL AND s.expires_at>now() AND u.is_blocked=false AND u.is_active=true AND u.email_verified_at IS NOT NULL AND u.totp_enabled_at IS NOT NULL AND s.auth_revision=u.auth_revision AND (s.local_debug=true OR u.password_hash_ciphertext IS NOT NULL)`,
       [hashToken(value)],
     );
     const row = result.rows[0];
@@ -372,8 +629,21 @@ export class AuthService {
       await this.database.query('UPDATE auth_sessions SET revoked_at=now() WHERE token_hash=$1', [
         hashToken(value),
       ]);
+    const pending = request.cookies[this.loginCookie];
+    if (pending)
+      await this.database.query(
+        'UPDATE auth_login_challenges SET consumed_at=now() WHERE token_hash=$1 AND consumed_at IS NULL',
+        [hashToken(pending)],
+      );
+    const enrollment = request.cookies[this.enrollmentCookie];
+    if (enrollment)
+      await this.database.query(
+        "UPDATE auth_tokens SET consumed_at=now() WHERE token_hash=$1 AND kind='enrollment' AND consumed_at IS NULL",
+        [hashToken(enrollment)],
+      );
     reply.clearCookie(this.sessionCookie, { path: '/' });
     reply.clearCookie(this.enrollmentCookie, { path: '/' });
+    reply.clearCookie(this.loginCookie, { path: '/' });
     if (actor) await audit(this.database, actor.user.id, 'session.ended', actor.user.id);
     return { message: 'Вы вышли из аккаунта.' };
   }

@@ -13,6 +13,7 @@ export const userSchema = z.object({
   accessVerified: z.boolean(),
   emailVerified: z.boolean(),
   authenticatorEnabled: z.boolean(),
+  passwordConfigured: z.boolean(),
   createdAt: z.iso.datetime(),
 });
 export const sessionSchema = z.object({
@@ -36,6 +37,10 @@ export const registerSchema = z.strictObject({
     .transform((email) => email.toLowerCase()),
   name: z.string().trim().min(2).max(100),
   role: z.enum(['student', 'teacher']),
+  password: z
+    .string()
+    .min(12, 'Пароль должен содержать не менее 12 символов.')
+    .max(128, 'Пароль должен содержать не более 128 символов.'),
   captcha: captchaInputSchema.optional(),
 });
 export const loginSchema = z.strictObject({
@@ -43,8 +48,33 @@ export const loginSchema = z.strictObject({
     .email()
     .max(254)
     .transform((email) => email.toLowerCase()),
-  code: z.string().regex(/^\d{6}$/, 'Введите 6 цифр из Authenticator'),
+  password: z.string().min(1).max(128),
   captcha: captchaInputSchema.optional(),
+});
+export const passwordSchema = registerSchema.shape.password;
+export const loginStepSchema = z.discriminatedUnion('step', [
+  z.object({ step: z.literal('totp'), csrfToken: z.string(), expiresAt: z.iso.datetime() }),
+  z.object({ step: z.literal('enrollment') }),
+]);
+export const loginResponseSchema = z.union([loginStepSchema, sessionSchema]);
+export const loginChallengeSchema = loginStepSchema.nullable();
+export const loginConfirmSchema = z.strictObject({ code: z.string().regex(/^\d{6}$/) });
+export const passwordRequestSchema = z.strictObject({
+  email: registerSchema.shape.email,
+  captcha: captchaInputSchema.optional(),
+});
+export const passwordResetSchema = z.strictObject({
+  token: z.string().regex(/^[A-Za-z0-9_-]{43}$/),
+  password: passwordSchema,
+});
+export const passwordChangeSchema = z.strictObject({
+  currentPassword: z.string().min(1).max(128),
+  password: passwordSchema,
+  code: z.string().regex(/^\d{6}$/),
+});
+export const adminPasswordResetSchema = z.strictObject({
+  operationId: z.uuid(),
+  password: passwordSchema,
 });
 export const enrollmentConfirmSchema = z.strictObject({
   code: z.string().regex(/^\d{6}$/),
@@ -116,6 +146,7 @@ export const adminAccountCreateSchema = z.strictObject({
   name: z.string().trim().min(2).max(100),
   role: roleSchema,
   operationId: z.uuid(),
+  password: passwordSchema,
 });
 export const adminAuthenticatorResetSchema = z.strictObject({ operationId: z.uuid() });
 export const accountAuthenticatorSchema = z.object({

@@ -1,3 +1,4 @@
+import { testPassword, passwordUI, signInUI, newPasswordUI } from './password.helpers';
 import { expect, test, type Page } from '@playwright/test';
 import { Secret, TOTP } from 'otpauth';
 
@@ -20,8 +21,13 @@ async function fillCaptcha(page: Page) {
 }
 async function enroll(page: Page, email: string) {
   await page.goto(`/demo-mail?email=${encodeURIComponent(email)}`);
-  await page.getByRole('link', { name: 'Открыть последнее письмо подтверждения' }).click();
-  await page.getByRole('button', { name: 'Подтвердить почту', exact: true }).click();
+  await page.getByRole('link', { name: 'Открыть последнее письмо' }).click();
+  if (new URL(page.url()).pathname === '/set-password') {
+    await newPasswordUI(page, 'reset');
+    await page.getByRole('button', { name: 'Сохранить пароль', exact: true }).click();
+  } else await page.getByRole('button', { name: 'Подтвердить почту', exact: true }).click();
+  await expect(page.getByRole('heading', { name: 'Вход в аккаунт', exact: true })).toBeVisible();
+  expect((await passwordUI(page, email)).status()).toBe(200);
   await expect(page.getByRole('heading', { name: 'Подключить Authenticator' })).toBeVisible();
   await expect(page.getByAltText('QR-код подключения Authenticator')).toBeVisible();
   const key = (await page.getByTestId('manual-key').textContent())!;
@@ -79,6 +85,7 @@ test('email, Authenticator, three roles, shared assignments and security setting
     await student.goto('/register');
     await student.getByLabel('Имя', { exact: true }).fill('Браузерный ученик');
     await student.getByLabel('Почта', { exact: true }).fill(email);
+    await newPasswordUI(student, 'register');
     await fillCaptcha(student);
     await student.getByRole('button', { name: 'Отправить письмо подтверждения' }).click();
     await expect(
@@ -92,10 +99,7 @@ test('email, Authenticator, three roles, shared assignments and security setting
     await student.screenshot({ path: 'test-results/student.png', fullPage: true });
     await student.getByRole('button', { name: 'Выйти', exact: true }).click();
     await expect(student.getByRole('heading', { name: 'Вход в аккаунт' })).toBeVisible();
-    await student.getByLabel('Почта', { exact: true }).fill(email);
-    await student.getByLabel('Код Authenticator').fill(code(email, studentKey, 30000));
-    await fillCaptcha(student);
-    await student.getByRole('button', { name: 'Войти', exact: true }).click();
+    await signInUI(student, email, studentKey, 30000);
     await expect(student.getByRole('heading', { name: 'Кабинет ученика' })).toBeVisible();
 
     await enroll(teacher, 'teacher@example.test');

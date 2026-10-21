@@ -27,6 +27,7 @@ import {
 import { TeacherPage, TeacherStudentPage } from './pages/AccountPages';
 import { StudentPage } from './pages/StudentPage';
 import { AdminPage } from './pages/AdminPage';
+import { PasswordRequestPage, PasswordResetPage, AccountSecurityPage } from './pages/PasswordPages';
 import { EngineHistoryPage, ExerciseRunPage } from './pages/EnginePages';
 import { OnboardingPage, DiagnosticResultPage } from './pages/DiagnosticPages';
 import { PlansPage, PlanDetailPage } from './pages/PlanPages';
@@ -159,6 +160,16 @@ export function App() {
               }
             />
             <Route path="/login" element={<LoginPage />} />
+            <Route path="/forgot-password" element={<PasswordRequestPage />} />
+            <Route path="/set-password" element={<PasswordResetPage />} />
+            <Route
+              path="/account/security"
+              element={
+                <Protected>
+                  <AccountSecurityPage />
+                </Protected>
+              }
+            />
             <Route
               path="/operations"
               element={

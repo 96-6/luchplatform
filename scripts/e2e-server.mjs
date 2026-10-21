@@ -10,6 +10,7 @@ import { randomBytes } from 'node:crypto';
 import { bootstrapService, seedDemo } from '../apps/api/dist/modules/accounts/bootstrap.js';
 import { seedDemoContent } from '../apps/api/dist/modules/content/bootstrap.js';
 import { buildApp } from '../apps/api/dist/app.js';
+import { Passwords } from '../apps/api/dist/modules/auth/password.js';
 import { AccountCrypto, createTotp } from '../apps/api/dist/modules/auth/crypto.js';
 import { randomUUID } from 'node:crypto';
 
@@ -122,6 +123,9 @@ const app = await buildApp(settings, database, {
 const fixtureCrypto = new AccountCrypto(settings.AUTH_ENCRYPTION_KEY);
 const testIsolationToken = randomBytes(24).toString('hex');
 const fixtureKeys = { localAdminAlias, testIsolationToken };
+const fixturePasswordHash = await new Passwords(fixtureCrypto).protect(
+  'Browser fixture password 2026!',
+);
 // This route exists only in the isolated test harness, never in the application or runtime image.
 app.post('/__e2e/isolate', async (request, reply) => {
   if (request.headers['x-e2e-fixture'] !== testIsolationToken) return reply.code(403).send();
@@ -210,7 +214,7 @@ for (const prefix of [
     const key = createTotp(email).secret.base32;
     fixtureKeys[email] = key;
     await database.query(
-      'INSERT INTO users (id,email,full_name,role,is_demo,email_verified_at,totp_enabled_at,totp_secret_ciphertext,access_verified) VALUES ($1,$2,$3,$4,true,now(),now(),$5,true)',
+      'INSERT INTO users (id,email,full_name,role,is_demo,email_verified_at,totp_enabled_at,totp_secret_ciphertext,access_verified,password_hash_ciphertext,password_changed_at) VALUES ($1,$2,$3,$4,true,now(),now(),$5,true,$6,now())',
       [
         randomUUID(),
         email,
@@ -234,6 +238,7 @@ for (const prefix of [
               ? 'teacher'
               : 'student',
         fixtureCrypto.encrypt(key),
+        fixturePasswordHash,
       ],
     );
   }

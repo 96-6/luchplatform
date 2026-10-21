@@ -6,6 +6,7 @@ import {
   teacherLinkSchema,
   adminAccountCreateSchema,
   adminAuthenticatorResetSchema,
+  adminPasswordResetSchema,
 } from '@luch/contracts';
 import type { AuthService, Actor } from '../auth/service.js';
 import { audit, publicUser, managementUser, type UserRow } from './repository.js';
@@ -36,6 +37,17 @@ export async function registerAccountRoutes(app: FastifyInstance, auth: AuthServ
         actor,
         idOf(request.params),
         adminAuthenticatorResetSchema.parse(request.body).operationId,
+      ),
+      requestId: request.id,
+    };
+  });
+  app.post('/api/v1/admin/accounts/:id/password/reset', async (request) => {
+    const actor = await auth.requireActor(request, 'superadmin', true);
+    return {
+      data: await credentials.resetPassword(
+        actor,
+        idOf(request.params),
+        adminPasswordResetSchema.parse(request.body),
       ),
       requestId: request.id,
     };
@@ -159,7 +171,7 @@ export async function registerAccountRoutes(app: FastifyInstance, auth: AuthServ
         input.isBlocked ||
         (policy.vpnCheckEnabled && !input.accessVerified)
       )
-        await tx.query('UPDATE auth_sessions SET revoked_at=now() WHERE user_id=$1', [id]);
+        await auth.invalidateCredentials(tx, id);
       await audit(tx, actor.user.id, 'account.access_changed', id);
       return managementUser(result.rows[0]!);
     });
@@ -170,7 +182,7 @@ export async function registerAccountRoutes(app: FastifyInstance, auth: AuthServ
     const id = idOf(request.params);
     await readUser(actor, id);
     await db.transaction(async (tx) => {
-      await tx.query('UPDATE auth_sessions SET revoked_at=now() WHERE user_id=$1', [id]);
+      await auth.invalidateCredentials(tx, id);
       await audit(tx, actor.user.id, 'sessions.revoked', id);
     });
     return { data: { message: 'Сессии аккаунта завершены.' }, requestId: request.id };

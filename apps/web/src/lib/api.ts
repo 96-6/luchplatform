@@ -20,7 +20,13 @@ export class ApiError extends Error {
 export async function api<T extends z.ZodType>(
   path: string,
   schema: T,
-  options: { signal?: AbortSignal; body?: unknown; keepalive?: boolean; timeoutMs?: number } = {},
+  options: {
+    signal?: AbortSignal;
+    body?: unknown;
+    keepalive?: boolean;
+    timeoutMs?: number;
+    loginCsrf?: string;
+  } = {},
 ): Promise<z.infer<T>> {
   const controller = new AbortController();
   const abort = () => controller.abort();
@@ -37,6 +43,7 @@ export async function api<T extends z.ZodType>(
               'content-type': 'application/json',
               'accept-language': locale,
               ...(csrfToken ? { 'x-csrf-token': csrfToken } : {}),
+              ...(options.loginCsrf ? { 'x-login-csrf': options.loginCsrf } : {}),
             },
       ...(options.body === undefined ? {} : { body: JSON.stringify(options.body) }),
       signal: controller.signal,

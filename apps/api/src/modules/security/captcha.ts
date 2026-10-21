@@ -8,7 +8,7 @@ import type { AccountCrypto } from '../auth/crypto.js';
 import { limitAttempts } from './rate.js';
 import { getPolicy } from './policy.js';
 
-export type CaptchaPurpose = 'login' | 'register' | 'enrollment';
+export type CaptchaPurpose = 'login' | 'register' | 'enrollment' | 'password';
 export class CaptchaService {
   constructor(
     private readonly database: Database,

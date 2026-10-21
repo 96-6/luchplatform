@@ -1,3 +1,12 @@
+import {
+  testPassword,
+  apiPasswordLogin,
+  signInUI,
+  newPasswordUI,
+  passwordUI,
+  secondFactorUI,
+  enrollAPI,
+} from './password.helpers';
 import { readFile } from 'node:fs/promises';
 import { randomBytes } from 'node:crypto';
 import { expect, test, type Page } from '@playwright/test';
@@ -21,7 +30,7 @@ async function login(page: Page, prefix: string, offset = 0) {
     period: 30,
     algorithm: 'SHA1',
   }).generate({ timestamp: Date.now() + offset });
-  const res = await page.request.post('/api/v1/auth/login', {
+  const res = await apiPasswordLogin(page, {
     data: { email, code, captcha: { id: captcha.id, answer: 'ABCDE' } },
   });
   expect(res.status(), await res.text()).toBe(200);

@@ -11,16 +11,28 @@ export class MailService {
     private readonly settings: Settings,
     private readonly crypto: AccountCrypto,
   ) {}
-  async queue(tx: QueryExecutor, userId: string, email: string, verificationToken: string) {
-    const verificationUrl = `${this.settings.APP_URL}/verify-email?token=${verificationToken}`;
+  async queue(
+    tx: QueryExecutor,
+    userId: string,
+    email: string,
+    verificationToken: string,
+    purpose: 'email' | 'password' = 'email',
+  ) {
+    const verificationUrl = `${this.settings.APP_URL}/${purpose === 'password' ? 'set-password' : 'verify-email'}?token=${verificationToken}`;
     const message = {
       verificationUrl,
-      text: `Подтвердите почту ЛУЧ: ${verificationUrl}\nЕсли вы не создавали аккаунт, не переходите по ссылке.`,
+      text: `${purpose === 'password' ? 'Установите новый пароль ЛУЧ' : 'Подтвердите почту ЛУЧ'}: ${verificationUrl}\nЕсли вы не создавали аккаунт, не переходите по ссылке.`,
     };
     const id = randomUUID();
     await tx.query(
       'INSERT INTO mail_outbox (id,user_id,recipient,subject,body_ciphertext) VALUES ($1,$2,$3,$4,$5)',
-      [id, userId, email, 'ЛУЧ: подтверждение почты', this.crypto.encrypt(JSON.stringify(message))],
+      [
+        id,
+        userId,
+        email,
+        purpose === 'password' ? 'ЛУЧ: установка пароля' : 'ЛУЧ: подтверждение почты',
+        this.crypto.encrypt(JSON.stringify(message)),
+      ],
     );
     return id;
   }

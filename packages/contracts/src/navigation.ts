@@ -48,7 +48,13 @@ const patterns: {
   query?: z.ZodType;
 }[] = [
   { pattern: /^\/$/, kind: 'home', public: true },
-  { pattern: /^\/(login|register|network-check)$/, kind: 'public', public: true },
+  { pattern: /^\/(login|register|forgot-password|network-check)$/, kind: 'public', public: true },
+  {
+    pattern: /^\/set-password$/,
+    kind: 'password-link',
+    public: true,
+    query: z.strictObject({ token: z.string().regex(/^[A-Za-z0-9_-]{43}$/) }),
+  },
   {
     pattern: /^\/verify-email$/,
     kind: 'verification',
@@ -64,6 +70,7 @@ const patterns: {
   },
   { pattern: /^\/system$/, kind: 'development', public: true },
   { pattern: /^\/student$/, kind: 'student', roles: ['student'] },
+  { pattern: /^\/account\/security$/, kind: 'account-security' },
   { pattern: /^\/teacher$/, kind: 'teacher', roles: ['teacher'] },
   { pattern: /^\/operations$/, kind: 'operations', roles: operators },
   { pattern: /^\/admin\/providers$/, kind: 'providers', roles: operators },

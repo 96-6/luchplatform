@@ -1,3 +1,12 @@
+import {
+  testPassword,
+  apiPasswordLogin,
+  signInUI,
+  newPasswordUI,
+  passwordUI,
+  secondFactorUI,
+  enrollAPI,
+} from './password.helpers';
 import { test, expect, type Page } from '@playwright/test';
 import { TOTP, Secret } from 'otpauth';
 import { root, csrf, preparePlan, answer, keys } from './meetings.helpers';
@@ -17,7 +26,13 @@ async function create(admin: Page, role: 'student' | 'teacher') {
   const email = `ui-${role}-${crypto.randomUUID()}@example.test`;
   const response = await admin.request.post('/api/v1/admin/accounts', {
     headers: await csrf(admin),
-    data: { email, name: `UI ${role}`, role, operationId: crypto.randomUUID() },
+    data: {
+      password: testPassword,
+      email,
+      name: `UI ${role}`,
+      role,
+      operationId: crypto.randomUUID(),
+    },
   });
   expect(response.status(), await response.text()).toBe(200);
   return (await response.json()).data as {
@@ -31,10 +46,8 @@ async function attemptLogin(page: Page, setup: { user: { email: string }; manual
     headers: { 'x-e2e-fixture': fixture.testIsolationToken },
   });
   await page.goto('/login');
-  await page.getByLabel('Почта', { exact: true }).fill(setup.user.email);
-  await page.getByLabel('Код Authenticator').fill(otp(setup.user.email, setup.manualKey));
-  await page.getByLabel('Символы с картинки').fill('ABCDE');
-  await page.getByRole('button', { name: 'Войти', exact: true }).click();
+  const response = await passwordUI(page, setup.user.email);
+  if (response.ok()) await secondFactorUI(page, setup.user.email, setup.manualKey);
 }
 async function saveAccess(page: Page) {
   const saved = page.waitForResponse(

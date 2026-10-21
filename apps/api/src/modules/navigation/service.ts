@@ -31,11 +31,14 @@ export class NavigationService {
       )
     )
       throw new AppError(404, 'PAGE_NOT_FOUND', 'Страница не найдена.');
-    if (target.kind === 'verification') {
+    if (target.kind === 'verification' || target.kind === 'password-link') {
       const row = (
         await db.query(
-          "SELECT 1 FROM auth_tokens t JOIN users u ON u.id=t.user_id WHERE t.token_hash=$1 AND t.kind='email' AND t.consumed_at IS NULL AND t.expires_at>now() AND NOT u.is_blocked AND u.is_active AND u.totp_enabled_at IS NULL",
-          [hashToken(String(target.query.token))],
+          'SELECT 1 FROM auth_tokens t JOIN users u ON u.id=t.user_id WHERE t.token_hash=$1 AND t.kind=$2 AND t.consumed_at IS NULL AND t.expires_at>now() AND NOT u.is_blocked AND u.is_active AND t.auth_revision=u.auth_revision',
+          [
+            hashToken(String(target.query.token)),
+            target.kind === 'verification' ? 'email' : 'password',
+          ],
         )
       ).rows[0];
       if (!row)

@@ -19,7 +19,7 @@ import { RunList, IntegrityControls } from './EnginePages';
 import { ProfileOverview, DiagnosticHistory } from './DiagnosticPages';
 import { PlanOverview } from './PlanPages';
 import { SkillStates } from './AdaptationViews';
-import { AdminCreateAccount, AdminAuthenticator } from './AdminCredentials';
+import { AdminCreateAccount, AdminAuthenticator, AdminPassword } from './AdminCredentials';
 
 export function AdminPage() {
   const [params, setParams] = useSearchParams();
@@ -165,6 +165,7 @@ function AccountDetail({
   const { state, refresh } = useResource(
     `/admin/accounts/${id}?refresh=${version}`,
     accountDetailSchema,
+    true,
   );
   const [blocked, setBlocked] = useState(false);
   const [active, setActive] = useState(true);
@@ -235,6 +236,12 @@ function AccountDetail({
     <section className="panel">
       <h2>{t('Карточка аккаунта для отладки')}</h2>
       <UserSummary user={state.data.user} />
+      <AdminPassword
+        key={id}
+        userId={id}
+        configured={state.data.user.passwordConfigured}
+        changed={onSaved}
+      />
       <AdminAuthenticator userId={id} changed={onSaved} />
       <p className="muted">
         {t('Создан: ')}

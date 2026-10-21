@@ -22,7 +22,7 @@ async function run() {
         `Demo content: ${content.status}; package ${content.packageId} v${content.packageVersion}.`,
       );
       console.log(
-        `Demo accounts prepared: ${users.map((user) => user.email).join(', ')}. Confirm email and connect Authenticator in the local mailbox.`,
+        `Demo accounts prepared: ${users.map((user) => user.email).join(', ')}. Set a password using the local mailbox, then sign in and connect Authenticator.`,
       );
     } else if (process.argv[2] === 'create-admin') {
       const args = process.argv.slice(3);
@@ -36,7 +36,9 @@ async function run() {
             .parse(args[args.indexOf('--name') + 1])
         : 'Суперадмин';
       await bootstrapService(database, settings).provision(email, name, 'superadmin', false);
-      console.log('Superadmin account prepared. Confirm the email and connect Authenticator.');
+      console.log(
+        'Superadmin account prepared. Set a password using the email link, then sign in and connect Authenticator.',
+      );
     } else throw new Error('Use seed-demo or create-admin --email <email>.');
   } finally {
     await database.close();

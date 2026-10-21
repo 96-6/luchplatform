@@ -1,3 +1,4 @@
+import { fixturePassword, fixturePasswordHash, passwordLogin } from './helpers/password.js';
 import { randomBytes, randomUUID } from 'node:crypto';
 import { mkdtemp, rm } from 'node:fs/promises';
 import { tmpdir } from 'node:os';
@@ -55,13 +56,13 @@ async function active(role: User['role'] = 'student') {
   const email = `${role}-${id}@example.test`;
   const secret = createTotp(email).secret.base32;
   await db.query(
-    'INSERT INTO users (id,email,full_name,role,email_verified_at,totp_enabled_at,totp_secret_ciphertext,access_verified) VALUES ($1,$2,$3,$4,now(),now(),$5,true)',
-    [id, email, `Test ${role}`, role, crypto.encrypt(secret)],
+    'INSERT INTO users (id,email,full_name,role,email_verified_at,totp_enabled_at,totp_secret_ciphertext,access_verified,password_hash_ciphertext,password_changed_at) VALUES ($1,$2,$3,$4,now(),now(),$5,true,$6,now())',
+    [id, email, `Test ${role}`, role, crypto.encrypt(secret), await fixturePasswordHash(crypto)],
   );
   return { id, email, secret, code: () => createTotp(email, secret).generate() };
 }
 async function login(user: Awaited<ReturnType<typeof active>>) {
-  const response = await app.inject({
+  const response = await passwordLogin(app, {
     method: 'POST',
     url: '/api/v1/auth/login',
     payload: { email: user.email, code: user.code() },
@@ -87,7 +88,13 @@ describe('accounts acceptance', () => {
     const register = await app.inject({
       method: 'POST',
       url: '/api/v1/auth/register',
-      payload: { email, name: 'Новый ученик', role: 'student', captcha: await captcha('register') },
+      payload: {
+        password: fixturePassword,
+        email,
+        name: 'Новый ученик',
+        role: 'student',
+        captcha: await captcha('register'),
+      },
     });
     expect(register.statusCode).toBe(202);
     const inbox = await app.inject({ url: `/api/v1/dev/mail?email=${email}` });
@@ -98,7 +105,13 @@ describe('accounts acceptance', () => {
       payload: { token: link.searchParams.get('token') },
     });
     expect(confirm.statusCode).toBe(200);
-    const enrollmentCookie = cookie(confirm, 'luch_enrollment');
+    const firstFactor = await app.inject({
+      method: 'POST',
+      url: '/api/v1/auth/login',
+      payload: { email, password: fixturePassword, captcha: await captcha('login') },
+    });
+    expect(firstFactor.json().data.step).toBe('enrollment');
+    const enrollmentCookie = cookie(firstFactor, 'luch_enrollment');
     const enrollment = await app.inject({
       url: '/api/v1/auth/enrollment',
       headers: { cookie: enrollmentCookie },
@@ -141,31 +154,31 @@ describe('accounts acceptance', () => {
     await db.query('UPDATE users SET email_verified_at=NULL WHERE id=$1', [user.id]);
     expect(
       (
-        await app.inject({
+        await passwordLogin(app, {
           method: 'POST',
           url: '/api/v1/auth/login',
           payload: { email: user.email, code: user.code() },
         })
       ).statusCode,
-    ).toBe(401);
+    ).toBe(403);
     await db.query('UPDATE users SET email_verified_at=now(),totp_enabled_at=NULL WHERE id=$1', [
       user.id,
     ]);
-    expect(
-      (
-        await app.inject({
-          method: 'POST',
-          url: '/api/v1/auth/login',
-          payload: { email: user.email, code: user.code() },
-        })
-      ).statusCode,
-    ).toBe(401);
+    const pending = await passwordLogin(app, { payload: { email: user.email, code: user.code() } });
+    expect(pending.statusCode).toBe(200);
+    expect(pending.json().data).toEqual({ step: 'enrollment' });
+    expect(pending.cookies.some((c) => c.name === 'luch_session')).toBe(false);
   });
   it('does not grant the superadmin role through registration', async () => {
     const response = await app.inject({
       method: 'POST',
       url: '/api/v1/auth/register',
-      payload: { email: 'forged@example.test', name: 'Forged admin', role: 'superadmin' },
+      payload: {
+        password: fixturePassword,
+        email: 'forged@example.test',
+        name: 'Forged admin',
+        role: 'superadmin',
+      },
     });
     expect(response.statusCode).toBe(400);
     expect((await db.query("SELECT id FROM users WHERE email='forged@example.test'")).rows).toEqual(
@@ -279,8 +292,8 @@ describe('accounts acceptance', () => {
     const user = await active();
     const payload = { email: user.email, code: user.code() };
     const responses = await Promise.all([
-      app.inject({ method: 'POST', url: '/api/v1/auth/login', payload }),
-      app.inject({ method: 'POST', url: '/api/v1/auth/login', payload }),
+      passwordLogin(app, { method: 'POST', url: '/api/v1/auth/login', payload }),
+      passwordLogin(app, { method: 'POST', url: '/api/v1/auth/login', payload }),
     ]);
     expect(responses.map((item) => item.statusCode).sort()).toEqual([200, 401]);
     expect(
@@ -331,11 +344,17 @@ describe('accounts acceptance', () => {
       )
     ).rows[0]!;
     await firstDb.query(
-      "INSERT INTO users (id,email,full_name,role,email_verified_at,totp_enabled_at,totp_secret_ciphertext) VALUES ($1,$2,$3,'student',now(),now(),$4)",
-      [user.id, user.email, row.full_name, row.totp_secret_ciphertext],
+      "INSERT INTO users (id,email,full_name,role,email_verified_at,totp_enabled_at,totp_secret_ciphertext,password_hash_ciphertext) VALUES ($1,$2,$3,'student',now(),now(),$4,$5)",
+      [
+        user.id,
+        user.email,
+        row.full_name,
+        row.totp_secret_ciphertext,
+        await fixturePasswordHash(crypto),
+      ],
     );
     const first = await buildApp(isolated, firstDb);
-    const loginResponse = await first.inject({
+    const loginResponse = await passwordLogin(first, {
       method: 'POST',
       url: '/api/v1/auth/login',
       payload: { email: user.email, code: user.code() },
@@ -400,10 +419,11 @@ describe('accounts acceptance', () => {
     const user = await active();
     const input = { email: user.email, code: user.code() };
     expect(
-      (await app.inject({ method: 'POST', url: '/api/v1/auth/login', payload: input })).statusCode,
+      (await passwordLogin(app, { method: 'POST', url: '/api/v1/auth/login', payload: input }))
+        .statusCode,
     ).toBe(400);
     const challenge = await captcha('login');
-    const good = await app.inject({
+    const good = await passwordLogin(app, {
       method: 'POST',
       url: '/api/v1/auth/login',
       payload: { ...input, captcha: challenge },
@@ -411,7 +431,7 @@ describe('accounts acceptance', () => {
     expect(good.statusCode).toBe(200);
     expect(
       (
-        await app.inject({
+        await passwordLogin(app, {
           method: 'POST',
           url: '/api/v1/auth/login',
           payload: { ...input, captcha: challenge },
@@ -429,6 +449,7 @@ describe('accounts acceptance', () => {
           method: 'POST',
           url: '/api/v1/auth/register',
           payload: {
+            password: fixturePassword,
             email: 'expired@example.test',
             name: 'Expired',
             role: 'student',
@@ -444,7 +465,7 @@ describe('accounts acceptance', () => {
     for (let i = 0; i < 5; i++)
       expect(
         (
-          await app.inject({
+          await passwordLogin(app, {
             method: 'POST',
             url: '/api/v1/auth/login',
             payload: { email: user.email, code: invalid },
@@ -453,7 +474,7 @@ describe('accounts acceptance', () => {
       ).toBe(401);
     expect(
       (
-        await app.inject({
+        await passwordLogin(app, {
           method: 'POST',
           url: '/api/v1/auth/login',
           payload: { email: user.email, code: invalid },
@@ -472,7 +493,12 @@ describe('accounts acceptance', () => {
       { ...db, close: async () => {} },
     );
     try {
-      const payload = { email: 'mail@example.test', name: 'Mail user', role: 'student' };
+      const payload = {
+        email: 'mail@example.test',
+        name: 'Mail user',
+        role: 'student',
+        password: fixturePassword,
+      };
       expect(
         (await smtp.inject({ method: 'POST', url: '/api/v1/auth/register', payload })).statusCode,
       ).toBe(503);
@@ -563,7 +589,7 @@ describe('site access controls', () => {
       payload: {},
     });
     expect(response.json().data.allowed).toBe(false);
-    const missing = await app.inject({
+    const missing = await passwordLogin(app, {
       method: 'POST',
       url: '/api/v1/auth/login',
       payload: { email: 'unknown@example.test', code: '123456' },
@@ -577,7 +603,7 @@ describe('site access controls', () => {
       payload: {},
     });
     expect(allowed.json().data.allowed).toBe(true);
-    const denied = await app.inject({
+    const denied = await passwordLogin(app, {
       method: 'POST',
       url: '/api/v1/auth/login',
       headers: { cookie: cookie(allowed, 'luch_network') },

@@ -1,45 +1,18 @@
+import {
+  testPassword,
+  signInUI,
+  newPasswordUI,
+  passwordUI,
+  secondFactorUI,
+  enrollAPI,
+} from './password.helpers';
 import { readFile } from 'node:fs/promises';
 import { expect, test, type Page } from '@playwright/test';
 import { Secret, TOTP } from 'otpauth';
 import { contentPackageSchema } from '@luch/contracts';
 
 async function enroll(page: Page, email: string, register = true) {
-  const captcha = async (purpose: string) => {
-    const response = await page.request.get(`/api/v1/auth/captcha?purpose=${purpose}`);
-    return { id: (await response.json()).data.id, answer: 'ABCDE' };
-  };
-  if (register) {
-    const response = await page.request.post('/api/v1/auth/register', {
-      data: { email, name: 'Ученик контента', role: 'student', captcha: await captcha('register') },
-    });
-    expect(response.status()).toBe(202);
-  }
-  const inbox = await page.request.get(`/api/v1/dev/mail?email=${encodeURIComponent(email)}`);
-  const link = new URL((await inbox.json()).data[0].verificationUrl);
-  expect(
-    (
-      await page.request.post('/api/v1/auth/verify-email', {
-        data: { token: link.searchParams.get('token') },
-      })
-    ).status(),
-  ).toBe(200);
-  const response = await page.request.get('/api/v1/auth/enrollment');
-  const key = (await response.json()).data.manualKey as string;
-  const code = new TOTP({
-    issuer: 'ЛУЧ',
-    label: email,
-    secret: Secret.fromBase32(key),
-    digits: 6,
-    period: 30,
-    algorithm: 'SHA1',
-  }).generate();
-  expect(
-    (
-      await page.request.post('/api/v1/auth/enrollment/confirm', {
-        data: { code, captcha: await captcha('enrollment') },
-      })
-    ).status(),
-  ).toBe(200);
+  return enrollAPI(page, email, 'student', register);
 }
 
 test('a student reads both database routes, lesson media and distinct exercise banks', async ({
