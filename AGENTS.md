@@ -6,7 +6,7 @@ The interface/access follow-up requested on 17 October 2026 is complete and veri
 
 The UI/localization follow-up requested on 17 October 2026 is complete and verified. Preserve persisted learner data, use the shared locale catalog, keep account deactivation distinct from bans, and keep reviewer integrity indicators private. Evidence is recorded in `docs/ACCEPTANCE_UI_LOCALIZATION.md`.
 
-The password authentication follow-up requested on 21 October 2026 uses email/password followed by a separate Authenticator step. Preserve the password migration and existing learner data; never expose passwords or hashes through administrative APIs. Acceptance evidence belongs in `docs/ACCEPTANCE_PASSWORD_AUTH.md`. This does not authorize task 14.
+The password authentication follow-up requested on 21 October 2026 is complete and verified. It uses email/password followed by a separate Authenticator step. Preserve the password migration and existing learner data; never expose passwords or hashes through administrative APIs. Acceptance evidence belongs in `docs/ACCEPTANCE_PASSWORD_AUTH.md`. This does not authorize task 14.
 
 - Read `README.md`, `docs/ARCHITECTURE.md`, and the current task's acceptance record before changes.
 - Keep the React client, Fastify API, and shared validation contracts integrated. Only the server reads database credentials or provider keys.
