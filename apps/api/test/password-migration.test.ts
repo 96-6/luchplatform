@@ -100,7 +100,10 @@ it('upgrades a populated pre-password database, revokes old login state and pres
     const before = (await db.query('SELECT * FROM engine_attempts WHERE run_id=$1', [run.run.id]))
       .rows;
     expect(before).toHaveLength(1);
-    expect(await migrate(db)).toEqual(['018_password_two_factor.sql']);
+    expect(await migrate(db)).toEqual([
+      '018_password_two_factor.sql',
+      '019_meeting_links_files.sql',
+    ]);
     expect(await migrate(db)).toEqual([]);
     const migrated = (await db.query<UserRow>('SELECT * FROM users WHERE id=$1', [id])).rows[0]!;
     expect(migrated.password_hash_ciphertext).toBeNull();

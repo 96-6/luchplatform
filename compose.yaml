@@ -77,6 +77,8 @@ services:
     init: true
     restart: unless-stopped
     environment: *app-environment
+    volumes:
+      - meeting_files:/app/data/meeting-files
     ports:
       - '127.0.0.1:${APP_PORT:-3000}:3000'
     depends_on:
@@ -97,3 +99,4 @@ services:
       retries: 6
 volumes:
   db_data:
+  meeting_files:

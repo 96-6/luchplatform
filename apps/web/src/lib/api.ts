@@ -2,6 +2,13 @@ import { t } from '../i18n';
 import { errorText, locale } from '../i18n';
 import { API_PREFIX, envelopeSchema, errorSchema } from '@luch/contracts';
 import { z } from 'zod';
+const meetingCsrf = new Map<string, string>();
+export const setMeetingCsrf = (id: string, value: string | null) => {
+  if (value) meetingCsrf.set(id, value);
+  else meetingCsrf.delete(id);
+};
+const meetingTokenFor = (path: string) =>
+  meetingCsrf.get(/^\/meetings\/([0-9a-f-]{36})(?:\/|$)/.exec(path)?.[1] ?? '');
 let csrfToken: string | null = null;
 export function setCsrfToken(value: string | null) {
   csrfToken = value;
@@ -44,6 +51,7 @@ export async function api<T extends z.ZodType>(
               'accept-language': locale,
               ...(csrfToken ? { 'x-csrf-token': csrfToken } : {}),
               ...(options.loginCsrf ? { 'x-login-csrf': options.loginCsrf } : {}),
+              ...(meetingTokenFor(path) ? { 'x-meeting-csrf': meetingTokenFor(path)! } : {}),
             },
       ...(options.body === undefined ? {} : { body: JSON.stringify(options.body) }),
       signal: controller.signal,
@@ -77,4 +85,69 @@ export async function api<T extends z.ZodType>(
     clearTimeout(timer);
     options.signal?.removeEventListener('abort', abort);
   }
+}
+
+export async function uploadMeetingFile(
+  path: string,
+  file: File,
+  signal: AbortSignal,
+  progress: (value: number) => void,
+) {
+  const { meetingFileSchema } = await import('@luch/contracts');
+  return new Promise<z.infer<typeof meetingFileSchema>>((resolve, reject) => {
+    const xhr = new XMLHttpRequest(),
+      abort = () => xhr.abort();
+    xhr.open('POST', API_PREFIX + path);
+    xhr.withCredentials = true;
+    xhr.timeout = 30 * 60 * 1000;
+    xhr.setRequestHeader('content-type', 'application/octet-stream');
+    xhr.setRequestHeader('x-file-name', encodeURIComponent(file.name));
+    xhr.setRequestHeader('accept-language', locale);
+    if (csrfToken) xhr.setRequestHeader('x-csrf-token', csrfToken);
+    const token = meetingTokenFor(path);
+    if (token) xhr.setRequestHeader('x-meeting-csrf', token);
+    const done = () => signal.removeEventListener('abort', abort);
+    xhr.upload.onprogress = (e) => {
+      if (e.lengthComputable) progress(Math.round((e.loaded / e.total) * 100));
+    };
+    xhr.onload = () => {
+      done();
+      try {
+        const body: unknown = JSON.parse(xhr.responseText);
+        if (xhr.status < 200 || xhr.status >= 300) {
+          const error = errorSchema.safeParse(body);
+          reject(
+            error.success
+              ? new ApiError(
+                  errorText(t(error.data.error.message)),
+                  error.data.error.requestId,
+                  error.data.error.code,
+                  xhr.status,
+                )
+              : new ApiError(t('Не удалось загрузить файл. Повторите попытку.')),
+          );
+          return;
+        }
+        resolve(envelopeSchema(meetingFileSchema).parse(body).data);
+      } catch {
+        reject(new ApiError(t('Получен неполный ответ сервера. Повторите попытку.')));
+      }
+    };
+    xhr.onerror = xhr.ontimeout = () => {
+      done();
+      reject(
+        new ApiError(t('Не удалось загрузить файл. Проверьте соединение и повторите попытку.')),
+      );
+    };
+    xhr.onabort = () => {
+      done();
+      reject(new ApiError(t('Загрузка файла отменена.')));
+    };
+    signal.addEventListener('abort', abort, { once: true });
+    if (signal.aborted) {
+      abort();
+      return;
+    }
+    xhr.send(file);
+  });
 }

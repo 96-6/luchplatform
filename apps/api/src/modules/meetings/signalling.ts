@@ -4,11 +4,12 @@ import { WebSocket, type RawData } from 'ws';
 import { z } from 'zod';
 import type { Settings } from '../../config.js';
 import { AppError } from '../../errors.js';
-import type { Actor, AuthService } from '../auth/service.js';
+import type { AuthService } from '../auth/service.js';
 import type { MeetingsService } from './service.js';
 
+import { meetingActor, type MeetingActor } from './identity.js';
 const maxBuffered = 1024 * 1024;
-type Context = { actor: Actor; identity: string; room: string; token: string };
+type Context = { actor: MeetingActor; identity: string; room: string; token: string };
 
 // LiveKit OSS does not revoke participant JWTs. Only this authenticated gateway is public;
 // the SFU's signalling/API port stays private. Media still travels directly through WebRTC.
@@ -24,7 +25,6 @@ export async function registerMeetingSignalling(
     origin = new URL(settings.APP_URL).origin;
 
   async function authorize(request: FastifyRequest) {
-    const actor = await auth.requireActor(request);
     if (request.headers.origin && request.headers.origin !== origin)
       throw new AppError(403, 'ORIGIN_REJECTED', 'Подключение с этого адреса не разрешено.');
     if (request.headers.upgrade && request.headers.origin !== origin)
@@ -41,6 +41,14 @@ export async function registerMeetingSignalling(
     } catch {
       throw new AppError(401, 'VIDEO_TOKEN_INVALID', 'Обновите подключение к встрече.');
     }
+    const found = (
+      await auth.database.query<{ meeting_id: string }>(
+        'SELECT meeting_id FROM meeting_sessions WHERE id=$1',
+        [identity],
+      )
+    ).rows[0];
+    if (!found) throw new AppError(403, 'MEETING_NOT_ADMITTED', 'Подключение недоступно.');
+    const actor = await meetingActor(auth, request, found.meeting_id);
     const token = await service.signal(actor, identity, room);
     contexts.set(request, { actor, identity, room, token });
   }

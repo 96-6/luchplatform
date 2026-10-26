@@ -62,6 +62,13 @@ const patterns: {
     public: true,
     query: z.strictObject({ token: z.string().regex(/^[A-Za-z0-9_-]{43}$/) }),
   },
+  {
+    pattern: /^\/meeting-invite$/,
+    kind: 'meeting-invite',
+    public: true,
+    query: z.strictObject({ token: z.string().regex(/^[A-Za-z0-9_-]{43}$/) }),
+  },
+  { pattern: /^\/guest\/meetings\/([^/]+)\/room$/, kind: 'guest-meeting', public: true },
   { pattern: /^\/authenticator$/, kind: 'enrollment', public: true },
   {
     pattern: /^\/demo-mail$/,
@@ -162,7 +169,9 @@ export function pageTarget(path: string) {
   if (!parsed.success) throw new PageLocationError(400);
   const parts = route.pattern.exec(pathname)!.slice(1);
   if (
-    ['student-detail', 'run', 'attempt', 'diagnostic', 'plan', 'meeting'].includes(route.kind) &&
+    ['student-detail', 'run', 'attempt', 'diagnostic', 'plan', 'meeting', 'guest-meeting'].includes(
+      route.kind,
+    ) &&
     !z.uuid().safeParse(parts[0]).success
   )
     throw new PageLocationError(404);

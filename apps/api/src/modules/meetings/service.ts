@@ -14,10 +14,13 @@ import type { Actor } from '../auth/service.js';
 import { audit } from '../accounts/repository.js';
 import { canonicalJson } from '../content/service.js';
 import { TeacherService } from '../teacher/service.js';
+import { MeetingFiles, fileAccess } from './files.js';
+import { isGuest, type MeetingActor } from './identity.js';
 import { classifyDevice } from './devices.js';
 import type { MeetingVideo, RtcPeer } from './adapter.js';
 import {
   access,
+  deadline,
   requireManager,
   viewMeeting,
   oldOperation,
@@ -37,8 +40,9 @@ export class MeetingsService {
     readonly db: Database,
     readonly video: MeetingVideo,
     readonly now: () => number = Date.now,
+    readonly files?: MeetingFiles,
   ) {}
-  private async opLock(tx: QueryExecutor, actor: Actor, id: string) {
+  private async opLock(tx: QueryExecutor, actor: MeetingActor, id: string) {
     if (this.db.kind === 'postgres')
       await tx.query('SELECT pg_advisory_xact_lock(hashtextextended($1,0))', [
         `meeting:${actor.user.id}:${id}`,
@@ -133,7 +137,7 @@ export class MeetingsService {
       };
     });
   }
-  read(actor: Actor, id: string) {
+  read(actor: MeetingActor, id: string) {
     return this.db.transaction(async (tx) =>
       viewMeeting(tx, await access(tx, actor, id), this.video.configured, this.now()),
     );
@@ -143,7 +147,7 @@ export class MeetingsService {
       const global = ['admin', 'superadmin'].includes(actor.user.role);
       const rows = (
         await tx.query<{ id: string; starts_at: Date | string }>(
-          `SELECT m.id,m.starts_at FROM scheduled_meetings m WHERE ($1 OR EXISTS(SELECT 1 FROM meeting_members p WHERE p.meeting_id=m.id AND p.user_id=$2)) AND m.starts_at<$4 AND m.ends_at>$3 AND ($5::timestamptz IS NULL OR (m.starts_at,m.id)>($5,$6::uuid)) ORDER BY m.starts_at,m.id LIMIT $7`,
+          `SELECT m.id,m.starts_at FROM scheduled_meetings m WHERE ($1 OR EXISTS(SELECT 1 FROM meeting_members p WHERE p.meeting_id=m.id AND p.user_id=$2)) AND m.starts_at<$4 AND (m.ends_at IS NULL OR m.ends_at>$3) AND ($5::timestamptz IS NULL OR (m.starts_at,m.id)>($5,$6::uuid)) ORDER BY m.starts_at,m.id LIMIT $7`,
           [
             global,
             actor.user.id,
@@ -214,6 +218,12 @@ export class MeetingsService {
       const a = await access(tx, actor, id, true);
       requireManager(a);
       if (await oldOperation(tx, actor, input.operationId, 'update', { id, ...input })) return;
+      if (a.m.kind === 'adhoc')
+        throw new AppError(
+          409,
+          'MEETING_ADHOC_SETTINGS',
+          'Настройки этой встречи доступны в приглашении.',
+        );
       if (a.m.status !== 'scheduled')
         throw new AppError(409, 'MEETING_STARTED', 'Изменять расписание можно до начала встречи.');
       if (input.revision !== a.m.revision)
@@ -268,7 +278,7 @@ export class MeetingsService {
   private async removeSessions(tx: QueryExecutor, id: string, userId?: string) {
     const rows = (
       await tx.query<SessionRow>(
-        `UPDATE meeting_sessions SET state='removed',hand_raised_at=NULL,ended_at=$2 WHERE meeting_id=$1 AND state IN ('waiting','admitted') AND ($3::uuid IS NULL OR user_id=$3) RETURNING *`,
+        `UPDATE meeting_sessions SET state='removed',hand_raised_at=NULL,ended_at=$2 WHERE meeting_id=$1 AND state IN ('waiting','admitted') AND ($3::uuid IS NULL OR COALESCE(user_id,guest_id)=$3) RETURNING *`,
         [id, new Date(this.now()), userId ?? null],
       )
     ).rows;
@@ -277,23 +287,19 @@ export class MeetingsService {
       await tx.query('DELETE FROM meeting_device_reports WHERE session_id=$1', [s.id]);
     }
   }
-  async join(actor: Actor, id: string, operationId: string) {
+  async join(actor: MeetingActor, id: string, operationId: string) {
     const sid = await this.db.transaction(async (tx) => {
       await this.opLock(tx, actor, operationId);
       const a = await access(tx, actor, id, true),
         request = { id };
       const old = await oldOperation(tx, actor, operationId, 'join', request);
       if (old) return old.result_id!;
-      if (
-        !['scheduled', 'live'].includes(a.m.status) ||
-        this.now() > new Date(a.m.ends_at).getTime() + 14400000
-      )
-        throw closed();
+      if (!['scheduled', 'live'].includes(a.m.status) || this.now() > deadline(a.m)) throw closed();
       if (a.member?.blocked_at)
         throw new AppError(403, 'MEETING_REMOVED', 'Организатор удалил вас из встречи.');
       let s = (
         await tx.query<SessionRow>(
-          `SELECT * FROM meeting_sessions WHERE meeting_id=$1 AND user_id=$2 AND state IN ('waiting','admitted')`,
+          `SELECT *,COALESCE(user_id,guest_id) AS user_id FROM meeting_sessions WHERE meeting_id=$1 AND COALESCE(user_id,guest_id)=$2 AND state IN ('waiting','admitted')`,
           [id, actor.user.id],
         )
       ).rows[0];
@@ -307,24 +313,40 @@ export class MeetingsService {
         const sid = randomUUID();
         s = (
           await tx.query<SessionRow>(
-            `INSERT INTO meeting_sessions (id,meeting_id,user_id,state,created_at) VALUES ($1,$2,$3,$4,$5) RETURNING *`,
+            `INSERT INTO meeting_sessions (id,meeting_id,user_id,state,created_at,guest_id) VALUES ($1,$2,$3,$4,$5,$6) RETURNING *`,
             [
               sid,
               id,
-              actor.user.id,
+              isGuest(actor) ? null : actor.user.id,
               a.canManage || (!a.m.lobby_enabled && a.m.status === 'live') ? 'admitted' : 'waiting',
               new Date(this.now()),
+              isGuest(actor) ? actor.user.id : null,
             ],
           )
         ).rows[0]!;
       }
       if (a.canManage && a.m.status === 'scheduled')
         await tx.query(
-          `UPDATE scheduled_meetings SET status='live',started_at=$2,updated_at=$2,revision=revision+1 WHERE id=$1`,
+          `UPDATE scheduled_meetings SET status='live',started_at=$2,starts_at=CASE WHEN kind='adhoc' THEN $2 ELSE starts_at END,ends_at=CASE WHEN kind='adhoc' AND duration_minutes IS NOT NULL THEN $2::timestamptz+duration_minutes*interval '1 minute' ELSE ends_at END,updated_at=$2,revision=revision+1 WHERE id=$1`,
           [id, new Date(this.now())],
         );
+      if (a.canManage && a.m.status === 'scheduled' && !a.m.lobby_enabled) {
+        await tx.query(
+          "UPDATE meeting_sessions SET state='admitted' WHERE meeting_id=$1 AND state='waiting'",
+          [id],
+        );
+        await tx.query(
+          `UPDATE meeting_guests SET admitted_at=COALESCE(admitted_at,$2) WHERE meeting_id=$1 AND id IN(SELECT guest_id FROM meeting_sessions WHERE meeting_id=$1 AND state='admitted')`,
+          [id, new Date(this.now())],
+        );
+      }
       await operation(tx, actor, id, operationId, 'join', request, this.now(), s.id);
-      await audit(tx, actor.user.id, 'meeting.join_requested', actor.user.id);
+      if (isGuest(actor) && s.state === 'admitted')
+        await tx.query(
+          'UPDATE meeting_guests SET admitted_at=COALESCE(admitted_at,$2) WHERE id=$1',
+          [actor.user.id, new Date(this.now())],
+        );
+      if (!isGuest(actor)) await audit(tx, actor.user.id, 'meeting.join_requested', actor.user.id);
       return s.id;
     });
     return this.db.transaction(async (tx) => {
@@ -336,17 +358,16 @@ export class MeetingsService {
       };
     });
   }
-  async token(actor: Actor, id: string, sid: string) {
+  async token(actor: MeetingActor, id: string, sid: string) {
     return this.db.transaction(async (tx) => {
       const a = await access(tx, actor, id, true),
         s = await session(tx, actor, sid, id);
-      if (a.m.status !== 'live' || this.now() > new Date(a.m.ends_at).getTime() + 14400000)
-        throw closed();
+      if (a.m.status !== 'live' || this.now() > deadline(a.m)) throw closed();
       if (s.state !== 'admitted' || a.member?.blocked_at)
         throw new AppError(403, 'MEETING_NOT_ADMITTED', 'Дождитесь допуска организатора.');
       await this.video.ensureRoom(a.m.room_name);
       const token = await this.video.token(a.m.room_name, s.id, actor.user.name, policy(a.member));
-      await audit(tx, actor.user.id, 'meeting.token_issued', actor.user.id);
+      if (!isGuest(actor)) await audit(tx, actor.user.id, 'meeting.token_issued', actor.user.id);
       return {
         token,
         serverUrl: this.video.browserUrl,
@@ -357,7 +378,7 @@ export class MeetingsService {
   }
   // Every new signalling connection must use the persisted admission and current media policy.
   // Self-hosted LiveKit does not revoke old participant JWTs when removing a participant.
-  async signal(actor: Actor, sid: string, roomName: string, connected = false) {
+  async signal(actor: MeetingActor, sid: string, roomName: string, connected = false) {
     return this.db.transaction(async (tx) => {
       const found = (
         await tx.query<{ meeting_id: string }>(
@@ -371,7 +392,7 @@ export class MeetingsService {
       if (
         a.m.room_name !== roomName ||
         a.m.status !== 'live' ||
-        this.now() > new Date(a.m.ends_at).getTime() + 14400000 ||
+        this.now() > deadline(a.m) ||
         s.state !== 'admitted' ||
         a.member?.blocked_at
       )
@@ -380,7 +401,7 @@ export class MeetingsService {
       return this.video.token(roomName, sid, actor.user.name, policy(a.member));
     });
   }
-  async leave(actor: Actor, id: string, sid: string) {
+  async leave(actor: MeetingActor, id: string, sid: string) {
     await this.db.transaction(async (tx) => {
       await access(tx, actor, id, true);
       const s = await session(tx, actor, sid, id);
@@ -395,11 +416,17 @@ export class MeetingsService {
     await this.drain(id);
     return { ok: true };
   }
-  async hand(actor: Actor, id: string, sid: string, raised: boolean) {
+  async hand(actor: MeetingActor, id: string, sid: string, raised: boolean) {
     return this.db.transaction(async (tx) => {
       const a = await access(tx, actor, id, true),
         s = await session(tx, actor, sid, id);
-      if (s.state !== 'admitted' || a.m.status !== 'live' || a.member?.blocked_at) throw closed();
+      if (
+        s.state !== 'admitted' ||
+        a.m.status !== 'live' ||
+        this.now() > deadline(a.m) ||
+        a.member?.blocked_at
+      )
+        throw closed();
       await tx.query('UPDATE meeting_sessions SET hand_raised_at=$2 WHERE id=$1', [
         sid,
         raised ? new Date(this.now()) : null,
@@ -425,7 +452,7 @@ export class MeetingsService {
           throw new AppError(409, 'MEETING_NOT_STARTED', 'Встреча ещё не начата.');
         if (action === 'end' || action === 'cancel') {
           await tx.query(
-            'UPDATE scheduled_meetings SET status=$2,ended_at=$3,updated_at=$3,revision=revision+1 WHERE id=$1',
+            `UPDATE scheduled_meetings SET status=$2,ended_at=$3,ends_at=CASE WHEN kind='adhoc' AND ends_at IS NULL THEN GREATEST(starts_at+interval '1 second',$3) ELSE ends_at END,updated_at=$3,revision=revision+1 WHERE id=$1`,
             [id, action === 'end' ? 'completed' : 'cancelled', new Date(this.now())],
           );
           await this.removeSessions(tx, id);
@@ -438,19 +465,22 @@ export class MeetingsService {
       } else {
         if (a.m.status !== 'live') throw closed();
         if (action === 'mute_all') {
-          for (const p of a.members.filter((p) => p.role === 'student'))
+          for (const p of a.members.filter((p) => p.role !== 'organizer'))
             await this.changeMedia(tx, a, p.user_id, 'mute_audio');
         } else if (action === 'restore') {
           if (!input.targetId || !a.members.some((m) => m.user_id === input.targetId))
             throw new AppError(404, 'MEETING_PARTICIPANT_NOT_FOUND', 'Участник не найден.');
+          const guest = a.members.find((m) => m.user_id === input.targetId)?.role === 'guest';
           await tx.query(
-            'UPDATE meeting_members SET blocked_at=NULL WHERE meeting_id=$1 AND user_id=$2',
+            guest
+              ? 'UPDATE meeting_guests SET blocked_at=NULL WHERE meeting_id=$1 AND id=$2'
+              : 'UPDATE meeting_members SET blocked_at=NULL WHERE meeting_id=$1 AND user_id=$2',
             [id, input.targetId],
           );
         } else {
           const s = (
             await tx.query<SessionRow & { user_role: string }>(
-              `SELECT s.*,u.role AS user_role FROM meeting_sessions s JOIN users u ON u.id=s.user_id WHERE s.meeting_id=$1 AND s.id=$2`,
+              `SELECT s.*,COALESCE(s.user_id,s.guest_id) AS user_id,COALESCE(u.role,'guest') AS user_role FROM meeting_sessions s LEFT JOIN users u ON u.id=s.user_id WHERE s.meeting_id=$1 AND s.id=$2`,
               [id, input.targetId ?? null],
             )
           ).rows[0];
@@ -473,9 +503,16 @@ export class MeetingsService {
             if (s.state !== 'waiting')
               throw new AppError(409, 'MEETING_ALREADY_ADMITTED', 'Участник уже допущен.');
             await tx.query("UPDATE meeting_sessions SET state='admitted' WHERE id=$1", [s.id]);
+            if (s.guest_id)
+              await tx.query(
+                'UPDATE meeting_guests SET admitted_at=COALESCE(admitted_at,$2) WHERE id=$1',
+                [s.guest_id, new Date(this.now())],
+              );
           } else if (action === 'kick') {
             await tx.query(
-              'UPDATE meeting_members SET blocked_at=$3 WHERE meeting_id=$1 AND user_id=$2',
+              s.guest_id
+                ? 'UPDATE meeting_guests SET blocked_at=$3 WHERE meeting_id=$1 AND id=$2'
+                : 'UPDATE meeting_members SET blocked_at=$3 WHERE meeting_id=$1 AND user_id=$2',
               [id, s.user_id, new Date(this.now())],
             );
             await this.removeSessions(tx, id, s.user_id);
@@ -504,11 +541,10 @@ export class MeetingsService {
           ? 'video_allowed'
           : 'screen_allowed',
       allowed = action.startsWith('allow_');
-    await tx.query(`UPDATE meeting_members SET ${column}=$3 WHERE meeting_id=$1 AND user_id=$2`, [
-      a.m.id,
-      userId,
-      allowed,
-    ]);
+    await tx.query(
+      `UPDATE ${member.role === 'guest' ? 'meeting_guests' : 'meeting_members'} SET ${column}=$3 WHERE meeting_id=$1 AND ${member.role === 'guest' ? 'id' : 'user_id'}=$2`,
+      [a.m.id, userId, allowed],
+    );
     const p = {
       ...policy(member),
       [column === 'audio_allowed'
@@ -519,7 +555,7 @@ export class MeetingsService {
     };
     const sessions = (
       await tx.query<SessionRow>(
-        `SELECT * FROM meeting_sessions WHERE meeting_id=$1 AND user_id=$2 AND state='admitted'`,
+        `SELECT *,COALESCE(user_id,guest_id) AS user_id FROM meeting_sessions WHERE meeting_id=$1 AND COALESCE(user_id,guest_id)=$2 AND state='admitted'`,
         [a.m.id, userId],
       )
     ).rows;
@@ -574,7 +610,7 @@ export class MeetingsService {
       if (!done) break;
     }
   }
-  async room(actor: Actor, id: string, sid?: string) {
+  async room(actor: MeetingActor, id: string, sid?: string) {
     await this.drain(id);
     return this.db.transaction(async (tx) => {
       const a = await access(tx, actor, id);
@@ -582,7 +618,7 @@ export class MeetingsService {
         ? null
         : (
             await tx.query<SessionRow>(
-              "SELECT * FROM meeting_sessions WHERE meeting_id=$1 AND user_id=$2 AND state IN ('waiting','admitted')",
+              "SELECT *,COALESCE(user_id,guest_id) AS user_id FROM meeting_sessions WHERE meeting_id=$1 AND COALESCE(user_id,guest_id)=$2 AND state IN ('waiting','admitted')",
               [id, actor.user.id],
             )
           ).rows[0];
@@ -608,13 +644,13 @@ export class MeetingsService {
         await tx.query<
           SessionRow & {
             full_name: string;
-            user_role: 'student' | 'teacher' | 'admin' | 'superadmin';
+            user_role: 'student' | 'teacher' | 'admin' | 'superadmin' | 'guest';
             report_camera: unknown;
             report_microphone: unknown;
             reported_at: Date | string | null;
           }
         >(
-          `SELECT s.*,u.full_name,u.role AS user_role,d.camera AS report_camera,d.microphone AS report_microphone,d.reported_at FROM meeting_sessions s JOIN users u ON u.id=s.user_id LEFT JOIN meeting_device_reports d ON d.session_id=s.id WHERE s.meeting_id=$1 AND s.state IN ('waiting','admitted') ORDER BY s.created_at,s.id`,
+          `SELECT s.*,COALESCE(s.user_id,s.guest_id) AS user_id,COALESCE(u.full_name,g.full_name) AS full_name,COALESCE(u.role,'guest') AS user_role,d.camera AS report_camera,d.microphone AS report_microphone,d.reported_at FROM meeting_sessions s LEFT JOIN users u ON u.id=s.user_id LEFT JOIN meeting_guests g ON g.id=s.guest_id LEFT JOIN meeting_device_reports d ON d.session_id=s.id WHERE s.meeting_id=$1 AND s.state IN ('waiting','admitted') ORDER BY s.created_at,s.id`,
           [id],
         )
       ).rows;
@@ -651,11 +687,15 @@ export class MeetingsService {
           userId: s.user_id,
           name: s.full_name,
           role:
-            member?.role === 'organizer' && s.user_role !== 'student'
-              ? 'organizer'
-              : s.user_role === 'admin' || s.user_role === 'superadmin'
-                ? s.user_role
-                : 'student',
+            member?.role === 'guest'
+              ? 'guest'
+              : member?.role === 'participant'
+                ? 'participant'
+                : member?.role === 'organizer' && s.user_role !== 'student'
+                  ? 'organizer'
+                  : s.user_role === 'admin' || s.user_role === 'superadmin'
+                    ? s.user_role
+                    : 'student',
           handRaisedAt: iso(s.hand_raised_at),
           ...policy(member),
           warnings,
@@ -689,7 +729,12 @@ export class MeetingsService {
       };
     });
   }
-  async devices(actor: Actor, id: string, sid: string, input: z.infer<typeof deviceReportSchema>) {
+  async devices(
+    actor: MeetingActor,
+    id: string,
+    sid: string,
+    input: z.infer<typeof deviceReportSchema>,
+  ) {
     return this.db.transaction(async (tx) => {
       const a = await access(tx, actor, id, true),
         s = await session(tx, actor, sid, id);
@@ -732,11 +777,9 @@ export class MeetingsService {
       return { ok: true };
     });
   }
-  async messages(actor: Actor, id: string, cursor?: { createdAt: string; id: string }) {
+  async messages(actor: MeetingActor, id: string, cursor?: { createdAt: string; id: string }) {
     return this.db.transaction(async (tx) => {
-      const a = await access(tx, actor, id);
-      if (a.member?.blocked_at)
-        throw new AppError(403, 'MEETING_REMOVED', 'Доступ к чату закрыт организатором.');
+      await fileAccess(tx, actor, id);
       const rows = (
         await tx.query<{
           id: string;
@@ -745,16 +788,23 @@ export class MeetingsService {
           text: string;
           created_at: Date | string;
         }>(
-          `SELECT c.*,u.full_name FROM meeting_messages c JOIN users u ON u.id=c.user_id WHERE c.meeting_id=$1 AND ($2::timestamptz IS NULL OR (c.created_at,c.id)<($2,$3::uuid)) ORDER BY c.created_at DESC,c.id DESC LIMIT 51`,
+          `SELECT c.*,COALESCE(c.user_id,c.guest_id) AS user_id,COALESCE(u.full_name,g.full_name) AS full_name FROM meeting_messages c LEFT JOIN users u ON u.id=c.user_id LEFT JOIN meeting_guests g ON g.id=c.guest_id WHERE c.meeting_id=$1 AND ($2::timestamptz IS NULL OR (c.created_at,c.id)<($2,$3::uuid)) ORDER BY c.created_at DESC,c.id DESC LIMIT 51`,
           [id, cursor?.createdAt ?? null, cursor?.id ?? null],
         )
       ).rows;
+      const files = this.files
+        ? await this.files.forMessages(
+            tx,
+            rows.map((m) => m.id),
+          )
+        : () => [];
       const items = rows.slice(0, 50).map((m) => ({
         id: m.id,
         userId: m.user_id,
         name: m.full_name,
         text: m.text,
         createdAt: iso(m.created_at),
+        attachments: files(m.id),
       }));
       const last = items.at(-1);
       return {
@@ -763,49 +813,67 @@ export class MeetingsService {
       };
     });
   }
-  async send(actor: Actor, id: string, operationId: string, text: string) {
+  async send(
+    actor: MeetingActor,
+    id: string,
+    operationId: string,
+    text: string,
+    attachmentIds: string[] = [],
+  ) {
     await this.db.transaction(async (tx) => {
       await this.opLock(tx, actor, operationId);
-      const a = await access(tx, actor, id, true);
-      if (a.m.status !== 'live' || a.member?.blocked_at) throw closed();
-      if (
-        !(
-          await tx.query(
-            "SELECT 1 FROM meeting_sessions WHERE meeting_id=$1 AND user_id=$2 AND state='admitted'",
-            [id, actor.user.id],
-          )
-        ).rows.length
-      )
-        throw new AppError(403, 'MEETING_NOT_ADMITTED', 'Сначала присоединитесь к встрече.');
+      await fileAccess(tx, actor, id, true, this.now());
+      const column = isGuest(actor) ? 'guest_id' : 'user_id';
       const old = (
-        await tx.query<{ meeting_id: string; text: string }>(
-          'SELECT * FROM meeting_messages WHERE user_id=$1 AND operation_id=$2',
+        await tx.query<{ meeting_id: string; text: string; attachment_ids: string[] }>(
+          `SELECT * FROM meeting_messages WHERE ${column}=$1 AND operation_id=$2`,
           [actor.user.id, operationId],
         )
       ).rows[0];
       if (old) {
-        if (old.meeting_id !== id || old.text !== text)
+        if (
+          old.meeting_id !== id ||
+          old.text !== text ||
+          canonicalJson(old.attachment_ids) !== canonicalJson(attachmentIds)
+        )
           throw new AppError(
             409,
             'MEETING_OPERATION_CONFLICT',
-            'Сообщение уже сохранено с другим текстом.',
+            'Сообщение уже сохранено с другими данными.',
           );
         return;
       }
       const recent = Number(
         (
           await tx.query<{ n: number }>(
-            'SELECT count(*)::int AS n FROM meeting_messages WHERE user_id=$1 AND meeting_id=$2 AND created_at>$3',
+            `SELECT count(*)::int AS n FROM meeting_messages WHERE ${column}=$1 AND meeting_id=$2 AND created_at>$3`,
             [actor.user.id, id, new Date(this.now() - 60000)],
           )
         ).rows[0]!.n,
       );
       if (recent >= 20)
         throw new AppError(429, 'MEETING_CHAT_LIMIT', 'Слишком много сообщений. Подождите минуту.');
+      if (attachmentIds.length && !this.files)
+        throw new AppError(
+          503,
+          'MEETING_FILES_UNAVAILABLE',
+          'Загрузка файлов временно недоступна.',
+        );
+      const messageId = randomUUID();
       await tx.query(
-        'INSERT INTO meeting_messages (id,meeting_id,user_id,operation_id,text,created_at) VALUES ($1,$2,$3,$4,$5,$6)',
-        [randomUUID(), id, actor.user.id, operationId, text, new Date(this.now())],
+        'INSERT INTO meeting_messages(id,meeting_id,user_id,guest_id,operation_id,text,created_at,attachment_ids) VALUES($1,$2,$3,$4,$5,$6,$7,$8::uuid[])',
+        [
+          messageId,
+          id,
+          isGuest(actor) ? null : actor.user.id,
+          isGuest(actor) ? actor.user.id : null,
+          operationId,
+          text,
+          new Date(this.now()),
+          attachmentIds,
+        ],
       );
+      if (this.files) await this.files.attach(tx, actor, id, messageId, attachmentIds);
     });
     return this.messages(actor, id);
   }
@@ -899,8 +967,8 @@ export class MeetingsService {
     await this.db.transaction(async (tx) => {
       const rows = (
         await tx.query<{ id: string }>(
-          `SELECT id FROM scheduled_meetings WHERE status='live' AND ends_at<$1 ORDER BY id FOR UPDATE SKIP LOCKED`,
-          [new Date(this.now() - 14400000)],
+          `SELECT id FROM scheduled_meetings WHERE status='live' AND ends_at IS NOT NULL AND ((kind='scheduled' AND ends_at<$1) OR (kind='adhoc' AND ends_at<=$2)) ORDER BY id FOR UPDATE SKIP LOCKED`,
+          [new Date(this.now() - 14400000), new Date(this.now())],
         )
       ).rows;
       for (const row of rows) {
@@ -913,5 +981,6 @@ export class MeetingsService {
       }
     });
     await this.drain();
+    if (this.files) await this.files.cleanup();
   }
 }

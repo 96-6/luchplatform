@@ -1,9 +1,13 @@
 import { t } from './i18n';
 import { lazy, Suspense } from 'react';
 import { SchedulePage } from './pages/meetings/SchedulePage';
+import { MeetingInvitationPage } from './pages/meetings/MeetingExtras';
 import { MeetingPage } from './pages/meetings/MeetingPage';
 const MeetingRoomPage = lazy(() =>
   import('./pages/meetings/MeetingRoomPage').then((m) => ({ default: m.MeetingRoomPage })),
+);
+const GuestMeetingRoomPage = lazy(() =>
+  import('./pages/meetings/MeetingRoomPage').then((m) => ({ default: m.GuestMeetingRoomPage })),
 );
 import { AttemptReviewPage, TeacherFeedbackPage } from './pages/TeacherPages';
 import { Route, Routes, Link, Navigate } from 'react-router-dom';
@@ -84,6 +88,15 @@ export function App() {
                     <MeetingRoomPage />
                   </Suspense>
                 </Protected>
+              }
+            />
+            <Route path="/meeting-invite" element={<MeetingInvitationPage />} />
+            <Route
+              path="/guest/meetings/:id/room"
+              element={
+                <Suspense fallback={<LoadingState />}>
+                  <GuestMeetingRoomPage />
+                </Suspense>
               }
             />
             <Route path="/" element={<HomePage />} />

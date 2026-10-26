@@ -33,6 +33,7 @@ export async function learningFixture(
     'LIVEKIT_URL' | 'LIVEKIT_WS_URL' | 'LIVEKIT_API_KEY' | 'LIVEKIT_API_SECRET'
   >,
   testWebRoot?: string,
+  fileDirectory?: string,
 ) {
   const settings = parseSettings({
     APP_ENV: 'test',
@@ -40,6 +41,7 @@ export async function learningFixture(
     AUTH_ENCRYPTION_KEY: randomBytes(32).toString('base64'),
     LOG_LEVEL: 'silent',
     SERVE_WEB: testWebRoot ? 'true' : 'false',
+    ...(fileDirectory ? { MEETING_FILE_DIRECTORY: fileDirectory } : {}),
     ...videoSettings,
   });
   if (

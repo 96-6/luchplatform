@@ -2,7 +2,7 @@ import { randomUUID } from 'node:crypto';
 import { meetingSchema, type Meeting } from '@luch/contracts';
 import type { QueryExecutor } from '../../db/database.js';
 import { AppError } from '../../errors.js';
-import type { Actor } from '../auth/service.js';
+import { isGuest, type MeetingActor } from './identity.js';
 import { canonicalJson } from '../content/service.js';
 export const iso = (v: Date | string | null) => (v ? new Date(v).toISOString() : null);
 export type MeetingRow = {
@@ -12,7 +12,9 @@ export type MeetingRow = {
   language: 'ru' | 'en';
   organizer_id: string;
   starts_at: Date | string;
-  ends_at: Date | string;
+  ends_at: Date | string | null;
+  kind: 'scheduled' | 'adhoc';
+  duration_minutes: number | null;
   time_zone: string;
   status: Meeting['status'];
   revision: number;
@@ -29,7 +31,8 @@ export type MeetingRow = {
 };
 export type MemberRow = {
   user_id: string;
-  role: 'organizer' | 'student';
+  role: 'organizer' | 'student' | 'participant' | 'guest';
+  admitted_at?: Date | string | null;
   blocked_at: Date | string | null;
   audio_allowed: boolean;
   video_allowed: boolean;
@@ -41,6 +44,7 @@ export type SessionRow = {
   id: string;
   meeting_id: string;
   user_id: string;
+  guest_id?: string | null;
   state: 'waiting' | 'admitted' | 'left' | 'removed';
   hand_raised_at: Date | string | null;
   created_at: Date | string;
@@ -49,7 +53,7 @@ export type SessionRow = {
   ended_at: Date | string | null;
   device_revision?: number;
 };
-export async function access(tx: QueryExecutor, actor: Actor, id: string, lock = false) {
+export async function access(tx: QueryExecutor, actor: MeetingActor, id: string, lock = false) {
   const m = (
     await tx.query<MeetingRow>(
       `SELECT * FROM scheduled_meetings WHERE id=$1${lock ? ' FOR UPDATE' : ''}`,
@@ -63,6 +67,13 @@ export async function access(tx: QueryExecutor, actor: Actor, id: string, lock =
       [id],
     )
   ).rows;
+  const guests = (
+    await tx.query<MemberRow>(
+      "SELECT g.id AS user_id,'guest' AS role,g.blocked_at,g.audio_allowed,g.video_allowed,g.screen_allowed,g.full_name,'' AS email,g.admitted_at FROM meeting_guests g WHERE g.meeting_id=$1 ORDER BY g.created_at,g.id",
+      [id],
+    )
+  ).rows;
+  members.push(...guests);
   const member = members.find((p) => p.user_id === actor.user.id);
   const global = actor.user.role === 'admin' || actor.user.role === 'superadmin';
   if (!member && !global) throw new AppError(404, 'MEETING_NOT_FOUND', 'Занятие не найдено.');
@@ -126,7 +137,7 @@ export async function viewMeeting(
   const alreadyJoined =
     (
       await tx.query(
-        "SELECT 1 FROM meeting_sessions WHERE meeting_id=$1 AND user_id=$2 AND state IN ('waiting','admitted')",
+        "SELECT 1 FROM meeting_sessions WHERE meeting_id=$1 AND COALESCE(user_id,guest_id)=$2 AND state IN ('waiting','admitted')",
         [a.m.id, a.member?.user_id ?? null],
       )
     ).rows.length > 0;
@@ -135,9 +146,15 @@ export async function viewMeeting(
     title: a.m.title,
     description: a.m.description,
     language: a.m.language,
-    organizer: { id: organizer.id, name: organizer.full_name, email: organizer.email },
+    organizer: {
+      id: organizer.id,
+      name: organizer.full_name,
+      email: a.member?.role === 'guest' ? '' : organizer.email,
+    },
     startsAt: iso(a.m.starts_at),
     endsAt: iso(a.m.ends_at),
+    kind: a.m.kind,
+    durationMinutes: a.m.duration_minutes,
     timeZone: a.m.time_zone,
     status: a.m.status,
     revision: a.m.revision,
@@ -145,15 +162,24 @@ export async function viewMeeting(
     locked: a.m.locked,
     startedAt: iso(a.m.started_at),
     endedAt: iso(a.m.ended_at),
-    summaryComment: a.m.summary_comment,
+    summaryComment:
+      a.member?.role === 'guest' && !a.member.admitted_at ? null : a.m.summary_comment,
     summaryRevision: a.m.summary_revision,
-    members: a.members.map((p) => ({
-      id: p.user_id,
-      name: p.full_name,
-      email: p.email,
-      role: p.role,
-      blocked: Boolean(p.blocked_at),
-    })),
+    members: a.members
+      .filter(
+        (p) =>
+          a.member?.role !== 'guest' ||
+          a.member.admitted_at ||
+          p.role === 'organizer' ||
+          p.user_id === a.member.user_id,
+      )
+      .map((p) => ({
+        id: p.user_id,
+        name: p.full_name,
+        email: a.member?.role === 'guest' ? '' : p.email,
+        role: p.role,
+        blocked: Boolean(p.blocked_at),
+      })),
     canManage: a.canManage,
     canInspect: a.canInspect,
     canJoin:
@@ -161,9 +187,9 @@ export async function viewMeeting(
       !a.member?.blocked_at &&
       (a.canManage ||
         ((alreadyJoined || !a.m.locked) && now >= new Date(a.m.starts_at).getTime() - 900000)) &&
-      now <= new Date(a.m.ends_at).getTime() + 14400000,
+      now <= deadline(a.m),
     videoConfigured: configured,
-    homework: homework.map((h) => ({
+    homework: (a.member?.role === 'guest' ? [] : homework).map((h) => ({
       id: h.id,
       studentId: h.student_id,
       studentName: h.full_name,
@@ -173,17 +199,19 @@ export async function viewMeeting(
       reason: h.reason.text,
       dueAt: iso(h.due_at),
     })),
-    summaryHistory: history.map((h) => ({
-      id: h.id,
-      comment: h.request.comment,
-      author: h.full_name,
-      createdAt: iso(h.created_at),
-    })),
+    summaryHistory: (a.member?.role === 'guest' && !a.member.admitted_at ? [] : history).map(
+      (h) => ({
+        id: h.id,
+        comment: h.request.comment,
+        author: h.full_name,
+        createdAt: iso(h.created_at),
+      }),
+    ),
   });
 }
 export async function oldOperation(
   tx: QueryExecutor,
-  actor: Actor,
+  actor: MeetingActor,
   operationId: string,
   kind: string,
   request: unknown,
@@ -194,10 +222,10 @@ export async function oldOperation(
       result_id: string | null;
       request: unknown;
       kind: string;
-    }>('SELECT * FROM meeting_operations WHERE actor_id=$1 AND operation_id=$2', [
-      actor.user.id,
-      operationId,
-    ])
+    }>(
+      `SELECT * FROM meeting_operations WHERE ${isGuest(actor) ? 'guest_actor_id' : 'actor_id'}=$1 AND operation_id=$2`,
+      [isGuest(actor) ? null : actor.user.id, operationId],
+    )
   ).rows[0];
   if (old && (old.kind !== kind || canonicalJson(old.request) !== canonicalJson(request)))
     throw new AppError(
@@ -209,7 +237,7 @@ export async function oldOperation(
 }
 export async function operation(
   tx: QueryExecutor,
-  actor: Actor,
+  actor: MeetingActor,
   meetingId: string,
   operationId: string,
   kind: string,
@@ -219,17 +247,18 @@ export async function operation(
   before: unknown = null,
 ) {
   await tx.query(
-    'INSERT INTO meeting_operations (id,meeting_id,actor_id,operation_id,kind,request,before_state,result_id,created_at) VALUES ($1,$2,$3,$4,$5,$6,$7,$8,$9)',
+    'INSERT INTO meeting_operations (id,meeting_id,actor_id,operation_id,kind,request,before_state,result_id,created_at,guest_actor_id) VALUES ($1,$2,$3,$4,$5,$6,$7,$8,$9,$10)',
     [
       randomUUID(),
       meetingId,
-      actor.user.id,
+      isGuest(actor) ? null : actor.user.id,
       operationId,
       kind,
       JSON.stringify(request),
       before === null ? null : JSON.stringify(before),
       resultId,
       new Date(now),
+      isGuest(actor) ? actor.user.id : null,
     ],
   );
 }
@@ -245,10 +274,15 @@ export async function command(
     [randomUUID(), meetingId, kind, JSON.stringify(payload), new Date(now)],
   );
 }
-export async function session(tx: QueryExecutor, actor: Actor, id: string, meetingId: string) {
+export async function session(
+  tx: QueryExecutor,
+  actor: MeetingActor,
+  id: string,
+  meetingId: string,
+) {
   const s = (
     await tx.query<SessionRow>(
-      'SELECT s.*,COALESCE(d.revision,0) AS device_revision FROM meeting_sessions s LEFT JOIN meeting_device_reports d ON d.session_id=s.id WHERE s.id=$1 AND s.meeting_id=$2',
+      'SELECT s.*,COALESCE(s.user_id,s.guest_id) AS user_id,COALESCE(d.revision,0) AS device_revision FROM meeting_sessions s LEFT JOIN meeting_device_reports d ON d.session_id=s.id WHERE s.id=$1 AND s.meeting_id=$2',
       [id, meetingId],
     )
   ).rows[0];
@@ -270,3 +304,8 @@ export const sessionView = (s: SessionRow, p?: MemberRow) => ({
   deviceRevision: s.device_revision ?? 0,
   ...policy(p),
 });
+
+export const deadline = (m: Pick<MeetingRow, 'kind' | 'status' | 'ends_at'>) =>
+  m.ends_at && (m.kind !== 'adhoc' || m.status !== 'scheduled')
+    ? new Date(m.ends_at).getTime() + (m.kind === 'adhoc' ? 0 : 14400000)
+    : Infinity;
