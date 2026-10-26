@@ -279,9 +279,15 @@ describe('ad hoc meeting invitations and scoped guests', () => {
       student = await f.active(),
       other = await f.active(),
       m = await create(teacher, { reusable: false, allowGuests: false });
+    await redeem(m.token, '', teacher.headers);
+    expect(
+      (await f.db.query('SELECT used_by_user_id FROM meeting_invites WHERE id=$1', [m.invite.id]))
+        .rows[0].used_by_user_id,
+    ).toBeNull();
     await redeem(m.token, '', student.headers);
     await redeem(m.token, '', student.headers);
     await redeem(m.token, '', other.headers, randomUUID(), 410);
+    await redeem(m.token, '', teacher.headers);
     expect((await f.db.query('SELECT * FROM teacher_students')).rows).toHaveLength(0);
     expect(
       (

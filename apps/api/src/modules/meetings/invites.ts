@@ -358,7 +358,11 @@ export class MeetingInvites {
           'Встреча завершена. Дождитесь новой встречи от организатора.',
         );
       if (registered) {
+        const organizer =
+          registered.user.id === m.organizer_id ||
+          ['admin', 'superadmin'].includes(registered.user.role);
         if (
+          !organizer &&
           !i.reusable &&
           (i.used_by_guest_id || (i.used_by_user_id && i.used_by_user_id !== registered.user.id))
         )
@@ -377,7 +381,7 @@ export class MeetingInvites {
           'INSERT INTO meeting_members(meeting_id,user_id,role) VALUES($1,$2,$3) ON CONFLICT(meeting_id,user_id) DO NOTHING',
           [m.id, registered.user.id, role],
         );
-        if (!i.reusable)
+        if (!organizer && !i.reusable)
           await tx.query('UPDATE meeting_invites SET used_by_user_id=$2 WHERE id=$1', [
             i.id,
             registered.user.id,
