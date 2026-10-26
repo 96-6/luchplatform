@@ -2052,4 +2052,5 @@ export const english = {
   'Сообщение уже сохранено с другими данными.':
     'This message was already saved with different content.',
   'Загрузка файлов временно недоступна.': 'File uploads are temporarily unavailable.',
+  'Неподдерживаемый формат загрузки файла.': 'Unsupported file upload format.',
 } as const;

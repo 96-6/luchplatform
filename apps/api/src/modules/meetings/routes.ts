@@ -230,24 +230,37 @@ export async function registerMeetingRoutes(
     await fileAccess(auth.database, await meetingActor(auth, r, id), id);
     return { data: await service.files!.policy(), requestId: r.id };
   });
-  app.post('/api/v1/meetings/:id/files/:fid', { bodyLimit: MAX_MEETING_FILE_BYTES }, async (r) => {
-    const { id, fid } = z.object({ id: z.uuid(), fid: z.uuid() }).parse(r.params),
-      actor = await meetingActor(auth, r, id, true);
-    await limitAttempts(auth.database, auth.crypto, `meeting-upload:${actor.user.id}`, 60);
-    const raw = z.string().max(2400).parse(r.headers['x-file-name']);
-    let filename: string;
-    try {
-      filename = decodeURIComponent(raw);
-    } catch {
-      throw new AppError(400, 'MEETING_FILE_NAME', 'Некорректное имя файла.');
-    }
-    const length =
-      r.headers['content-length'] === undefined ? undefined : Number(r.headers['content-length']);
-    return {
-      data: await service.files!.upload(actor, id, fid, filename, r.body as Readable, length),
-      requestId: r.id,
-    };
-  });
+  app.post(
+    '/api/v1/meetings/:id/files/:fid',
+    {
+      bodyLimit: MAX_MEETING_FILE_BYTES,
+      onRequest: async (r) => {
+        if (
+          r.headers['content-type']?.split(';', 1)[0]?.trim().toLowerCase() !==
+          'application/octet-stream'
+        )
+          throw new AppError(415, 'MEETING_FILE_FORMAT', 'Неподдерживаемый формат загрузки файла.');
+      },
+    },
+    async (r) => {
+      const { id, fid } = z.object({ id: z.uuid(), fid: z.uuid() }).parse(r.params),
+        actor = await meetingActor(auth, r, id, true);
+      await limitAttempts(auth.database, auth.crypto, `meeting-upload:${actor.user.id}`, 60);
+      const raw = z.string().max(2400).parse(r.headers['x-file-name']);
+      let filename: string;
+      try {
+        filename = decodeURIComponent(raw);
+      } catch {
+        throw new AppError(400, 'MEETING_FILE_NAME', 'Некорректное имя файла.');
+      }
+      const length =
+        r.headers['content-length'] === undefined ? undefined : Number(r.headers['content-length']);
+      return {
+        data: await service.files!.upload(actor, id, fid, filename, r.body as Readable, length),
+        requestId: r.id,
+      };
+    },
+  );
   app.get('/api/v1/meetings/:id/files/:fid', async (r, reply) => {
     const { id, fid } = z.object({ id: z.uuid(), fid: z.uuid() }).parse(r.params);
     const { file, stream } = await service.files!.download(

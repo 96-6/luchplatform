@@ -605,6 +605,18 @@ describe('meeting files and configurable retention', () => {
       root = await f.active('superadmin'),
       m = await active(teacher);
     await policy(root, 2, 1, 10);
+    const wrongFormat = await f.app.inject({
+      method: 'POST',
+      url: `/api/v1/meetings/${m.meeting.id}/files/${randomUUID()}`,
+      headers: {
+        ...teacher.headers,
+        'content-type': 'application/json',
+        'x-file-name': 'not-a-stream.json',
+      },
+      payload: { body: 'Reject before buffering a large JSON document' },
+    });
+    expect(wrongFormat.statusCode).toBe(415);
+    expect(wrongFormat.json().error.code).toBe('MEETING_FILE_FORMAT');
     const exact = await upload(teacher.headers, m.meeting.id, Buffer.alloc(2 * MB), 'limit.bin');
     expect(exact.sizeBytes).toBe(2 * MB);
     await upload(
