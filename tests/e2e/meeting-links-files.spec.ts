@@ -140,11 +140,16 @@ test('guest invitation uses real media, persists images and files, and reuses th
     await expect(guest.getByRole('log')).toContainText('задание.txt');
     await expect(guest.getByLabel('Сообщение в чат', { exact: true })).toHaveCount(0);
     await teacher.goto(`/meetings/${id}`);
+    const restarting = teacher.waitForResponse(
+      (r) => r.url().endsWith(`/meetings/${id}/invite/restart`) && r.request().method() === 'POST',
+    );
     await teacher
       .getByRole('button', { name: 'Начать новую встречу по этой ссылке', exact: true })
       .click();
-    await expect(teacher).toHaveURL(/\/meetings\/[0-9a-f-]{36}$/);
-    const next = teacher.url().split('/').at(-1)!;
+    const response = await restarting;
+    expect(response.status(), await response.text()).toBe(200);
+    const next = (await response.json()).data.meeting.id;
+    await expect(teacher).toHaveURL(new RegExp(`/meetings/${next}$`));
     expect(next).not.toBe(id);
     await expect(teacher.getByLabel('Ссылка для участников', { exact: true })).toHaveValue(url);
     await guestJoin(guest, url, 'Новая встреча');
