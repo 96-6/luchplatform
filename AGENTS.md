@@ -8,6 +8,8 @@ The UI/localization follow-up requested on 17 October 2026 is complete and verif
 
 The password authentication follow-up requested on 21 October 2026 is complete and verified. It uses email/password followed by a separate Authenticator step. Preserve the password migration and existing learner data; never expose passwords or hashes through administrative APIs. Acceptance evidence belongs in `docs/ACCEPTANCE_PASSWORD_AUTH.md`. This does not authorize task 14.
 
+The meeting extension requested on 26 October 2026 is complete and verified. Preserve stable invitation URLs and separate meeting histories, keep guest identities scoped to their meeting, and retain message metadata when expiring private attachments. File policy changes apply to new uploads. Evidence is recorded in `docs/ACCEPTANCE_MEETING_EXTENSIONS.md`. Task 14 remains unstarted.
+
 - Read `README.md`, `docs/ARCHITECTURE.md`, and the current task's acceptance record before changes.
 - Keep the React client, Fastify API, and shared validation contracts integrated. Only the server reads database credentials or provider keys.
 - Persist application state in PostgreSQL. Never replace persistence with browser storage or mock responses for acceptance scenarios.

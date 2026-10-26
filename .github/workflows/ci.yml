@@ -111,12 +111,14 @@ jobs:
           done
           docker compose --env-file .env.compose exec -T app node scripts/teacher-smoke.mjs verify
           docker compose --env-file .env.compose exec -T app node scripts/meeting-smoke.mjs
+          docker compose --env-file .env.compose exec -T app node scripts/meeting-files-smoke.mjs
           docker compose --env-file .env.compose restart app
           for attempt in $(seq 1 30); do
             if curl --fail --silent http://localhost:3000/api/v1/health/ready > /dev/null; then break; fi
             sleep 1
           done
           docker compose --env-file .env.compose exec -T app node scripts/meeting-smoke.mjs verify
+          docker compose --env-file .env.compose exec -T app node scripts/meeting-files-smoke.mjs verify
           docker compose --env-file .env.compose exec -T app node scripts/report-smoke.mjs
           docker compose --env-file .env.compose restart app
           for attempt in $(seq 1 30); do

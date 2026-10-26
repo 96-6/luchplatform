@@ -1,3 +1,4 @@
+import { AdhocMeetingEditor } from './MeetingExtras';
 import { t } from '../../i18n';
 import { useMemo, useRef, useState, type FormEvent } from 'react';
 import { Link, useNavigate, useSearchParams } from 'react-router-dom';
@@ -19,6 +20,7 @@ export function SchedulePage() {
     [params, setParams] = useSearchParams();
   const [zone, setZone] = useState(browserZone),
     [creating, setCreating] = useState(false);
+  const [adhoc, setAdhoc] = useState(false);
   const mode =
     params.get('view') === 'month' ? 'month' : params.get('view') === 'agenda' ? 'agenda' : 'week';
   const raw = params.get('day'),
@@ -161,11 +163,28 @@ export function SchedulePage() {
           </select>
         </label>
         {['teacher', 'admin', 'superadmin'].includes(session.user!.role) && (
-          <button onClick={() => setCreating((v) => !v)}>
-            {creating ? t('Закрыть форму') : t('Запланировать занятие')}
-          </button>
+          <>
+            <button
+              className="secondary"
+              onClick={() => {
+                setAdhoc((v) => !v);
+                setCreating(false);
+              }}
+            >
+              {adhoc ? t('Закрыть форму') : t('Внеплановая встреча')}
+            </button>
+            <button
+              onClick={() => {
+                setCreating((v) => !v);
+                setAdhoc(false);
+              }}
+            >
+              {creating ? t('Закрыть форму') : t('Запланировать занятие')}
+            </button>
+          </>
         )}
       </div>
+      {adhoc && <AdhocMeetingEditor zone={zone} close={() => setAdhoc(false)} />}
       {creating && (
         <MeetingEditor
           zone={zone}
@@ -198,7 +217,10 @@ export function SchedulePage() {
                   items = all.filter(
                     (m) =>
                       dateParts(new Date(m.startsAt), zone).slice(0, 10) <= date &&
-                      dateParts(new Date(Date.parse(m.endsAt) - 1), zone).slice(0, 10) >= date,
+                      dateParts(
+                        new Date((m.endsAt ? Date.parse(m.endsAt) : Date.parse(range.to)) - 1),
+                        zone,
+                      ).slice(0, 10) >= date,
                   );
                 return (
                   <section className="calendar-day" key={date}>
@@ -272,7 +294,9 @@ export function MeetingEditor({
     ),
     [duration, setDuration] = useState(
       meeting
-        ? Math.round((Date.parse(meeting.endsAt) - Date.parse(meeting.startsAt)) / 60000)
+        ? Math.round(
+            (Date.parse(meeting.endsAt ?? meeting.startsAt) - Date.parse(meeting.startsAt)) / 60000,
+          )
         : 45,
     ),
     [organizer, setOrganizer] = useState(

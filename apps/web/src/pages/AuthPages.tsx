@@ -50,7 +50,13 @@ export function LoginPage() {
   }, []);
   function accept(session: Session) {
     auth.accept(session);
-    navigate(session.dashboardPath ?? '/student', { replace: true });
+    const returnTo = location.state?.returnTo;
+    navigate(
+      typeof returnTo === 'string' && /^\/meeting-invite\?token=[A-Za-z0-9_-]{43}$/.test(returnTo)
+        ? returnTo
+        : (session.dashboardPath ?? '/student'),
+      { replace: true },
+    );
   }
   async function submit(event: FormEvent) {
     event.preventDefault();

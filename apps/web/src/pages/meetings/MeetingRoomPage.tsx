@@ -1,5 +1,13 @@
 import { t as tr, dateLocale } from '../../i18n';
-import { useCallback, useEffect, useRef, useState, type FormEvent } from 'react';
+import {
+  createContext,
+  useContext,
+  useCallback,
+  useEffect,
+  useRef,
+  useState,
+  type FormEvent,
+} from 'react';
 import { Link, useParams } from 'react-router-dom';
 import {
   LiveKitRoom,
@@ -16,6 +24,7 @@ import {
 } from '@livekit/components-react';
 import { Room, RoomEvent, Track, ConnectionState } from 'livekit-client';
 import {
+  meetingGuestSessionSchema,
   meetingSchema,
   joinMeetingSchema,
   meetingTokenSchema,
@@ -28,15 +37,36 @@ import {
 } from '@luch/contracts';
 import type { z } from 'zod';
 import { useAuth } from '../../auth/AuthContext';
-import { api, ApiError } from '../../lib/api';
+import { api, ApiError, setMeetingCsrf } from '../../lib/api';
 import { useResource } from '../../lib/useResource';
 import { ErrorState, LoadingState } from '../../components/States';
+import { MeetingChat } from './MeetingChat';
 import { usePolling, okSchema, meetingTime } from './shared';
+const GuestRoom = createContext({ guest: false, admitted: false });
+export function GuestMeetingRoomPage() {
+  const { id } = useParams();
+  const { state, refresh } = useResource(
+    `/meeting-guests/${id}/session`,
+    meetingGuestSessionSchema,
+  );
+  useEffect(() => {
+    if (state.status === 'ready') setMeetingCsrf(id!, state.data.csrfToken);
+    return () => setMeetingCsrf(id!, null);
+  }, [id, state]);
+  if (state.status === 'loading') return <LoadingState />;
+  if (state.status === 'error') return <ErrorState error={state.error} retry={refresh} />;
+  return (
+    <GuestRoom.Provider value={{ guest: true, admitted: state.data.admitted }}>
+      <MeetingRoomPage />
+    </GuestRoom.Provider>
+  );
+}
 export function MeetingRoomPage() {
   const { id } = useParams();
   return <RoomEntry key={id} id={id!} />;
 }
 function RoomEntry({ id }: { id: string }) {
+  const { guest, admitted: guestAdmitted } = useContext(GuestRoom);
   const { state, refresh } = useResource(`/meetings/${id}`, meetingSchema),
     [joined, setJoined] = useState<MeetingSession | null>(null),
     [busy, setBusy] = useState(false),
@@ -75,44 +105,51 @@ function RoomEntry({ id }: { id: string }) {
   const m = state.data;
   return (
     <>
-      <Link to={`/meetings/${id}`}>{tr('← Карточка занятия')}</Link>
+      {!guest && <Link to={`/meetings/${id}`}>{tr('← Карточка занятия')}</Link>}
       <h1>{m.title}</h1>
-      <section className="panel meeting-prejoin">
-        <h2>{tr('Присоединение к видеозанятию')}</h2>
-        <p>
-          {meetingTime(m)} · {m.timeZone}
-        </p>
-        <p>
-          {tr(
-            'Камера и микрофон при входе выключены. Вы сможете включить их и выбрать устройства в комнате.',
-          )}
-        </p>
-        {m.lobbyEnabled && !m.canManage && (
-          <p>{tr('Организатор допустит вас из зала ожидания.')}</p>
-        )}
-        <button disabled={busy || !m.canJoin || !m.videoConfigured} onClick={() => void enter()}>
-          {busy
-            ? tr('Подключаем…')
-            : pending.current
-              ? tr('Повторить подключение')
-              : m.canManage && m.status === 'scheduled'
-                ? tr('Начать встречу')
-                : tr('Войти во встречу')}
-        </button>
-        {!m.videoConfigured && (
-          <p role="status">
+      {guest && guestAdmitted && ['completed', 'cancelled'].includes(m.status) ? (
+        <>
+          <p>{tr('Встреча завершена')}</p>
+          <MeetingChat id={id} readOnly />
+        </>
+      ) : (
+        <section className="panel meeting-prejoin">
+          <h2>{tr('Присоединение к видеозанятию')}</h2>
+          <p>
+            {meetingTime(m)} · {m.timeZone}
+          </p>
+          <p>
             {tr(
-              'Видеосвязь пока не подключена администратором. Расписание и учебные результаты сохранены.',
+              'Камера и микрофон при входе выключены. Вы сможете включить их и выбрать устройства в комнате.',
             )}
           </p>
-        )}
-        {!m.canJoin && <p>{tr('Вход недоступен: проверьте срок и статус занятия.')}</p>}
-        {error && (
-          <p role="alert" className="error">
-            {error}
-          </p>
-        )}
-      </section>
+          {m.lobbyEnabled && !m.canManage && (
+            <p>{tr('Организатор допустит вас из зала ожидания.')}</p>
+          )}
+          <button disabled={busy || !m.canJoin || !m.videoConfigured} onClick={() => void enter()}>
+            {busy
+              ? tr('Подключаем…')
+              : pending.current
+                ? tr('Повторить подключение')
+                : m.canManage && m.status === 'scheduled'
+                  ? tr('Начать встречу')
+                  : tr('Войти во встречу')}
+          </button>
+          {!m.videoConfigured && (
+            <p role="status">
+              {tr(
+                'Видеосвязь пока не подключена администратором. Расписание и учебные результаты сохранены.',
+              )}
+            </p>
+          )}
+          {!m.canJoin && <p>{tr('Вход недоступен: проверьте срок и статус занятия.')}</p>}
+          {error && (
+            <p role="alert" className="error">
+              {error}
+            </p>
+          )}
+        </section>
+      )}
     </>
   );
 }
@@ -125,6 +162,7 @@ function JoinedRoom({
   initialSession: MeetingSession;
   left: () => void;
 }) {
+  const { guest } = useContext(GuestRoom);
   const state = usePolling(
     `/meetings/${id}/room-state?sessionId=${initialSession.id}`,
     roomStateSchema,
@@ -196,7 +234,7 @@ function JoinedRoom({
     <>
       <div className="meeting-title">
         <div>
-          <Link to={`/meetings/${id}`}>{tr('← Карточка занятия')}</Link>
+          {!guest && <Link to={`/meetings/${id}`}>{tr('← Карточка занятия')}</Link>}
           <h1>{data.meeting.title}</h1>
         </div>
         {!(token && admitted) && (
@@ -220,7 +258,8 @@ function JoinedRoom({
                 ? tr('Организатор удалил вас из встречи')
                 : tr('Вы вышли из встречи')}
           </h2>
-          <Link to={`/meetings/${id}`}>{tr('Итоги и домашняя работа →')}</Link>
+          {!guest && <Link to={`/meetings/${id}`}>{tr('Итоги и домашняя работа →')}</Link>}
+          {finished && <MeetingChat id={id} readOnly />}
         </section>
       ) : self?.state === 'waiting' ? (
         <section className="panel" role="status">
@@ -418,7 +457,9 @@ function Conference({
                     ? tr('Суперадмин')
                     : info?.role === 'admin'
                       ? tr('Администратор')
-                      : tr('Участник')}{' '}
+                      : info?.role === 'guest'
+                        ? tr('Гость')
+                        : tr('Участник')}{' '}
                 · {p.isMicrophoneEnabled ? tr('Микрофон включён') : tr('Микрофон выключен')}{' '}
                 {p.isSpeaking ? tr('· Говорит') : ''}
               </p>
@@ -449,7 +490,7 @@ function Conference({
               {data.meeting.canManage &&
                 !p.isLocal &&
                 info &&
-                (info.role !== 'superadmin' || session.user!.role === 'superadmin') && (
+                (info.role !== 'superadmin' || session.user?.role === 'superadmin') && (
                   <details className="participant-moderation">
                     <summary>{tr('Управление участником')}</summary>
                     <div className="button-row">
@@ -993,103 +1034,6 @@ function DeviceReporter({
   }, [room, id, sid]);
   return null;
 }
-function MeetingChat({ id }: { id: string }) {
-  const { data, error, refresh } = usePolling(
-    `/meetings/${id}/messages`,
-    meetingMessagesSchema,
-    2500,
-  );
-  const [text, setText] = useState(''),
-    [busy, setBusy] = useState(false),
-    [sendError, setSendError] = useState(''),
-    [older, setOlder] = useState<z.infer<typeof meetingMessagesSchema>['items']>([]),
-    [cursor, setCursor] = useState<
-      z.infer<typeof meetingMessagesSchema>['nextCursor'] | undefined
-    >();
-  const pending = useRef<{ operationId: string; text: string } | null>(null);
-  async function send(e: FormEvent) {
-    e.preventDefault();
-    setBusy(true);
-    setSendError('');
-    pending.current ??= { operationId: crypto.randomUUID(), text };
-    try {
-      await api(`/meetings/${id}/messages`, meetingMessagesSchema, { body: pending.current });
-      pending.current = null;
-      setText('');
-      await refresh();
-    } catch (e) {
-      setSendError(tr((e as Error).message));
-      if (e instanceof ApiError && e.status && e.status < 500) pending.current = null;
-    } finally {
-      setBusy(false);
-    }
-  }
-  async function more() {
-    const c = cursor === undefined ? data?.nextCursor : cursor;
-    if (!c) return;
-    try {
-      const page = await api(
-        `/meetings/${id}/messages?${new URLSearchParams({ beforeCreatedAt: c.createdAt, beforeId: c.id })}`,
-        meetingMessagesSchema,
-      );
-      setOlder((v) => [...v, ...page.items]);
-      setCursor(page.nextCursor);
-    } catch (e) {
-      setSendError(tr((e as Error).message));
-    }
-  }
-  const items = [
-    ...new Map([...(data?.items ?? []), ...older].map((m) => [m.id, m])).values(),
-  ].sort((a, b) => a.createdAt.localeCompare(b.createdAt) || a.id.localeCompare(b.id));
-  return (
-    <section className="panel meeting-chat" aria-label={tr('Чат видеовстречи')}>
-      <h2>{tr('Чат встречи')}</h2>
-      {error && <ErrorState error={error} retry={() => void refresh()} />}
-      <div role="log" aria-live="polite">
-        {items.map((m) => (
-          <article key={m.id}>
-            <strong>{m.name}</strong>{' '}
-            <time dateTime={m.createdAt}>
-              {new Date(m.createdAt).toLocaleTimeString(dateLocale)}
-            </time>
-            <p className="content-text">{m.text}</p>
-          </article>
-        ))}
-        {!items.length && <p>{tr('Сообщений пока нет.')}</p>}
-      </div>
-      {(cursor === undefined ? data?.nextCursor : cursor) && (
-        <button className="secondary" onClick={() => void more()}>
-          {tr('Предыдущие сообщения')}
-        </button>
-      )}
-      <form onSubmit={(e) => void send(e)}>
-        <label>
-          {tr('Сообщение в чат')}
-          <textarea
-            required
-            maxLength={2000}
-            value={text}
-            disabled={busy || Boolean(pending.current)}
-            onChange={(e) => setText(e.target.value)}
-          />
-        </label>
-        <button disabled={busy || !text.trim()}>
-          {busy
-            ? tr('Отправляем…')
-            : pending.current
-              ? tr('Повторить отправку сообщения')
-              : tr('Отправить в чат')}
-        </button>
-      </form>
-      {sendError && (
-        <p role="alert" className="error">
-          {sendError}
-        </p>
-      )}
-    </section>
-  );
-}
-
 function CallIcon({ name }: { name: string }) {
   const paths: Record<string, string> = {
     mic: 'M9 5a3 3 0 0 1 6 0v7a3 3 0 0 1-6 0ZM5 10v2a7 7 0 0 0 14 0v-2M12 19v3M8 22h8',

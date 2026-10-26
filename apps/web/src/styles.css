@@ -1848,3 +1848,38 @@ button.danger {
     padding-top: 0.75rem;
   }
 }
+
+.meeting-attachment {
+  margin: 10px 0;
+  overflow-wrap: anywhere;
+}
+.meeting-attachment a {
+  display: block;
+}
+.meeting-attachment img {
+  display: block;
+  max-width: 100%;
+  max-height: 240px;
+  object-fit: contain;
+  border-radius: 8px;
+  margin-bottom: 6px;
+}
+.meeting-attachment small,
+.meeting-upload-list small {
+  display: block;
+}
+.meeting-upload-list {
+  list-style: none;
+  padding: 0;
+}
+.meeting-upload-list li {
+  padding: 10px 0;
+  border-bottom: 1px solid #dce6df;
+  overflow-wrap: anywhere;
+}
+.meeting-upload-list li > span {
+  display: block;
+}
+.meeting-file-picker input {
+  max-width: 100%;
+}

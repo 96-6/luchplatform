@@ -41,6 +41,7 @@ const settingsSchema = z
     SPEECH_API_KEY: z.string().default(''),
     VIDEO_SERVICE_URL: optionalUrl,
     VIDEO_API_KEY: z.string().default(''),
+    MEETING_FILE_DIRECTORY: z.string().min(1).default('data/meeting-files'),
     LIVEKIT_URL: optionalUrl,
     LIVEKIT_WS_URL: optionalUrl,
     LIVEKIT_API_KEY: z.string().default(''),

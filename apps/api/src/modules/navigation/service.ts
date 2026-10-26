@@ -6,6 +6,7 @@ import { AppError } from '../../errors.js';
 import { studentAccess } from '../diagnostics/profile.js';
 import { assertUserAccess } from '../engine/repository.js';
 import { access as meetingAccess } from '../meetings/repository.js';
+import { guestActor } from '../meetings/identity.js';
 import { ContentRepository } from '../content/repository.js';
 
 export class NavigationService {
@@ -49,6 +50,30 @@ export class NavigationService {
         );
     }
     if (target.kind === 'enrollment') await this.auth.requireEnrollment(request);
+    if (target.kind === 'meeting-invite') {
+      const row = (
+        await db.query(
+          'SELECT 1 FROM meeting_invites WHERE token_hash=$1 AND revoked_at IS NULL AND (expires_at IS NULL OR expires_at>now())',
+          [hashToken(String(target.query.token))],
+        )
+      ).rows[0];
+      if (!row)
+        throw new AppError(
+          410,
+          'MEETING_INVITE_EXPIRED',
+          'Приглашение отключено или срок его действия истёк.',
+        );
+    }
+    if (target.kind === 'guest-meeting') {
+      const guest = await guestActor(this.auth, request, target.parts[0]!);
+      const a = await meetingAccess(db, guest, target.parts[0]!);
+      if (a.member?.blocked_at)
+        throw new AppError(
+          403,
+          'MEETING_ENTRY_DENIED',
+          'Организатор закрыл вам вход в эту встречу.',
+        );
+    }
     if (target.public) return { path };
     const actor = await this.auth.requireActor(request);
     if (target.roles && !target.roles.includes(actor.user.role))

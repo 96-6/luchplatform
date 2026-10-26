@@ -1,3 +1,5 @@
+import { MeetingChat } from './MeetingChat';
+import { MeetingInvitePanel } from './MeetingExtras';
 import { t, dateLocale } from '../../i18n';
 import { useRef, useState, type FormEvent } from 'react';
 import { Link, useParams } from 'react-router-dom';
@@ -58,11 +60,13 @@ function MeetingDetail({ id }: { id: string }) {
       <h1>{m.title}</h1>
       <p>
         {meetingTime(m)} —{' '}
-        {new Intl.DateTimeFormat('ru', {
-          timeZone: m.timeZone,
-          hour: '2-digit',
-          minute: '2-digit',
-        }).format(new Date(m.endsAt))}{' '}
+        {m.endsAt
+          ? new Intl.DateTimeFormat(dateLocale, {
+              timeZone: m.timeZone,
+              hour: '2-digit',
+              minute: '2-digit',
+            }).format(new Date(m.endsAt))
+          : t('Без ограничения длительности')}{' '}
         · {m.timeZone}
       </p>
       {m.timeZone !== browserZone() && (
@@ -111,9 +115,11 @@ function MeetingDetail({ id }: { id: string }) {
         )}
         {m.canManage && m.status === 'scheduled' && (
           <div className="button-row">
-            <button className="secondary" onClick={() => setEditing((v) => !v)}>
-              {t('Изменить расписание')}
-            </button>
+            {m.kind === 'scheduled' && (
+              <button className="secondary" onClick={() => setEditing((v) => !v)}>
+                {t('Изменить расписание')}
+              </button>
+            )}
             <button className="secondary danger" disabled={busy} onClick={() => void cancel()}>
               {busy ? t('Отменяем…') : op.current ? t('Повторить отмену') : t('Отменить занятие')}
             </button>
@@ -125,6 +131,8 @@ function MeetingDetail({ id }: { id: string }) {
           </p>
         )}
       </section>
+      {m.kind === 'adhoc' && m.canManage && <MeetingInvitePanel meeting={m} />}
+      <MeetingChat id={id} readOnly />
       {editing && (
         <MeetingEditor
           key={m.revision}

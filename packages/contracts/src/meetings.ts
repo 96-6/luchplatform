@@ -51,7 +51,9 @@ export const meetingSchema = z.object({
   language: z.enum(['ru', 'en']),
   organizer: person,
   startsAt: iso,
-  endsAt: iso,
+  endsAt: iso.nullable(),
+  kind: z.enum(['scheduled', 'adhoc']),
+  durationMinutes: z.number().int().nullable(),
   timeZone: z.string(),
   status: z.enum(['scheduled', 'live', 'completed', 'cancelled']),
   revision: z.number().int().positive(),
@@ -61,7 +63,12 @@ export const meetingSchema = z.object({
   endedAt: iso.nullable(),
   summaryComment: z.string().nullable(),
   summaryRevision: z.number().int().nonnegative(),
-  members: z.array(person.extend({ role: z.enum(['organizer', 'student']), blocked: z.boolean() })),
+  members: z.array(
+    person.extend({
+      role: z.enum(['organizer', 'student', 'participant', 'guest']),
+      blocked: z.boolean(),
+    }),
+  ),
   canManage: z.boolean(),
   canInspect: z.boolean(),
   canJoin: z.boolean(),
@@ -152,7 +159,7 @@ export const roomStateSchema = z.object({
       identity: uuid,
       userId: uuid,
       name: z.string(),
-      role: z.enum(['organizer', 'student', 'admin', 'superadmin']),
+      role: z.enum(['organizer', 'student', 'admin', 'superadmin', 'participant', 'guest']),
       handRaisedAt: iso.nullable(),
       audioAllowed: z.boolean(),
       videoAllowed: z.boolean(),
@@ -185,16 +192,46 @@ export const moderateMeetingSchema = z.strictObject({
   targetId: uuid.optional(),
   revision: z.number().int().positive().optional(),
 });
+export const meetingFileSchema = z.object({
+  id: uuid,
+  filename: z.string(),
+  mediaType: z.string(),
+  sizeBytes: z.number(),
+  expiresAt: iso.nullable(),
+  deleted: z.boolean(),
+  url: z.string(),
+});
+export const meetingFilePolicySchema = z
+  .strictObject({
+    maxFileMb: z.number().int().min(1).max(1024),
+    largeFileMb: z.number().int().min(0).max(1024),
+    retentionDays: z.number().int().min(1).max(3650),
+    revision: z.number().int().positive(),
+  })
+  .refine(
+    (x) => x.largeFileMb <= x.maxFileMb,
+    'Порог временного хранения не должен превышать максимальный размер файла.',
+  );
 export const meetingMessagesSchema = z.object({
   items: z.array(
-    z.object({ id: uuid, userId: uuid, name: z.string(), text: z.string(), createdAt: iso }),
+    z.object({
+      id: uuid,
+      userId: uuid,
+      name: z.string(),
+      text: z.string(),
+      createdAt: iso,
+      attachments: z.array(meetingFileSchema),
+    }),
   ),
   nextCursor: z.object({ createdAt: iso, id: uuid }).nullable(),
 });
-export const sendMeetingMessageSchema = z.strictObject({
-  operationId: uuid,
-  text: z.string().trim().min(1).max(2000),
-});
+export const sendMeetingMessageSchema = z
+  .strictObject({
+    operationId: uuid,
+    text: z.string().trim().max(2000),
+    attachmentIds: z.array(uuid).max(5).default([]),
+  })
+  .refine((x) => x.text.length > 0 || x.attachmentIds.length > 0, 'Добавьте текст или файл.');
 export const meetingSummarySchema = z
   .strictObject({
     operationId: uuid,
@@ -222,3 +259,64 @@ export const meetingSummarySchema = z
 export type Meeting = z.infer<typeof meetingSchema>;
 export type MeetingSession = z.infer<typeof meetingSessionSchema>;
 export type MeetingRoomState = z.infer<typeof roomStateSchema>;
+
+export const createAdhocMeetingSchema = z.strictObject({
+  operationId: uuid,
+  title: z.string().trim().min(1).max(160),
+  description: z.string().trim().max(3000).default(''),
+  language: z.enum(['ru', 'en']),
+  startsAt: iso.optional(),
+  timeZone: meetingTimeZone,
+  durationMinutes: z.number().int().min(1).max(10080).nullable(),
+  reusable: z.boolean(),
+  allowGuests: z.boolean(),
+  expiresAt: iso.nullable(),
+  lobbyEnabled: z.boolean().default(true),
+});
+export const updateMeetingInviteSchema = z.strictObject({
+  operationId: uuid,
+  revision: z.number().int().positive(),
+  allowGuests: z.boolean(),
+  expiresAt: iso.nullable(),
+  revoked: z.boolean(),
+});
+export const meetingInviteSchema = z.object({
+  id: uuid,
+  meetingId: uuid,
+  url: z.string(),
+  reusable: z.boolean(),
+  allowGuests: z.boolean(),
+  expiresAt: iso.nullable(),
+  revoked: z.boolean(),
+  used: z.boolean(),
+  revision: z.number().int().positive(),
+});
+export const adhocResultSchema = z.object({ meeting: meetingSchema, invite: meetingInviteSchema });
+export const meetingInvitePreviewSchema = z.object({
+  title: z.string(),
+  organizer: z.string(),
+  startsAt: iso,
+  endsAt: iso.nullable(),
+  status: meetingSchema.shape.status,
+  allowGuests: z.boolean(),
+  reusable: z.boolean(),
+  expiresAt: iso.nullable(),
+});
+export const redeemMeetingInviteSchema = z.strictObject({
+  operationId: uuid,
+  token: z.string().regex(/^[A-Za-z0-9_-]{43}$/),
+  name: z.string().trim().min(1).max(100).optional(),
+});
+export const meetingGuestSessionSchema = z.object({
+  id: uuid,
+  name: z.string(),
+  meetingId: uuid,
+  csrfToken: z.string(),
+  admitted: z.boolean(),
+  expiresAt: iso,
+});
+export const redeemMeetingInviteResultSchema = z.object({
+  meetingId: uuid,
+  guest: meetingGuestSessionSchema.nullable(),
+  path: z.string(),
+});

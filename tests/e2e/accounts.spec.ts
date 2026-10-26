@@ -51,11 +51,13 @@ async function saveSettings(page: Page) {
   const refreshed = page.waitForResponse(
     (response) => response.url().endsWith('/api/v1/auth/session') && response.status() === 200,
   );
-  await page.getByRole('button', { name: 'Сохранить настройки' }).click();
+  await page.getByRole('button', { name: 'Сохранить настройки', exact: true }).click();
   await updated;
   await refreshed;
   await expect(page.getByRole('heading', { name: 'Кабинет суперадмина' })).toBeVisible();
-  await expect(page.getByRole('button', { name: 'Сохранить настройки' })).toBeEnabled();
+  await expect(
+    page.getByRole('button', { name: 'Сохранить настройки', exact: true }),
+  ).toBeEnabled();
 }
 
 test('email, Authenticator, three roles, shared assignments and security settings work together', async ({

@@ -7,6 +7,7 @@ import { registerOperationsRoutes } from './modules/operations/routes.js';
 import websocket from '@fastify/websocket';
 import { registerMeetingSignalling } from './modules/meetings/signalling.js';
 import { registerMeetingRoutes } from './modules/meetings/routes.js';
+import { MeetingFiles } from './modules/meetings/files.js';
 import { MeetingsService } from './modules/meetings/service.js';
 import { LiveKitVideo, type MeetingVideo } from './modules/meetings/adapter.js';
 import { registerTeacherRoutes } from './modules/teacher/routes.js';
@@ -104,7 +105,7 @@ export async function buildApp(
     genReqId: () => randomUUID(),
     requestIdHeader: false,
     bodyLimit: 16 * 1024,
-    requestTimeout: 15000,
+    requestTimeout: 30 * 60 * 1000,
   });
   const allowedOrigin = new URL(settings.APP_URL).origin;
   await app.register(cors, {
@@ -271,6 +272,8 @@ export async function buildApp(
   const meetings = new MeetingsService(
     database,
     options.meetingVideo ?? new LiveKitVideo(settings),
+    Date.now,
+    new MeetingFiles(database, resolve(projectRoot, settings.MEETING_FILE_DIRECTORY)),
   );
   await registerMeetingRoutes(app, auth, meetings, settings.APP_ENV !== 'test');
   await registerOperationsRoutes(app, auth, new OperationsService(database, settings, meetings));
