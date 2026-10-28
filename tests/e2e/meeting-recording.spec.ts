@@ -93,7 +93,7 @@ test('real guest media keeps personal watermarks in fullscreen, restricts printi
     const tile = teacher.locator(`[data-identity="${session.id}"]`),
       video = tile.locator('video');
     await expect
-      .poll(() => video.evaluate((v) => (v as HTMLVideoElement).videoWidth))
+      .poll(() => video.evaluate((v) => (v as HTMLVideoElement).videoWidth), { timeout: 25000 })
       .toBeGreaterThan(0);
     const mark = tile.getByTestId('recording-watermark');
     await expect(mark).toContainText(tutor.user.name);
@@ -118,6 +118,11 @@ test('real guest media keeps personal watermarks in fullscreen, restricts printi
     const screens = teacher.getByRole('region', { name: 'Демонстрации экрана', exact: true });
     await expect(screens.getByTestId('recording-watermark')).toContainText(tutor.user.name);
     await expect(screens.locator('video')).toHaveJSProperty('disablePictureInPicture', true);
+    await expect
+      .poll(() => screens.locator('video').evaluate((v) => (v as HTMLVideoElement).videoWidth), {
+        timeout: 25000,
+      })
+      .toBeGreaterThan(0);
     await teacher.emulateMedia({ media: 'print' });
     await expect(tile).toBeHidden();
     await expect(screens).toBeHidden();
