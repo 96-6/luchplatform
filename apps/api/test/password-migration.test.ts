@@ -103,6 +103,7 @@ it('upgrades a populated pre-password database, revokes old login state and pres
     expect(await migrate(db)).toEqual([
       '018_password_two_factor.sql',
       '019_meeting_links_files.sql',
+      '020_meeting_recording_policy.sql',
     ]);
     expect(await migrate(db)).toEqual([]);
     const migrated = (await db.query<UserRow>('SELECT * FROM users WHERE id=$1', [id])).rows[0]!;

@@ -149,6 +149,74 @@ async function entered() {
   return { ...g, m, t, s };
 }
 describe('meeting scheduler and open-source conferencing integration', () => {
+  it('limits recording protection settings to superadmins with CSRF and validates revisions', async () => {
+    const root = await f.active('superadmin');
+    const endpoint = '/api/v1/admin/meeting-recording-policy';
+    const initial = await f.app.inject({ url: endpoint, headers: root.headers });
+    expect(initial.statusCode).toBe(200);
+    expect(initial.json().data).toEqual({ enabled: false, revision: 1 });
+    expect((await f.app.inject({ url: endpoint })).statusCode).toBe(401);
+    for (const role of ['student', 'teacher', 'admin'] as const) {
+      const user = await f.active(role);
+      expect((await f.app.inject({ url: endpoint, headers: user.headers })).statusCode).toBe(403);
+      await post(user, '/admin/meeting-recording-policy', { enabled: true, revision: 1 }, 403);
+    }
+    expect(
+      (
+        await f.app.inject({
+          method: 'POST',
+          url: endpoint,
+          headers: { cookie: root.headers.cookie },
+          payload: { enabled: true, revision: 1 },
+        })
+      ).statusCode,
+    ).toBe(403);
+    for (const body of [
+      { enabled: 'true', revision: 1 },
+      { enabled: true, revision: 0 },
+      { enabled: true, revision: 1, drm: true },
+    ])
+      await post(root, '/admin/meeting-recording-policy', body, 400);
+    expect(
+      await post(root, '/admin/meeting-recording-policy', { enabled: true, revision: 1 }),
+    ).toEqual({ enabled: true, revision: 2 });
+    await post(root, '/admin/meeting-recording-policy', { enabled: false, revision: 1 }, 409);
+    const stored = (
+      await f.db.query<{ enabled: boolean; revision: number; updated_by: string }>(
+        'SELECT * FROM meeting_recording_policy WHERE id=1',
+      )
+    ).rows[0]!;
+    expect(stored).toMatchObject({ enabled: true, revision: 2, updated_by: root.actor.user.id });
+    expect(
+      (
+        await f.db.query(
+          "SELECT 1 FROM security_audit WHERE actor_id=$1 AND action='meeting.recording_policy_changed'",
+          [root.actor.user.id],
+        )
+      ).rows,
+    ).toHaveLength(1);
+    expect(
+      await post(root, '/admin/meeting-recording-policy', { enabled: false, revision: 2 }),
+    ).toEqual({ enabled: false, revision: 3 });
+  });
+  it('updates protection in existing meeting and live room responses without changing media permissions', async () => {
+    const root = await f.active('superadmin'),
+      g = await entered();
+    const before = await room(g.student, g.m.id, g.s.session.id);
+    expect(before.meeting.recordingProtectionEnabled).toBe(false);
+    await post(root, '/admin/meeting-recording-policy', { enabled: true, revision: 1 });
+    for (const user of [g.teacher, g.student, root]) {
+      const live = await room(user, g.m.id);
+      expect(live.meeting.recordingProtectionEnabled).toBe(true);
+      const read = await f.app.inject({ url: `/api/v1/meetings/${g.m.id}`, headers: user.headers });
+      expect(read.json().data.recordingProtectionEnabled).toBe(true);
+    }
+    const live = await room(g.student, g.m.id, g.s.session.id);
+    expect(live.self).toEqual(before.self);
+    expect(live.meeting.revision).toBe(before.meeting.revision);
+    await post(root, '/admin/meeting-recording-policy', { enabled: false, revision: 2 });
+    expect((await room(g.student, g.m.id)).meeting.recordingProtectionEnabled).toBe(false);
+  });
   it.each([1, 2])(
     'creates a saved calendar with %s students, optimistic revisions and repeat-safe creation',
     async (n) => {

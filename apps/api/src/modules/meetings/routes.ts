@@ -6,11 +6,13 @@ import { MeetingInvites } from './invites.js';
 import { meetingActor } from './identity.js';
 import { fileAccess, MAX_MEETING_FILE_BYTES } from './files.js';
 import { limitAttempts } from '../security/rate.js';
+import { recordingPolicy, updateRecordingPolicy } from './recording-policy.js';
 import {
   createAdhocMeetingSchema,
   updateMeetingInviteSchema,
   redeemMeetingInviteSchema,
   meetingFilePolicySchema,
+  meetingRecordingPolicySchema,
   createMeetingSchema,
   updateMeetingSchema,
   meetingsQuerySchema,
@@ -212,6 +214,18 @@ export async function registerMeetingRoutes(
   });
   app.get('/api/v1/meeting-guests/:id/session', async (r) => ({
     data: await invites.guestSession(r, ids.parse(r.params).id),
+    requestId: r.id,
+  }));
+  app.get('/api/v1/admin/meeting-recording-policy', async (r) => {
+    await auth.requireActor(r, 'superadmin');
+    return { data: await recordingPolicy(auth.database), requestId: r.id };
+  });
+  app.post('/api/v1/admin/meeting-recording-policy', async (r) => ({
+    data: await updateRecordingPolicy(
+      auth.database,
+      await auth.requireActor(r, 'superadmin', true),
+      meetingRecordingPolicySchema.parse(r.body),
+    ),
     requestId: r.id,
   }));
   app.get('/api/v1/admin/meeting-file-policy', async (r) => {

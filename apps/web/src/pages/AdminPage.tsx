@@ -1,4 +1,5 @@
 import { MeetingFileSettings } from './meetings/MeetingExtras';
+import { MeetingRecordingSettings } from './meetings/MeetingRecordingSettings';
 import { t, dateLocale } from '../i18n';
 import { useEffect, useState, type FormEvent } from 'react';
 import { Link, useSearchParams } from 'react-router-dom';
@@ -60,6 +61,7 @@ export function AdminPage() {
       {tab === 'security' ? (
         <>
           <SecuritySettings />
+          <MeetingRecordingSettings />
           <MeetingFileSettings />
           <IntegrityControls />
         </>

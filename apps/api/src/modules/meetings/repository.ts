@@ -4,6 +4,7 @@ import type { QueryExecutor } from '../../db/database.js';
 import { AppError } from '../../errors.js';
 import { isGuest, type MeetingActor } from './identity.js';
 import { canonicalJson } from '../content/service.js';
+import { recordingPolicy } from './recording-policy.js';
 export const iso = (v: Date | string | null) => (v ? new Date(v).toISOString() : null);
 export type MeetingRow = {
   id: string;
@@ -189,6 +190,7 @@ export async function viewMeeting(
         ((alreadyJoined || !a.m.locked) && now >= new Date(a.m.starts_at).getTime() - 900000)) &&
       now <= deadline(a.m),
     videoConfigured: configured,
+    recordingProtectionEnabled: (await recordingPolicy(tx)).enabled,
     homework: (a.member?.role === 'guest' ? [] : homework).map((h) => ({
       id: h.id,
       studentId: h.student_id,

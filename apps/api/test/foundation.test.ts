@@ -36,7 +36,7 @@ describe('foundation API and database', () => {
     const result = await database.query<{ count: string }>(
       'SELECT count(*)::text AS count FROM schema_migrations',
     );
-    expect(result.rows[0]?.count).toBe('19');
+    expect(result.rows[0]?.count).toBe('20');
   });
   it('reports live and ready states with a request identifier', async () => {
     for (const endpoint of ['live', 'ready']) {

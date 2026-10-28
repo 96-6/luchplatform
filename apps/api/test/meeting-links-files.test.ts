@@ -155,6 +155,34 @@ async function policy(root: Login, max = 2, threshold = 1, days = 10) {
     revision: p.revision,
   });
 }
+it('applies the recording policy to guest rooms and forbids guest policy changes', async () => {
+  const root = await f.active('superadmin'),
+    teacher = await f.active('teacher');
+  const created = await create(teacher);
+  const guest = await redeem(created.token, 'Гость с защитой');
+  const before = await f.app.inject({
+    url: `/api/v1/meetings/${created.meeting.id}`,
+    headers: guest.headers,
+  });
+  expect(before.json().data.recordingProtectionEnabled).toBe(false);
+  await post(root.headers, '/admin/meeting-recording-policy', { enabled: true, revision: 1 });
+  const joined = await enter(guest.headers, created.meeting.id);
+  expect(joined.meeting.recordingProtectionEnabled).toBe(true);
+  const live = await f.app.inject({
+    url: `/api/v1/meetings/${created.meeting.id}/room-state?sessionId=${joined.session.id}`,
+    headers: guest.headers,
+  });
+  expect(live.statusCode, live.body).toBe(200);
+  expect(roomStateSchema.parse(live.json().data).meeting.recordingProtectionEnabled).toBe(true);
+  const endpoint = '/api/v1/admin/meeting-recording-policy';
+  expect((await f.app.inject({ url: endpoint, headers: guest.headers })).statusCode).toBe(401);
+  await post(
+    guest.headers,
+    '/admin/meeting-recording-policy',
+    { enabled: false, revision: 2 },
+    401,
+  );
+});
 async function upload(
   headers: Headers,
   id: string,
