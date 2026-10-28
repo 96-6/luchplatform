@@ -30,6 +30,7 @@ test('superadmin saves recording protection and sees its limits in Russian and E
     await expect(settings.getByRole('checkbox')).toBeChecked();
     await expect(settings).toContainText('Это меры сдерживания, а не DRM.');
     await page.setViewportSize({ width: 390, height: 844 });
+    await page.getByRole('button', { name: 'Открыть меню', exact: true }).click();
     await page.getByLabel('Язык интерфейса', { exact: true }).selectOption('en');
     const english = page.getByRole('region', { name: 'Meeting protection', exact: true });
     await expect(english.getByRole('checkbox')).toBeChecked();
