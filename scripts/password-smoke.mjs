@@ -1,4 +1,5 @@
 import assert from 'node:assert/strict';
+import { httpFetch as fetch } from './http-smoke.mjs';
 import { randomBytes, randomUUID } from 'node:crypto';
 import { readFile, writeFile } from 'node:fs/promises';
 import { loadSettings } from '../apps/api/dist/config.js';
