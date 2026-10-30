@@ -18,6 +18,7 @@ COPY --from=build /app/apps/api/package.json ./apps/api/package.json
 COPY --from=build /app/apps/api/dist ./apps/api/dist
 COPY --from=build /app/apps/api/migrations ./apps/api/migrations
 COPY --from=build /app/content ./content
+COPY --from=build /app/scripts/http-smoke.mjs ./scripts/http-smoke.mjs
 COPY --from=build /app/scripts/password-smoke.mjs ./scripts/password-smoke.mjs
 COPY --from=build /app/scripts/engine-smoke.mjs ./scripts/engine-smoke.mjs
 COPY --from=build /app/scripts/diagnostic-smoke.mjs ./scripts/diagnostic-smoke.mjs

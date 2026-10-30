@@ -73,6 +73,7 @@ export async function registerWebAccess(app: FastifyInstance, auth: AuthService,
       /^\/assets\/[A-Za-z0-9_/-]+\.(?:js|css|woff2?|ttf|png|jpe?g|webp|svg|ico)$/.test(path) ||
       /^\/avatars\/(?:mentor|partner|guide)\.svg$/.test(path) ||
       path === '/audio/pcm-recorder.js' ||
+      path === '/browser-check-worker.js' ||
       path === '/favicon.svg'
     ) {
       await containedFile(webRoot, path);

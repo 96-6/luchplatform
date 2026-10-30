@@ -75,6 +75,7 @@ export default defineConfig(({ mode }) => {
               (developmentModule && !req.headers.accept?.includes('text/html')) ||
               publicAsset ||
               path.startsWith('/api/') ||
+              pathname === '/browser-check-worker.js' ||
               path.startsWith('/learning-media/')
             )
               return next();
@@ -82,7 +83,19 @@ export default defineConfig(({ mode }) => {
               const response = await fetch(
                 `http://127.0.0.1:${apiPort}/api/v1/navigation/access?path=${encodeURIComponent(path)}`,
                 {
-                  headers: req.headers.cookie ? { cookie: req.headers.cookie } : {},
+                  headers: Object.fromEntries(
+                    [
+                      'cookie',
+                      'user-agent',
+                      'sec-ch-ua',
+                      'sec-ch-ua-platform',
+                      'sec-ch-ua-mobile',
+                      'sec-ch-ua-full-version-list',
+                    ].flatMap((key) => {
+                      const value = req.headers[key];
+                      return typeof value === 'string' ? [[key, value]] : [];
+                    }),
+                  ),
                   redirect: 'error',
                   signal: AbortSignal.timeout(10000),
                 },

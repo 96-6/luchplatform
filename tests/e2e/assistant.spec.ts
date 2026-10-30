@@ -1,5 +1,6 @@
 import {
   testPassword,
+  prepareBrowser,
   apiPasswordLogin,
   signInUI,
   newPasswordUI,
@@ -13,6 +14,7 @@ import { expect, test, type Page } from '@playwright/test';
 import { TOTP, Secret } from 'otpauth';
 import { aiControlsSchema, aiCeilingsSchema } from '@luch/contracts';
 async function login(page: Page, prefix: string, offset = 0) {
+  await prepareBrowser(page);
   const email = `${prefix}-${test.info().retry}@example.test`,
     keys = JSON.parse(
       await readFile(new URL('../../data/e2e-accounts.json', import.meta.url), 'utf8'),

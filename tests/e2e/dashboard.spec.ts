@@ -1,5 +1,6 @@
 import {
   testPassword,
+  prepareBrowser,
   apiPasswordLogin,
   signInUI,
   newPasswordUI,
@@ -16,6 +17,7 @@ const bank = contentPackageSchema.parse(
   JSON.parse(await readFile(new URL('../../content/demo/luch-demo.json', import.meta.url), 'utf8')),
 );
 async function login(page: Page, prefix: string, offset = 0) {
+  await prepareBrowser(page);
   const keys = JSON.parse(
     await readFile(new URL('../../data/e2e-accounts.json', import.meta.url), 'utf8'),
   );

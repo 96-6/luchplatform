@@ -1,4 +1,5 @@
 import assert from 'node:assert/strict';
+import { httpFetch as fetch } from './http-smoke.mjs';
 const base = 'http://localhost:3000';
 const input = {
   label: 'Compose persistence check',

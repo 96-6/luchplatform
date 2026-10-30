@@ -56,6 +56,7 @@ import { MailService } from './modules/mail/service.js';
 import { CaptchaService } from './modules/security/captcha.js';
 import { NetworkService, type IpInspector } from './modules/security/network.js';
 import { ipAllowed, validateRanges } from './modules/security/policy.js';
+import { registerBrowserSecurity } from './modules/security/browsers.js';
 
 export async function buildApp(
   settings: Settings,
@@ -170,6 +171,7 @@ export async function buildApp(
       return;
     await network.check(request, undefined, false);
   });
+  await registerBrowserSecurity(app, auth);
   app.addHook('onClose', async () => {
     await database.close();
   });

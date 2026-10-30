@@ -1,5 +1,6 @@
 import {
   testPassword,
+  prepareBrowser,
   apiPasswordLogin,
   signInUI,
   newPasswordUI,
@@ -46,6 +47,7 @@ async function mode(page: Page, value: Record<string, unknown> = {}) {
   ).toBe(204);
 }
 async function login(page: Page, prefix: string, offset = 0) {
+  await prepareBrowser(page);
   const k = await keys(),
     email = `${prefix}-${test.info().retry}@example.test`;
   await page.request.post('/__e2e/isolate', { headers: { 'x-e2e-fixture': k.testIsolationToken } });

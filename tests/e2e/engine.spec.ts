@@ -1,5 +1,6 @@
 import {
   testPassword,
+  prepareBrowser,
   apiPasswordLogin,
   signInUI,
   newPasswordUI,
@@ -44,6 +45,7 @@ async function choose(page: Page, exerciseId: string, incorrect = false) {
   await page.getByRole('radio', { name: option.text, exact: true }).check();
 }
 async function loginFixture(page: Page, prefix: string) {
+  await prepareBrowser(page);
   const email = `${prefix}-${test.info().retry}@example.test`,
     keys = JSON.parse(
       await readFile(new URL('../../data/e2e-accounts.json', import.meta.url), 'utf8'),

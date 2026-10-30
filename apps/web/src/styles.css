@@ -1439,6 +1439,21 @@ button.danger {
   padding: 1rem;
   box-shadow: 0 12px 40px #11182724;
 }
+.browser-policy-list {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(min(100%, 14rem), 1fr));
+  gap: 0.4rem 1rem;
+  margin: 1rem 0;
+}
+.browser-warning {
+  background: #fff7df;
+  border: 1px solid #d9ac4a;
+  color: #614300;
+  padding: 1rem;
+  margin: 0.75rem;
+  border-radius: 0.75rem;
+  overflow-wrap: anywhere;
+}
 .recording-protection-notice {
   background: #eef5ff;
   color: #16345b;
