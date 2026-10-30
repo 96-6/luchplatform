@@ -1,5 +1,5 @@
 import { randomUUID } from 'node:crypto';
-import { mkdtemp, rm } from 'node:fs/promises';
+import { mkdir, mkdtemp, rm, utimes } from 'node:fs/promises';
 import { tmpdir } from 'node:os';
 import { join } from 'node:path';
 import { afterAll, beforeAll, describe, expect, it } from 'vitest';
@@ -205,7 +205,7 @@ describe('foundation API and database', () => {
       await uninitialized.close();
     }
   });
-  it('preserves records after closing and reopening the disk database', async () => {
+  it('preserves records across restart, rejects a live writer and recovers an orphan lock', async () => {
     const directory = await mkdtemp(join(tmpdir(), 'luch-persistence-'));
     const fileSettings = parseSettings({
       APP_ENV: 'test',
@@ -225,6 +225,10 @@ describe('foundation API and database', () => {
     });
     await expect(createDatabase(fileSettings)).rejects.toThrow('already in use');
     await firstApp.close();
+    // A terminated setup process can leave a fresh lock without a heartbeat.
+    const orphan = `${directory}/database.lock`;
+    await mkdir(orphan, { recursive: true });
+    await utimes(orphan, new Date(), new Date());
     const secondDatabase = await createDatabase(fileSettings);
     const secondApp = await buildApp(fileSettings, secondDatabase);
     try {
@@ -235,5 +239,5 @@ describe('foundation API and database', () => {
       await secondApp.close();
       await rm(directory, { recursive: true, force: true });
     }
-  });
+  }, 60000);
 });
