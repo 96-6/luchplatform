@@ -22,11 +22,17 @@ async function lockEmbeddedDirectory(directory: string): Promise<() => Promise<v
   await mkdir(directory, { recursive: true });
   try {
     // Heartbeats also work when separate containers use different PID namespaces.
-    return await lockfile.lock(directory, { stale: 10000, update: 2000, retries: 0 });
+    return await lockfile.lock(directory, {
+      stale: 10000,
+      update: 2000,
+      // Sequential setup commands may see the previous process's lock briefly.
+      // Retry through its stale window; a live writer keeps refreshing its lock.
+      retries: { retries: 24, factor: 1, minTimeout: 500, maxTimeout: 500 },
+    });
   } catch (error) {
     if ((error as NodeJS.ErrnoException).code !== 'ELOCKED') throw error;
     throw new Error(
-      'Local database is already in use. Stop the API before running database commands; after a crash wait 10 seconds before retrying.',
+      'Local database is already in use. Stop the API before running database commands, then retry.',
     );
   }
 }
