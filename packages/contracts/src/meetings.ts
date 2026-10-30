@@ -13,6 +13,10 @@ export const meetingTimeZone = z
     }
   }, 'Неизвестный часовой пояс.');
 const person = z.object({ id: uuid, name: z.string(), email: z.string() });
+export const meetingRecordingPolicySchema = z.strictObject({
+  enabled: z.boolean(),
+  revision: z.number().int().positive(),
+});
 export const meetingDraftSchema = z
   .strictObject({
     title: z.string().trim().min(1).max(160),
@@ -73,6 +77,7 @@ export const meetingSchema = z.object({
   canInspect: z.boolean(),
   canJoin: z.boolean(),
   videoConfigured: z.boolean(),
+  recordingProtectionEnabled: z.boolean(),
   homework: z.array(
     z.object({
       id: uuid,

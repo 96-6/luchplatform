@@ -1439,6 +1439,54 @@ button.danger {
   padding: 1rem;
   box-shadow: 0 12px 40px #11182724;
 }
+.recording-protection-notice {
+  background: #eef5ff;
+  color: #16345b;
+  border: 1px solid #b4cbea;
+  border-radius: 0.65rem;
+  padding: 0.75rem;
+  margin-bottom: 1rem;
+  font-size: 0.875rem;
+}
+.recording-protection-notice p {
+  margin: 0.35rem 0 0;
+}
+.screen-share {
+  position: relative;
+}
+.meeting-watermarks {
+  position: absolute;
+  inset: 12% 0;
+  z-index: 2;
+  pointer-events: none;
+  user-select: none;
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  align-items: center;
+  gap: 0.5rem;
+  overflow: hidden;
+  border-radius: inherit;
+}
+.meeting-watermarks span {
+  padding: 0.3rem;
+  text-align: center;
+  overflow-wrap: anywhere;
+  font-size: clamp(0.55rem, 1.2vw, 0.8rem);
+  line-height: 1.3;
+  color: #ffffffb3;
+  text-shadow:
+    0 1px 2px #000,
+    1px 0 2px #000;
+}
+@media print {
+  .recording-protected .participant-grid,
+  .recording-protected .screen-stage,
+  .recording-protected .meeting-chat-panel,
+  .recording-protected .meeting-controls,
+  .recording-protected .conference-manage {
+    display: none !important;
+  }
+}
 .conference .meeting-connection {
   color: #c3cbd8;
   margin: 0.3rem 0.4rem 1rem;

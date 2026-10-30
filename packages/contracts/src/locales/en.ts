@@ -2053,4 +2053,15 @@ export const english = {
     'This message was already saved with different content.',
   'Загрузка файлов временно недоступна.': 'File uploads are temporarily unavailable.',
   'Неподдерживаемый формат загрузки файла.': 'Unsupported file upload format.',
+  'Защита видеовстреч': 'Meeting protection',
+  'Защита от записи видеозвонка': 'Video call recording protection',
+  'Добавляет персональные водяные знаки на видео и демонстрации экрана, ограничивает меню видео, картинку в картинке и печать. Применяется ко всем участникам, включая гостей, и к текущим звонкам после обновления состояния.':
+    'Adds personal watermarks to video and screen sharing, restricts video menus, picture-in-picture and printing. Applies to all participants, including guests, and to ongoing calls when their state refreshes.',
+  'Это меры сдерживания, а не DRM. В браузере нельзя гарантированно запретить OBS, системную запись экрана, скриншоты или съёмку другим устройством на компьютере и телефоне.':
+    'These are deterrents, not DRM. A browser cannot reliably prevent OBS, system screen recording, screenshots or filming with another device on computers and phones.',
+  'Сохранить защиту видеовстреч': 'Save meeting protection',
+  'Настройки защиты видеовстреч сохранены.': 'Meeting protection settings saved.',
+  'Защита от записи видеозвонка включена': 'Video call recording protection is on',
+  'На видео отображаются ваше имя и код подключения. Не записывайте и не распространяйте встречу без разрешения. Веб-защита не блокирует OBS и системные скриншоты.':
+    'Video displays your name and connection code. Do not record or share the meeting without permission. Web protection does not block OBS or system screenshots.',
 } as const;

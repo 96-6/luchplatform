@@ -13,7 +13,6 @@ import {
   LiveKitRoom,
   RoomAudioRenderer,
   StartAudio,
-  VideoTrack,
   useRoomContext,
   useParticipants,
   useTracks,
@@ -41,6 +40,11 @@ import { api, ApiError, setMeetingCsrf } from '../../lib/api';
 import { useResource } from '../../lib/useResource';
 import { ErrorState, LoadingState } from '../../components/States';
 import { MeetingChat } from './MeetingChat';
+import {
+  MeetingVideoTrack,
+  RecordingProtectionNotice,
+  RecordingWatermark,
+} from './RecordingProtection';
 import { usePolling, okSchema, meetingTime } from './shared';
 const GuestRoom = createContext({ guest: false, admitted: false });
 export function GuestMeetingRoomPage() {
@@ -115,6 +119,7 @@ function RoomEntry({ id }: { id: string }) {
       ) : (
         <section className="panel meeting-prejoin">
           <h2>{tr('Присоединение к видеозанятию')}</h2>
+          {m.recordingProtectionEnabled && <RecordingProtectionNotice />}
           <p>
             {meetingTime(m)} · {m.timeZone}
           </p>
@@ -333,6 +338,8 @@ function Conference({
     [ending, setEnding] = useState(false);
   const pending = useRef<z.infer<typeof moderateMeetingSchema> | null>(null);
   const self = data.self!;
+  const protectedCall = data.meeting.recordingProtectionEnabled;
+  const viewer = `${room.localParticipant.name || tr('Участник')} · ${self.id.replaceAll('-', '').slice(0, 12)}`;
   async function moderate(
     action: z.infer<typeof moderateMeetingSchema>['action'],
     targetId?: string,
@@ -371,7 +378,11 @@ function Conference({
       !t.publication.isMuted,
   );
   return (
-    <div className="conference" data-testid="video-conference">
+    <div
+      className={`conference${protectedCall ? ' recording-protected' : ''}`}
+      data-testid="video-conference"
+    >
+      {protectedCall && <RecordingProtectionNotice />}
       <p className="meeting-connection" role="status">
         {connection === ConnectionState.Connected
           ? tr('Соединение установлено')
@@ -406,7 +417,8 @@ function Conference({
                 {tr('Экран: ')}
                 {t.participant.name}
               </p>
-              {isTrackReference(t) && <VideoTrack trackRef={t} />}
+              {isTrackReference(t) && <MeetingVideoTrack trackRef={t} protected={protectedCall} />}
+              {protectedCall && <RecordingWatermark viewer={viewer} />}
             </div>
           ))}
         </section>
@@ -444,12 +456,13 @@ function Conference({
               isTrackReference(track) &&
               track.publication.track &&
               !track.publication.isMuted ? (
-                <VideoTrack trackRef={track} />
+                <MeetingVideoTrack trackRef={track} protected={protectedCall} />
               ) : (
                 <div className="participant-placeholder" aria-label={tr('Камера выключена')}>
                   {(info?.name ?? p.name ?? '?').slice(0, 1)}
                 </div>
               )}
+              {protectedCall && <RecordingWatermark viewer={viewer} />}
               <p className="participant-caption">
                 {info?.role === 'organizer'
                   ? tr('Организатор')
