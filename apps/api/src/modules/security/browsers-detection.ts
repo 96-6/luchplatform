@@ -206,7 +206,11 @@ export function evaluateBrowser(
   });
   if (!policy.outdatedEnabled && !policy.enhancedEnabled) return result('disabled', true);
   if (policy.enhancedEnabled && known.some((x) => x.family === 'yandex')) return result('blocked');
-  if (policy.outdatedEnabled && known.some((x) => policy.blockedBrowsers.includes(x.family)))
+  if (
+    policy.outdatedEnabled &&
+    (known.some((x) => policy.blockedBrowsers.includes(x.family)) ||
+      (family === 'unknown' && policy.blockedBrowsers.includes('unknown')))
+  )
     return result('blocked');
   if (signals.inconsistent) return result('inconsistent');
   if (

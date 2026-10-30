@@ -160,6 +160,22 @@ describe('browser policy admission', () => {
       ).rows,
     ).toEqual([{ actor_id: root.actor.user.id }]);
   });
+  it('honors an explicit basic-mode block of unknown clients, including ordinary HTTP tooling', async () => {
+    const root = await f.active('superadmin'),
+      v = await verify(root);
+    expect((await get({ 'user-agent': 'node' }, '/api/v1/system')).statusCode).toBe(200);
+    const saved = await policy(v.headers, { blockedBrowsers: ['unknown'] });
+    expect(saved.statusCode, saved.body).toBe(200);
+    for (const headers of [
+      { 'user-agent': 'node' },
+      { 'user-agent': 'UnknownBrowser/1.0', 'sec-fetch-mode': 'cors' },
+    ]) {
+      const denied = await get(headers, '/api/v1/system');
+      expect(denied.statusCode).toBe(403);
+      expect(denied.json().error.message).toBe(BROWSER_DENIED_MESSAGE);
+    }
+    expect((await get(v.headers, '/api/v1/system')).statusCode).toBe(200);
+  });
   it('enforces verification before browser authentication, data APIs and signalling, and does not trust approval headers', async () => {
     expect(
       (await get({ 'user-agent': 'node', 'sec-fetch-mode': 'cors' }, '/api/v1/system')).statusCode,
