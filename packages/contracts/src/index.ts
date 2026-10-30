@@ -1,4 +1,5 @@
 export * from './reports.js';
+export * from './browsers.js';
 export * from './navigation.js';
 export * from './operations.js';
 import { z } from 'zod';

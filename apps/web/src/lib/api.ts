@@ -61,6 +61,11 @@ export async function api<T extends z.ZodType>(
     const payload: unknown = await response.json();
     if (!response.ok) {
       const parsed = errorSchema.safeParse(payload);
+      if (
+        parsed.success &&
+        ['BROWSER_CHECK_REQUIRED', 'BROWSER_INCOMPATIBLE'].includes(parsed.data.error.code)
+      )
+        window.dispatchEvent(new Event('luch:browser-check'));
       throw parsed.success
         ? new ApiError(
             errorText(t(parsed.data.error.message)),

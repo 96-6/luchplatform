@@ -1,5 +1,6 @@
 import {
   testPassword,
+  prepareBrowser,
   apiPasswordLogin,
   signInUI,
   newPasswordUI,
@@ -247,6 +248,7 @@ test('verification and Authenticator pages require a live one-time link and enro
       ['/verify-email', 400],
     ] as const)
       expect((await page.goto(path))?.status()).toBe(status);
+    await prepareBrowser(page);
     const email = `audit-enrollment-${crypto.randomUUID()}@example.test`;
     const cap = (await (await page.request.get('/api/v1/auth/captcha?purpose=register')).json())
       .data;
@@ -299,7 +301,19 @@ test('development server enforces the same direct-page and media access rules', 
     vite = await createServer({
       root: resolve('apps/web'),
       configFile: resolve('apps/web/vite.config.ts'),
-      server: { host: '127.0.0.1', port: 3210, strictPort: true },
+      server: {
+        host: '127.0.0.1',
+        port: 3210,
+        strictPort: true,
+        // This isolated API uses 3200 as APP_URL; preserve its origin checks on the test proxy.
+        proxy: {
+          '/api': {
+            target: 'http://127.0.0.1:3200',
+            changeOrigin: true,
+            headers: { origin: 'http://127.0.0.1:3200' },
+          },
+        },
+      },
     });
     await vite.listen();
     const dev = 'http://127.0.0.1:3210';
@@ -315,7 +329,7 @@ test('development server enforces the same direct-page and media access rules', 
         (await page.request.get(dev + path, { headers: { accept: 'text/html' } })).status(),
         path,
       ).toBe(status);
-    expect((await page.request.get(dev + '/learning-media/phrases-ru-v1.txt')).status()).toBe(401);
+    expect((await page.request.get(dev + '/learning-media/phrases-ru-v1.txt')).status()).toBe(428);
     expect(
       (await page.request.get(dev + '/student', { headers: { accept: '*/*' } })).status(),
     ).toBe(401);
@@ -339,6 +353,7 @@ test('development server enforces the same direct-page and media access rules', 
       );
     await page.goto(dev + '/login');
     await expect(page.getByRole('heading', { name: 'Вход в аккаунт', exact: true })).toBeVisible();
+    expect((await page.request.get(dev + '/learning-media/phrases-ru-v1.txt')).status()).toBe(401);
     await login(page, 'audit-dev-student');
     expect(
       (await page.request.get(dev + '/student', { headers: { accept: 'text/html' } })).status(),

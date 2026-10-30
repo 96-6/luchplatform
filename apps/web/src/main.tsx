@@ -6,15 +6,19 @@ import { ErrorBoundary } from './components/ErrorBoundary';
 import './styles.css';
 import { SecurityGate } from './auth/SecurityGate';
 import { AuthProvider } from './auth/AuthContext';
+import { BrowserGate, BrowserWarningBanner } from './auth/BrowserGate';
 
 createRoot(document.getElementById('root')!).render(
   <StrictMode>
     <ErrorBoundary>
       <BrowserRouter>
         <SecurityGate>
-          <AuthProvider>
-            <App />
-          </AuthProvider>
+          <BrowserGate>
+            <AuthProvider>
+              <BrowserWarningBanner />
+              <App />
+            </AuthProvider>
+          </BrowserGate>
         </SecurityGate>
       </BrowserRouter>
     </ErrorBoundary>

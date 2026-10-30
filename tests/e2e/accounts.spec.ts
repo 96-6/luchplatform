@@ -1,4 +1,10 @@
-import { testPassword, passwordUI, signInUI, newPasswordUI } from './password.helpers';
+import {
+  testPassword,
+  passwordUI,
+  signInUI,
+  newPasswordUI,
+  prepareBrowser,
+} from './password.helpers';
 import { expect, test, type Page } from '@playwright/test';
 import { Secret, TOTP } from 'otpauth';
 
@@ -210,5 +216,7 @@ test('unauthenticated direct cabinet links return HTTP 401 without a redirect by
     await expect(page.getByRole('link', { name: 'Войти в аккаунт' })).toBeVisible();
     expect(new URL(page.url()).pathname).toBe(path);
   }
+  expect((await page.request.get('/api/v1/admin/accounts')).status()).toBe(428);
+  await prepareBrowser(page);
   expect((await page.request.get('/api/v1/admin/accounts')).status()).toBe(401);
 });

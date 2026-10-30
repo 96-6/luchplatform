@@ -2064,4 +2064,46 @@ export const english = {
   'Защита от записи видеозвонка включена': 'Video call recording protection is on',
   'На видео отображаются ваше имя и код подключения. Не записывайте и не распространяйте встречу без разрешения. Веб-защита не блокирует OBS и системные скриншоты.':
     'Video displays your name and connection code. Do not record or share the meeting without permission. Web protection does not block OBS or system screenshots.',
+  'Проверяем совместимость браузера…': 'Checking browser compatibility…',
+  'Используйте обновлённый совместимый браузер. Проверка относится к браузеру и не меняет учебные результаты.':
+    'Use an updated compatible browser. This check applies to the browser and does not change learning results.',
+  'Повторить проверку браузера': 'Check browser again',
+  'Ваш браузер может быть несовместим с платформой':
+    'Your browser may be incompatible with the platform',
+  'Ваш браузер несовместим с платформой': 'Your browser is incompatible with the platform',
+  'Если возникают ошибки, откройте платформу в обновлённом совместимом браузере.':
+    'If you experience problems, open the platform in an updated compatible browser.',
+  Понятно: 'Got it',
+  'Безопасность браузеров': 'Browser security',
+  'Защита от устаревших браузеров': 'Outdated browser protection',
+  'Включена по умолчанию. Запрещает выбранные браузеры и версии ниже заданного минимума. Актуальный Яндекс Браузер допускается с предупреждением при первом входе.':
+    'On by default. Blocks selected browsers and versions below the configured minimum. An up-to-date Yandex Browser can enter with a warning on first sign-in.',
+  'Список запрещённых браузеров': 'Blocked browsers',
+  'Запрещать: {0}': 'Block: {0}',
+  'Усиленная защита': 'Enhanced protection',
+  'Выключена по умолчанию. Разрешает только выбранные браузеры. Яндекс Браузер всегда запрещён, в том числе для администраторов. При включении обоих режимов действуют более строгие ограничения.':
+    'Off by default. Allows only selected browsers. Yandex Browser is always blocked, including for administrators. When both modes are on, the stricter restrictions apply.',
+  'Список разрешённых браузеров': 'Allowed browsers',
+  'Разрешать: {0}': 'Allow: {0}',
+  'Минимальные версии движков': 'Minimum engine versions',
+  'Основной номер версии, без номера сборки. Эти минимумы действуют в обоих режимах. Порог совместимости не заменяет установку обновлений безопасности.':
+    'Major version, without the build number. These minimums apply in both modes. Compatibility thresholds do not replace security updates.',
+  'Сверяются HTTP-заголовки, Client Hints, страница, Web Worker и необходимые возможности браузера. Несогласованная подмена блокируется. Расширение с полным контролем всех признаков может обойти веб-проверку: это не аттестация браузера. Chromium-браузеры, включая Vanadium, могут представляться как Chrome и не всегда различимы.':
+    'Compares HTTP headers, Client Hints, the page, a Web Worker and required browser capabilities. Inconsistent spoofing is blocked. An extension controlling every signal can bypass a web check: this is not browser attestation. Chromium browsers, including Vanadium, may identify as Chrome and cannot always be distinguished.',
+  'Сохранить защиту браузеров': 'Save browser protection',
+  'Вернуть значения по умолчанию': 'Restore defaults',
+  'Настройки защиты браузеров сохранены.': 'Browser protection settings saved.',
+  'Данные браузера противоречат друг другу. Отключите подмену User-Agent и повторите проверку.':
+    'Browser signals are inconsistent. Disable User-Agent spoofing and check again.',
+  'Не удалось подтвердить необходимые возможности браузера. Обновите браузер и проверьте настройки расширений.':
+    'Required browser capabilities could not be verified. Update your browser and check extension settings.',
+  'Повторите проверку браузера.': 'Check your browser again.',
+  'Выполните проверку браузера.': 'Complete the browser check.',
+  'Новые правила закроют ваш доступ. Сначала проверьте браузер и разрешите его.':
+    'The new rules would block your access. Check and allow your browser first.',
+  'Браузеры не должны повторяться.': 'Browsers must not be duplicated.',
+  'Яндекс Браузер и неизвестные браузеры нельзя разрешить в усиленном режиме.':
+    'Yandex Browser and unknown browsers cannot be allowed in enhanced mode.',
+  'Выберите хотя бы один разрешённый браузер.': 'Select at least one allowed browser.',
+  'Проверка браузера не завершена': 'Browser check could not be completed',
 } as const;

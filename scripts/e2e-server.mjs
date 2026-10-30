@@ -1,4 +1,5 @@
 import { testVideo } from '../tests/e2e/test-video.mjs';
+import { DEFAULT_BROWSER_POLICY } from '@luch/contracts';
 import { testTone } from '../tests/e2e/test-tone.mjs';
 import { mkdir, mkdtemp, rm, writeFile, readFile } from 'node:fs/promises';
 import { tmpdir } from 'node:os';
@@ -144,7 +145,24 @@ app.post('/__e2e/speech-mode', async (request, reply) => {
   return reply.code(204).send();
 });
 const fixturePath = new URL('../data/e2e-accounts.json', import.meta.url);
+// Isolated harness recovery for browser-policy tests; this file is not part of the runtime image.
+app.post('/__e2e/browser-policy-reset', async (request, reply) => {
+  if (request.headers['x-e2e-fixture'] !== testIsolationToken) return reply.code(403).send();
+  const p = DEFAULT_BROWSER_POLICY;
+  await database.query(
+    'UPDATE browser_policy SET outdated_enabled=$1,enhanced_enabled=$2,blocked_browsers=$3,allowed_browsers=$4,minimum_versions=$5,revision=revision+1 WHERE id=1',
+    [
+      p.outdatedEnabled,
+      p.enhancedEnabled,
+      JSON.stringify(p.blockedBrowsers),
+      JSON.stringify(p.allowedBrowsers),
+      JSON.stringify(p.minimumVersions),
+    ],
+  );
+  return reply.code(204).send();
+});
 for (const prefix of [
+  'browser-yandex-student',
   'engine-retry',
   'engine-control',
   'engine-integrity',

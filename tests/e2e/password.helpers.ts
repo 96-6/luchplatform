@@ -3,6 +3,15 @@ import { Secret, TOTP } from 'otpauth';
 
 // Synthetic credentials for isolated browser fixtures only.
 export const testPassword = 'Browser fixture password 2026!';
+export async function prepareBrowser(page: Page) {
+  const response = await page.request.get('/api/v1/auth/session');
+  if (response.status() !== 428) return;
+  // Complete the actual page/worker check before fixture API calls.
+  await page.goto('/login');
+  await expect
+    .poll(async () => (await page.request.get('/api/v1/auth/session')).status(), { timeout: 15000 })
+    .toBe(200);
+}
 export function otp(email: string, secret: string, offset = 0) {
   return new TOTP({
     issuer: 'ЛУЧ',
@@ -57,6 +66,7 @@ export async function apiPasswordLogin(
   page: Page,
   options: { data: { email: string; code: string; captcha?: unknown; password?: string } },
 ) {
+  await prepareBrowser(page);
   const { code, ...data } = options.data;
   const first = await page.request.post('/api/v1/auth/login', {
     data: { ...data, password: data.password ?? testPassword },
@@ -68,6 +78,7 @@ export async function apiPasswordLogin(
   });
 }
 export async function enrollAPI(page: Page, email: string, role = 'student', register = true) {
+  await prepareBrowser(page);
   const captcha = async (purpose: string) => ({
     id: (await (await page.request.get(`/api/v1/auth/captcha?purpose=${purpose}`)).json()).data.id,
     answer: 'ABCDE',
