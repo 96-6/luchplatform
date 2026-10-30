@@ -38,6 +38,8 @@ test('superadmin configures both browser modes, preserves lists and restores def
     ).toHaveCount(0);
     await panel.getByRole('checkbox', { name: 'Усиленная защита', exact: true }).check();
     await panel.getByLabel('Chromium', { exact: true }).fill('155');
+    await expect(panel.getByLabel('Яндекс Браузер (Chromium)', { exact: true })).toHaveValue('152');
+    await panel.getByLabel('Яндекс Браузер (Chromium)', { exact: true }).fill('151');
     await page.route('**/api/v1/security/browser/bootstrap*', (route) => route.abort('failed'));
     await page.evaluate(() => window.dispatchEvent(new Event('luch:browser-check')));
     const retry = page.getByTestId('browser-check-error');
@@ -46,6 +48,7 @@ test('superadmin configures both browser modes, preserves lists and restores def
       panel.getByRole('checkbox', { name: 'Усиленная защита', exact: true }),
     ).toBeChecked();
     await expect(panel.getByLabel('Chromium', { exact: true })).toHaveValue('155');
+    await expect(panel.getByLabel('Яндекс Браузер (Chromium)', { exact: true })).toHaveValue('151');
     await page.unroute('**/api/v1/security/browser/bootstrap*');
     await retry.getByRole('button', { name: 'Повторить проверку браузера', exact: true }).click();
     await expect(retry).toHaveCount(0);
@@ -76,6 +79,9 @@ test('superadmin configures both browser modes, preserves lists and restores def
       english.getByRole('checkbox', { name: 'Enhanced protection', exact: true }),
     ).not.toBeChecked();
     await expect(english).toContainText('this is not browser attestation');
+    await expect(english.getByLabel('Yandex Browser (Chromium)', { exact: true })).toHaveValue(
+      '152',
+    );
     expect(await page.evaluate(() => document.documentElement.scrollWidth <= innerWidth)).toBe(
       true,
     );

@@ -59,6 +59,7 @@ export const browserPolicySchema = z
       chromium: z.number().int().min(1).max(999),
       firefox: z.number().int().min(1).max(999),
       webkit: z.number().int().min(1).max(999),
+      yandex: z.number().int().min(1).max(999).default(152),
     }),
     revision: z.number().int().positive(),
   })
@@ -88,7 +89,7 @@ export const DEFAULT_BROWSER_POLICY: BrowserPolicy = {
     'samsung',
     'duckduckgo',
   ],
-  minimumVersions: { chromium: 154, firefox: 153, webkit: 26 },
+  minimumVersions: { chromium: 154, firefox: 153, webkit: 26, yandex: 152 },
   revision: 1,
 };
 export const browserHintsSchema = z.strictObject({

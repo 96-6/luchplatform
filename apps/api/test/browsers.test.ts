@@ -207,6 +207,47 @@ describe('browser policy admission', () => {
     expect(r.statusCode, r.body).toBe(403);
     expect(r.json().error.message).toBe(BROWSER_DENIED_MESSAGE);
   });
+  it('uses the configurable Yandex engine minimum without relaxing Chrome or allowing older Yandex releases', async () => {
+    const released = yandex.replace('156.0.0.0', '152.0.7977.1860');
+    const v = await verify(undefined, released, released, released, {
+      'sec-ch-ua': '"Chromium";v="152", "Yandex Browser";v="26"',
+    });
+    expect(v.assessment.decision).toMatchObject({ allowed: true, warning: true });
+    expect((await get(v.headers, '/api/v1/system')).statusCode).toBe(200);
+    for (const ua of [chrome.replace('156.0.0.0', '152.0.0.0'), released.replace('152.', '151.')])
+      expect((await get({ 'user-agent': ua }, '/api/v1/system')).statusCode).toBe(403);
+    expect(
+      (
+        await get(
+          {
+            'user-agent': chrome.replace('156.0.0.0', '152.0.0.0'),
+            'sec-ch-ua': '"Chromium";v="152", "Yandex Browser";v="26"',
+          },
+          '/api/v1/system',
+        )
+      ).statusCode,
+    ).toBe(403);
+    const root = await f.active('superadmin'),
+      admin = await verify(root);
+    expect(
+      (
+        await policy(admin.headers, {
+          minimumVersions: { ...DEFAULT_BROWSER_POLICY.minimumVersions, yandex: 153 },
+        })
+      ).statusCode,
+    ).toBe(200);
+    expect((await get(v.headers, '/api/v1/system')).statusCode).toBe(403);
+  });
+  it('prevents a Yandex administrator from raising its own engine minimum above the current browser', async () => {
+    const root = await f.active('superadmin'),
+      ua = yandex.replace('156.0.0.0', '152.0.7977.1860'),
+      v = await verify(root, ua);
+    const saved = await policy(v.headers, {
+      minimumVersions: { ...DEFAULT_BROWSER_POLICY.minimumVersions, yandex: 153 },
+    });
+    expect(saved.statusCode).toBe(409);
+    expect(saved.json().error.code).toBe('SELF_LOCKOUT');
+  });
   it('allows an up-to-date Yandex Browser and remembers the first-login notice per account', async () => {
     const user = await f.active(),
       v = await verify(user, yandex);

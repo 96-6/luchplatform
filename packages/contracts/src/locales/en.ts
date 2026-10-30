@@ -2106,4 +2106,7 @@ export const english = {
     'Yandex Browser and unknown browsers cannot be allowed in enhanced mode.',
   'Выберите хотя бы один разрешённый браузер.': 'Select at least one allowed browser.',
   'Проверка браузера не завершена': 'Browser check could not be completed',
+  'Яндекс Браузер (Chromium)': 'Yandex Browser (Chromium)',
+  'Для Яндекс Браузера в обычном режиме задан отдельный минимум Chromium с учётом его выпусков. Усиленный режим запрещает Яндекс при любой версии.':
+    'In basic mode, Yandex Browser has a separate Chromium minimum for its release schedule. Enhanced mode blocks Yandex at every version.',
 } as const;

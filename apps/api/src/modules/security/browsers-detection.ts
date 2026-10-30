@@ -213,10 +213,16 @@ export function evaluateBrowser(
   )
     return result('blocked');
   if (signals.inconsistent) return result('inconsistent');
+  const yandexAgent =
+    family === 'yandex' &&
+    signals.identities.filter((x) => x.source === 'ua').every((x) => x.family === 'yandex');
   if (
     signals.identities.some(
       (x) =>
-        x.engine !== 'unknown' && x.major !== null && x.major < policy.minimumVersions[x.engine],
+        x.engine !== 'unknown' &&
+        x.major !== null &&
+        x.major <
+          policy.minimumVersions[yandexAgent && x.engine === 'chromium' ? 'yandex' : x.engine],
     )
   )
     return result('outdated');

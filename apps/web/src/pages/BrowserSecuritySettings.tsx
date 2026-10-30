@@ -133,14 +133,21 @@ export function BrowserSecuritySettings() {
                 'Основной номер версии, без номера сборки. Эти минимумы действуют в обоих режимах. Порог совместимости не заменяет установку обновлений безопасности.',
               )}
             </p>
+            <p className="muted">
+              {t(
+                'Для Яндекс Браузера в обычном режиме задан отдельный минимум Chromium с учётом его выпусков. Усиленный режим запрещает Яндекс при любой версии.',
+              )}
+            </p>
             <div className="form-grid">
-              {(['chromium', 'firefox', 'webkit'] as const).map((engine) => (
+              {(['chromium', 'firefox', 'webkit', 'yandex'] as const).map((engine) => (
                 <label key={engine}>
                   {engine === 'webkit'
                     ? 'Safari / iOS'
-                    : engine === 'firefox'
-                      ? 'Firefox / ESR'
-                      : 'Chromium'}
+                    : engine === 'yandex'
+                      ? t('Яндекс Браузер (Chromium)')
+                      : engine === 'firefox'
+                        ? 'Firefox / ESR'
+                        : 'Chromium'}
                   <input
                     type="number"
                     min={1}
