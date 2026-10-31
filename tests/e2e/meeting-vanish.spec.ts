@@ -28,6 +28,7 @@ test('superadmin chooses VANISH, receives real media invisibly, reconnects hidde
     const teacher = await (await browser.newContext(options)).newPage();
     const studentPage = await (await browser.newContext(options)).newPage();
     const admin = await (await browser.newContext(options)).newPage();
+    admin.setDefaultTimeout(15000);
     const tutor = await login(teacher, 'meeting-vanish-tutor');
     const student = await login(studentPage, 'meeting-vanish-student');
     await link(browser, tutor.user.id, [student.user.id]);
@@ -137,23 +138,31 @@ test('superadmin chooses VANISH, receives real media invisibly, reconnects hidde
     await admin.setViewportSize({ width: 390, height: 844 });
     await admin.getByRole('button', { name: 'Открыть меню', exact: true }).click();
     await admin.getByLabel('Язык интерфейса', { exact: true }).selectOption('en');
-    await admin.getByRole('button', { name: 'Close menu', exact: true }).click();
+    // Changing the interface language reloads the app and returns to prejoin.
+    await admin.getByRole('checkbox', { name: 'Join in VANISH mode' }).check();
+    await admin.getByRole('button', { name: 'Join meeting', exact: true }).click();
+    await expect(admin.locator('.meeting-connection')).toContainText('Connected', {
+      timeout: 30000,
+    });
+    expect(
+      (await (await admin.request.get(`/api/v1/meetings/${id}/room-state`)).json()).data.self.id,
+    ).toBe(hidden.id);
+    await expect(teacher.getByTestId('meeting-participant')).toHaveCount(2);
     await expect(admin.getByTestId('vanish-status')).toContainText('VANISH mode is active');
     expect(await admin.evaluate(() => document.documentElement.scrollWidth <= innerWidth)).toBe(
       true,
     );
     await admin.screenshot({ path: 'test-results/meeting-vanish-en-mobile.png', fullPage: true });
-    await admin.getByRole('button', { name: 'Open menu', exact: true }).click();
-    await admin.getByLabel('Interface language', { exact: true }).selectOption('ru');
-    await admin.getByRole('button', { name: 'Закрыть меню', exact: true }).click();
-    await admin.getByRole('button', { name: 'Покинуть встречу', exact: true }).click();
-    await expect(admin.getByRole('checkbox', { name: 'Войти в VANISH-режиме' })).toBeVisible();
-    await admin.getByRole('checkbox', { name: 'Войти в VANISH-режиме' }).uncheck();
-    await admin.getByRole('button', { name: 'Войти во встречу', exact: true }).click();
-    await connected(admin);
+    await admin.getByRole('button', { name: 'Leave meeting', exact: true }).click();
+    await expect(admin.getByRole('checkbox', { name: 'Join in VANISH mode' })).toBeVisible();
+    await admin.getByRole('checkbox', { name: 'Join in VANISH mode' }).uncheck();
+    await admin.getByRole('button', { name: 'Join meeting', exact: true }).click();
+    await expect(admin.locator('.meeting-connection')).toContainText('Connected', {
+      timeout: 30000,
+    });
     await expect(admin.getByTestId('vanish-status')).toHaveCount(0);
     await expect(teacher.getByTestId('meeting-participant')).toHaveCount(3);
-    await admin.getByRole('button', { name: 'Покинуть встречу', exact: true }).click();
+    await admin.getByRole('button', { name: 'Leave meeting', exact: true }).click();
     await expect(teacher.getByTestId('meeting-participant')).toHaveCount(2);
   } finally {
     await browser.close();
