@@ -1,4 +1,91 @@
 export const english = {
+  Допустить: 'Admit',
+  Отказать: 'Reject',
+  'Разрешить вход вручную': 'Allow browser access manually',
+  'Суперадмин создаёт ссылку для обхода обеих проверок браузера. Получатель подтверждает допуск кнопкой; открытие ссылки само по себе его не расходует.':
+    'A superadmin can create a link to bypass both browser checks. The recipient confirms access with a button; opening the link alone does not use it.',
+  'Одна запись — один браузер или профиль, а не физическое устройство. Допуск действует до 365 дней; удаление cookie требует нового допуска. Авторизация, 2FA и остальные правила сохраняются.':
+    'Each record represents one browser or profile, rather than a physical device. Access lasts up to 365 days; clearing cookies requires a new permit. Sign-in, 2FA and other rules still apply.',
+  'Название ссылки': 'Link name',
+  'Тип ссылки': 'Link type',
+  Одноразовая: 'Single-use',
+  Многоразовая: 'Reusable',
+  'Срок ссылки (необязательно)': 'Link expiry (optional)',
+  'Срок ссылки ограничивает новые допуски. Отзыв ссылки закрывает и все ранее выданные по ней допуски.':
+    'The link deadline limits new permits. Revoking a link also revokes all permits issued through it.',
+  'Повторить создание ссылки': 'Retry link creation',
+  'Создать ссылку ручного допуска': 'Create a manual access link',
+  'Созданная ссылка': 'Created link',
+  'Ссылка ручного допуска создана.': 'Manual access link created.',
+  'Ссылка и её допуски отозваны.': 'The link and its permits have been revoked.',
+  'Выделите ссылку и скопируйте её вручную.': 'Select the link and copy it manually.',
+  'Выданные ссылки': 'Issued links',
+  'Обновить ручные допуски': 'Refresh manual access',
+  'Ссылки ручного допуска ещё не создавались.': 'No manual access links have been created.',
+  'Ссылка действует': 'Link is active',
+  'Одноразовая ссылка использована': 'Single-use link has been used',
+  'Срок ссылки истёк': 'Link has expired',
+  'Ссылка отозвана': 'Link has been revoked',
+  'Создал: {0} ({1})': 'Created by: {0} ({1})',
+  'Создана: {0}': 'Created: {0}',
+  'Новые допуски до: {0}': 'New permits until: {0}',
+  'Срок ссылки не ограничен': 'No link deadline',
+  'Отозвал: {0}': 'Revoked by: {0}',
+  'Показать ссылку': 'Show link',
+  'Ссылка: {0}': 'Link: {0}',
+  'Запомнено: {0} · Активно: {1}': 'Remembered: {0} · Active: {1}',
+  'Отозвать ссылку': 'Revoke link',
+  'Все допуски этой ссылки перестанут обходить проверку браузера.':
+    'Every permit issued through this link will stop bypassing browser checks.',
+  'Подтвердить отзыв ссылки': 'Confirm link revocation',
+  'Запомненные браузеры': 'Remembered browsers',
+  'Названия браузера и ОС — переданные клиентом сведения. После отзыва отдельного допуска обладатель действующей многоразовой ссылки может получить новый; для закрытия всех допусков отзовите ссылку.':
+    'Browser and OS names are reported by the client. A holder of an active reusable link can obtain a new permit after an individual permit is revoked; revoke the link to close all of its permits.',
+  'По этой ссылке ещё не запомнено ни одного браузера.':
+    'No browsers have been remembered through this link.',
+  'Допуск действует': 'Permit is active',
+  'Допуск не действует': 'Permit is inactive',
+  'Первое использование': 'First use',
+  'Последнее обращение': 'Last seen',
+  'Допуск до': 'Permit expires',
+  'IP: первый / последний': 'IP: first / latest',
+  'Последний вошедший аккаунт': 'Last signed-in account',
+  'Без входа в аккаунт': 'Not signed in',
+  'Сведения браузера': 'Browser details',
+  'Неизвестный браузер': 'Unknown browser',
+  'Неизвестная ОС': 'Unknown OS',
+  'Отозвать допуск: {0}': 'Revoke permit: {0}',
+  'Показать ещё ссылки': 'Show more links',
+  'Показать ещё браузеры': 'Show more browsers',
+  'Этот браузер уже запомнен. Можно перейти на платформу.':
+    'This browser is already remembered. You can continue to the platform.',
+  'Перейти на платформу': 'Continue to the platform',
+  'Суперадмин разрешает этому браузеру обходить проверку совместимости. Вход в аккаунт и остальные правила безопасности сохраняются.':
+    'A superadmin allows this browser to bypass compatibility checks. Account sign-in and all other security rules still apply.',
+  'Допуск хранится в этом браузере до 365 дней. После удаления cookie или смены профиля потребуется новая ссылка. Совместимость функций старого браузера не гарантируется.':
+    'The permit is stored in this browser for up to 365 days. Clearing cookies or switching profiles requires a new link. Features may still be incompatible with an old browser.',
+  'Название устройства (необязательно)': 'Device name (optional)',
+  'Разрешить этот браузер': 'Allow this browser',
+  'Ссылка ручного допуска недоступна. Запросите новую ссылку у суперадмина.':
+    'The manual access link is unavailable. Ask a superadmin for a new link.',
+  'Ссылка уже создана с другими параметрами.':
+    'The link has already been created with different settings.',
+  'Ручной допуск не найден.': 'Manual access permit not found.',
+  'Откройте ссылку ручного допуска заново.': 'Open the manual access link again.',
+  'Боковая панель чата': 'Chat sidebar',
+  'Скачать {0}': 'Download {0}',
+  'Возможно, виртуальная камера — {0}': 'Possibly a virtual camera — {0}',
+  'Возможно, виртуальный микрофон — {0}': 'Possibly a virtual microphone — {0}',
+  'У участника проблемы с соединением': 'The participant is having connection problems',
+  'Идёт встреча. Вы хотите перейти на другую страницу?':
+    'A meeting is in progress. Do you want to leave this page?',
+  'Можно открыть страницу в новом окне и продолжить звонок здесь.':
+    'You can open the page in a new window and continue the call here.',
+  'Открыть в новом окне': 'Open in a new window',
+  'Выйти из встречи и перейти в этом окне': 'Leave the meeting and continue in this window',
+  'Остаться во встрече': 'Stay in the meeting',
+  'Выключена по умолчанию. Разрешает только выбранные браузеры. Яндекс Браузер запрещён без ручного допуска суперадмина. При включении обоих режимов действуют более строгие ограничения.':
+    'Off by default. Only selected browsers are allowed. Yandex Browser is blocked unless a superadmin grants manual access. When both modes are enabled, the stricter restrictions apply.',
   'Войти в VANISH-режиме': 'Join in VANISH mode',
   'Вы видите и слышите встречу, но не отображаетесь участникам. Камера, микрофон, демонстрация, рука и отправка сообщений недоступны. Вход сохраняется в журнале.':
     'You can see and hear the meeting without appearing to participants. Camera, microphone, screen sharing, raised hand and sending messages are unavailable. Your entry is recorded in the audit log.',
@@ -2075,8 +2162,8 @@ export const english = {
   'Сохранить защиту видеовстреч': 'Save meeting protection',
   'Настройки защиты видеовстреч сохранены.': 'Meeting protection settings saved.',
   'Защита от записи видеозвонка включена': 'Video call recording protection is on',
-  'На видео отображаются ваше имя и код подключения. Не записывайте и не распространяйте встречу без разрешения. Веб-защита не блокирует OBS и системные скриншоты.':
-    'Video displays your name and connection code. Do not record or share the meeting without permission. Web protection does not block OBS or system screenshots.',
+  'На видео отображаются ваше имя и код подключения. Не записывайте и не распространяйте встречу без разрешения.':
+    'Video displays your name and connection code. Do not record or share the meeting without permission.',
   'Проверяем совместимость браузера…': 'Checking browser compatibility…',
   'Используйте обновлённый совместимый браузер. Проверка относится к браузеру и не меняет учебные результаты.':
     'Use an updated compatible browser. This check applies to the browser and does not change learning results.',
@@ -2122,4 +2209,15 @@ export const english = {
   'Яндекс Браузер (Chromium)': 'Yandex Browser (Chromium)',
   'Для Яндекс Браузера в обычном режиме задан отдельный минимум Chromium с учётом его выпусков. Усиленный режим запрещает Яндекс при любой версии.':
     'In basic mode, Yandex Browser has a separate Chromium minimum for its release schedule. Enhanced mode blocks Yandex at every version.',
+  'Для доступа преподавателя требуется подтверждение регистрации суперадмином.':
+    'Teacher access requires a superadmin to approve the registration.',
+  'Регистрация преподавателя ожидает подтверждения суперадмином.':
+    'Teacher registration is awaiting superadmin approval.',
+  'Только преподаватели, ожидающие подтверждения': 'Only teachers awaiting approval',
+  '· ожидает подтверждения регистрации': '· registration awaiting approval',
+  'Подтверждение регистрации преподавателя': 'Teacher registration approval',
+  'Подтвердить регистрацию преподавателя': 'Approve teacher registration',
+  'Регистрация преподавателя подтверждена.': 'Teacher registration approved.',
+  'Регистрацию подтвердил: {0} ({1}) · {2}': 'Registration approved by: {0} ({1}) · {2}',
+  'Выберите аккаунт преподавателя.': 'Select a teacher account.',
 } as const;

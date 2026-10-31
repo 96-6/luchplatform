@@ -16,6 +16,8 @@ import { hashToken, token } from '../auth/crypto.js';
 import { audit } from '../accounts/repository.js';
 import { limitAttempts } from './rate.js';
 import { browserSignals, evaluateBrowser, type BrowserSignals } from './browsers-detection.js';
+import { BrowserManualAccess } from './browser-access.js';
+import { registerBrowserManualRoutes } from './browser-access-routes.js';
 
 type Decision = z.infer<typeof browserDecisionSchema>;
 type Assessment = {
@@ -53,12 +55,14 @@ export async function getBrowserPolicy(db: QueryExecutor): Promise<BrowserPolicy
 }
 export class BrowserService {
   readonly cookie: string;
+  readonly manual: BrowserManualAccess;
   constructor(
     readonly db: Database,
     readonly auth: AuthService,
     readonly now = Date.now,
   ) {
     this.cookie = auth.settings.APP_ENV === 'production' ? '__Host-luch_browser' : 'luch_browser';
+    this.manual = new BrowserManualAccess(auth, now);
   }
   private client(request: FastifyRequest) {
     const value = request.cookies[this.cookie];
@@ -90,6 +94,14 @@ export class BrowserService {
   }
   async bootstrap(request: FastifyRequest, reply: FastifyReply, force: boolean) {
     const p = await getBrowserPolicy(this.db);
+    if (await this.manual.allowed(request))
+      return {
+        enabled: true,
+        policyRevision: p.revision,
+        challenge: null,
+        decision: this.manualDecision(request, p),
+        noticeToken: '',
+      };
     const partial = evaluateBrowser(p, browserSignals(request.headers), false);
     if (!partial.allowed || (!force && !p.outdatedEnabled && !p.enhancedEnabled))
       return {
@@ -137,6 +149,11 @@ export class BrowserService {
     };
   }
   async assess(request: FastifyRequest, input: z.infer<typeof browserEvidenceSchema>) {
+    if (await this.manual.allowed(request))
+      return {
+        decision: this.manualDecision(request, await getBrowserPolicy(this.db)),
+        noticeToken: '',
+      };
     const p = await getBrowserPolicy(this.db),
       client = this.client(request);
     if (!client)
@@ -185,6 +202,7 @@ export class BrowserService {
     return { decision, noticeToken: this.noticeToken(client) };
   }
   async check(request: FastifyRequest, document = false) {
+    if (await this.manual.allowed(request)) return;
     const p = await getBrowserPolicy(this.db);
     if (!p.outdatedEnabled && !p.enhancedEnabled) return;
     const signals = browserSignals(request.headers);
@@ -209,6 +227,7 @@ export class BrowserService {
       const row = await this.current(request, tx);
       const signals = row?.signals ?? browserSignals(request.headers);
       if (
+        !(await this.manual.current(request, tx)) &&
         (input.outdatedEnabled || input.enhancedEnabled) &&
         (!row ||
           new Date(row.verified_until).getTime() <= this.now() ||
@@ -250,6 +269,7 @@ export class BrowserService {
     });
   }
   async notice(request: FastifyRequest) {
+    if (await this.manual.current(request)) return { show: false, message: null };
     const p = await getBrowserPolicy(this.db),
       row = await this.current(request);
     if (!this.valid(row, p) || !row!.decision.warning || !p.outdatedEnabled)
@@ -294,6 +314,16 @@ export class BrowserService {
       new Date(this.now()),
     ]);
   }
+  private manualDecision(request: FastifyRequest, p: BrowserPolicy): Decision {
+    return {
+      allowed: true,
+      warning: false,
+      family: browserSignals(request.headers).identities[0]?.family ?? 'unknown',
+      reason: 'manual',
+      message: null,
+      policyRevision: p.revision,
+    };
+  }
 }
 export async function registerBrowserSecurity(app: FastifyInstance, auth: AuthService) {
   const service = new BrowserService(auth.database, auth);
@@ -311,6 +341,7 @@ export async function registerBrowserSecurity(app: FastifyInstance, auth: AuthSe
       '/api/v1/health/ready',
       '/browser-check-worker.js',
       '/favicon.svg',
+      '/browser-access',
     ];
     if (
       publicPath.includes(path) ||
@@ -355,6 +386,7 @@ export async function registerBrowserSecurity(app: FastifyInstance, auth: AuthSe
     data: await service.update(r, browserPolicySchema.parse(r.body)),
     requestId: r.id,
   }));
+  await registerBrowserManualRoutes(app, service.manual);
   let work: Promise<void> | null = null;
   const timer =
     auth.settings.APP_ENV !== 'test'

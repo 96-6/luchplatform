@@ -1,5 +1,6 @@
 import { beforeAll, beforeEach, afterAll, describe, it, expect } from 'vitest';
 import { randomUUID } from 'node:crypto';
+import { readFile } from 'node:fs/promises';
 import {
   DEFAULT_BROWSER_POLICY,
   browserPolicySchema,
@@ -86,6 +87,56 @@ async function get(headers: Headers, path = '/api/v1/auth/session') {
   return f.app.inject({ url: path, headers });
 }
 describe('browser policy admission', () => {
+  it('admits Chrome 134 and newer by default in both modes, rejects 133 and still rejects inconsistent evidence', async () => {
+    const root = await f.active('superadmin'),
+      admin = await verify(root);
+    for (const enhancedEnabled of [false, true]) {
+      expect((await policy(admin.headers, { enhancedEnabled })).statusCode).toBe(200);
+      for (const major of [134, 135, 156]) {
+        const ua = chrome.replace('156.0.0.0', `${major}.0.0.0`);
+        const accepted = await verify(undefined, ua);
+        expect(accepted.assessment.decision.allowed).toBe(true);
+        expect((await get(accepted.headers, '/api/v1/system')).statusCode).toBe(200);
+      }
+      expect(
+        (await get({ 'user-agent': chrome.replace('156.0.0.0', '133.0.0.0') }, '/api/v1/system'))
+          .statusCode,
+      ).toBe(403);
+      const forged = await verify(
+        undefined,
+        chrome.replace('156.0.0.0', '134.0.0.0'),
+        chrome,
+        chrome,
+      );
+      expect(forged.assessment.decision.reason).toBe('inconsistent');
+    }
+  });
+  it('migrates the previous default floor to 134 and preserves a customized floor', async () => {
+    const sql = await readFile(
+      new URL('../migrations/025_browser_chromium_minimum.sql', import.meta.url),
+      'utf8',
+    );
+    await f.db.exec(
+      "UPDATE browser_policy SET minimum_versions=jsonb_set(minimum_versions,'{chromium}','154')",
+    );
+    await f.db.exec(sql);
+    expect(
+      (
+        await f.db.query<{ floor: string }>(
+          "SELECT minimum_versions->>'chromium' AS floor FROM browser_policy",
+        )
+      ).rows[0]!.floor,
+    ).toBe('134');
+    await f.db.exec(
+      "UPDATE browser_policy SET minimum_versions=jsonb_set(minimum_versions,'{chromium}','160')",
+    );
+    const before = (await f.db.query('SELECT minimum_versions,revision FROM browser_policy'))
+      .rows[0];
+    await f.db.exec(sql);
+    expect(
+      (await f.db.query('SELECT minimum_versions,revision FROM browser_policy')).rows[0],
+    ).toEqual(before);
+  });
   it('starts with persisted basic protection enabled, strict protection disabled and editable defaults', async () => {
     const root = await f.active('superadmin'),
       verified = await verify(root);
@@ -208,6 +259,15 @@ describe('browser policy admission', () => {
     expect(r.json().error.message).toBe(BROWSER_DENIED_MESSAGE);
   });
   it('uses the configurable Yandex engine minimum without relaxing Chrome or allowing older Yandex releases', async () => {
+    const root = await f.active('superadmin'),
+      admin = await verify(root);
+    expect(
+      (
+        await policy(admin.headers, {
+          minimumVersions: { ...DEFAULT_BROWSER_POLICY.minimumVersions, chromium: 155 },
+        })
+      ).statusCode,
+    ).toBe(200);
     const released = yandex.replace('156.0.0.0', '152.0.7977.1860');
     const v = await verify(undefined, released, released, released, {
       'sec-ch-ua': '"Chromium";v="152", "Yandex Browser";v="26"',
@@ -227,8 +287,6 @@ describe('browser policy admission', () => {
         )
       ).statusCode,
     ).toBe(403);
-    const root = await f.active('superadmin'),
-      admin = await verify(root);
     expect(
       (
         await policy(admin.headers, {

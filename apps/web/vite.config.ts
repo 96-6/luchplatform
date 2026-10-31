@@ -75,6 +75,7 @@ export default defineConfig(({ mode }) => {
               (developmentModule && !req.headers.accept?.includes('text/html')) ||
               publicAsset ||
               path.startsWith('/api/') ||
+              pathname === '/browser-access' ||
               pathname === '/browser-check-worker.js' ||
               path.startsWith('/learning-media/')
             )
@@ -142,6 +143,7 @@ export default defineConfig(({ mode }) => {
         allow: browserRoots,
       },
       proxy: {
+        '/browser-access': { target: `http://127.0.0.1:${apiPort}`, changeOrigin: true },
         '/api': { target: `http://127.0.0.1:${apiPort}`, changeOrigin: true, ws: true },
         '/learning-media': { target: `http://127.0.0.1:${apiPort}`, changeOrigin: true },
       },

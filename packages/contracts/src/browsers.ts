@@ -89,7 +89,7 @@ export const DEFAULT_BROWSER_POLICY: BrowserPolicy = {
     'samsung',
     'duckduckgo',
   ],
-  minimumVersions: { chromium: 154, firefox: 153, webkit: 26, yandex: 152 },
+  minimumVersions: { chromium: 134, firefox: 153, webkit: 26, yandex: 152 },
   revision: 1,
 };
 export const browserHintsSchema = z.strictObject({
@@ -131,6 +131,7 @@ export const browserDecisionSchema = z.object({
     'not_allowed',
     'inconsistent',
     'capabilities',
+    'manual',
   ]),
   message: z.string().nullable(),
   policyRevision: z.number().int().positive(),

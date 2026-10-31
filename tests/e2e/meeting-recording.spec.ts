@@ -1,3 +1,4 @@
+import { reloadMeeting } from './meetings.helpers';
 import { expect, test, type Page } from '@playwright/test';
 import { connected, csrf, enter, login, root, videoBrowser } from './meetings.helpers';
 
@@ -26,7 +27,7 @@ test('superadmin saves recording protection and sees its limits in Russian and E
     await expect(settings.getByRole('status')).toHaveText(
       'Настройки защиты видеовстреч сохранены.',
     );
-    await page.reload();
+    await reloadMeeting(page);
     await expect(settings.getByRole('checkbox')).toBeChecked();
     await expect(settings).toContainText('Это меры сдерживания, а не DRM.');
     await page.setViewportSize({ width: 390, height: 844 });
@@ -83,7 +84,10 @@ test('real guest media keeps personal watermarks in fullscreen, restricts printi
     await guest.goto(invite.url);
     await guest.getByLabel('Ваше имя во встрече', { exact: true }).fill('Гость защиты');
     await guest.getByRole('button', { name: 'Присоединиться по приглашению', exact: true }).click();
-    await expect(guest.getByRole('note')).toContainText('Веб-защита не блокирует OBS');
+    await expect(guest.getByRole('note')).toContainText(
+      'Не записывайте и не распространяйте встречу без разрешения.',
+    );
+    await expect(guest.getByRole('note')).not.toContainText('OBS');
     const joined = guest.waitForResponse(
       (r) => r.url().endsWith(`/meetings/${meeting.id}/join`) && r.request().method() === 'POST',
     );
@@ -156,7 +160,7 @@ test('real guest media keeps personal watermarks in fullscreen, restricts printi
     await setProtection(admin, true);
     await expect(mark).toBeVisible();
     await expect(video).toHaveJSProperty('disablePictureInPicture', true);
-    await guest.reload();
+    await reloadMeeting(guest);
     await expect(guest.getByRole('note')).toBeVisible();
   } finally {
     await setProtection(admin, false);

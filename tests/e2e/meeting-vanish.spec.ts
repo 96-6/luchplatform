@@ -1,3 +1,4 @@
+import { reloadMeeting } from './meetings.helpers';
 import { expect, test } from '@playwright/test';
 import {
   connected,
@@ -48,7 +49,7 @@ test('superadmin chooses VANISH, receives real media invisibly, reconnects hidde
     await teacher.getByRole('button', { name: 'Включить микрофон', exact: true }).click();
     await teacher.getByRole('button', { name: 'Включить камеру', exact: true }).click();
     await expect(teacher.getByTestId('meeting-participant')).toHaveCount(2);
-    await admin.reload();
+    await reloadMeeting(admin);
     await admin.getByRole('checkbox', { name: 'Войти в VANISH-режиме' }).check();
     const operations: string[] = [];
     let lost = true;
@@ -127,7 +128,7 @@ test('superadmin chooses VANISH, receives real media invisibly, reconnects hidde
       data: { operationId: crypto.randomUUID(), text: 'Запрещено в VANISH' },
     });
     expect(denied.status()).toBe(403);
-    await admin.reload();
+    await reloadMeeting(admin);
     await admin.getByRole('checkbox', { name: 'Войти в VANISH-режиме' }).check();
     await admin.getByRole('button', { name: 'Войти во встречу', exact: true }).click();
     await connected(admin);
@@ -138,6 +139,10 @@ test('superadmin chooses VANISH, receives real media invisibly, reconnects hidde
     await admin.setViewportSize({ width: 390, height: 844 });
     await admin.getByRole('button', { name: 'Открыть меню', exact: true }).click();
     await admin.getByLabel('Язык интерфейса', { exact: true }).selectOption('en');
+    await admin
+      .getByRole('dialog')
+      .getByRole('button', { name: 'Выйти из встречи и перейти в этом окне', exact: true })
+      .click();
     // Changing the interface language reloads the app and returns to prejoin.
     await admin.getByRole('checkbox', { name: 'Join in VANISH mode' }).check();
     await admin.getByRole('button', { name: 'Join meeting', exact: true }).click();
@@ -146,7 +151,7 @@ test('superadmin chooses VANISH, receives real media invisibly, reconnects hidde
     });
     expect(
       (await (await admin.request.get(`/api/v1/meetings/${id}/room-state`)).json()).data.self.id,
-    ).toBe(hidden.id);
+    ).not.toBe(hidden.id);
     await expect(teacher.getByTestId('meeting-participant')).toHaveCount(2);
     await expect(admin.getByTestId('vanish-status')).toContainText('VANISH mode is active');
     expect(await admin.evaluate(() => document.documentElement.scrollWidth <= innerWidth)).toBe(

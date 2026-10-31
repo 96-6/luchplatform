@@ -80,6 +80,219 @@ async function captcha(purpose: 'login' | 'register' | 'enrollment') {
   expect(response.body).not.toContain('ABCDE');
   return { id: response.json().data.id, answer: 'ABCDE' };
 }
+async function selfRegisteredTeacher() {
+  const email = `pending-${randomUUID()}@example.test`;
+  const registered = await app.inject({
+    method: 'POST',
+    url: '/api/v1/auth/register',
+    payload: { email, name: 'Новый преподаватель', role: 'teacher', password: fixturePassword },
+  });
+  expect(registered.statusCode).toBe(202);
+  const inbox = await app.inject({ url: `/api/v1/dev/mail?email=${email}` });
+  const token = new URL(inbox.json().data[0].verificationUrl).searchParams.get('token');
+  expect(
+    (await app.inject({ method: 'POST', url: '/api/v1/auth/verify-email', payload: { token } }))
+      .statusCode,
+  ).toBe(200);
+  const primary = await app.inject({
+    method: 'POST',
+    url: '/api/v1/auth/login',
+    payload: { email, password: fixturePassword },
+  });
+  expect(primary.json().data.step).toBe('enrollment');
+  const enrollmentCookie = cookie(primary, 'luch_enrollment');
+  const secret = (
+    await app.inject({ url: '/api/v1/auth/enrollment', headers: { cookie: enrollmentCookie } })
+  ).json().data.manualKey;
+  const completed = await app.inject({
+    method: 'POST',
+    url: '/api/v1/auth/enrollment/confirm',
+    headers: { cookie: enrollmentCookie },
+    payload: { code: createTotp(email, secret).generate() },
+  });
+  expect(completed.statusCode, completed.body).toBe(200);
+  const id = (await db.query<{ id: string }>('SELECT id FROM users WHERE email=$1', [email]))
+    .rows[0]!.id;
+  return { id, email, secret, completed };
+}
+
+describe('teacher registration approval', () => {
+  it('finishes email and 2FA without issuing a teacher session until superadmin approval', async () => {
+    const teacher = await selfRegisteredTeacher();
+    expect(teacher.completed.json().data).toMatchObject({
+      session: { user: null, dashboardPath: null },
+      awaitingReview: true,
+      reviewReason: 'teacher_approval',
+    });
+    expect(teacher.completed.cookies.some((c) => c.name === 'luch_session' && c.value)).toBe(false);
+    expect((await app.inject({ url: '/api/v1/teacher/students' })).statusCode).toBe(401);
+    const denied = await app.inject({
+      method: 'POST',
+      url: '/api/v1/auth/login',
+      payload: { email: teacher.email, password: fixturePassword },
+    });
+    expect(denied.statusCode).toBe(403);
+    expect(denied.json().error.code).toBe('TEACHER_APPROVAL_REQUIRED');
+    const root = await active('superadmin'),
+      signed = await login(root),
+      headers = { cookie: signed.cookie, 'x-csrf-token': signed.csrf };
+    const list = await app.inject({ url: '/api/v1/admin/accounts?approval=pending', headers });
+    expect(list.json().data.map((u: User) => u.id)).toEqual([teacher.id]);
+    expect(list.json().data[0].teacherApprovalPending).toBe(true);
+    expect(
+      (
+        await app.inject({
+          method: 'POST',
+          url: `/api/v1/admin/accounts/${teacher.id}/approve-teacher`,
+          headers,
+          payload: {},
+        })
+      ).statusCode,
+    ).toBe(200);
+    const admitted = await passwordLogin(app, {
+      method: 'POST',
+      url: '/api/v1/auth/login',
+      payload: {
+        email: teacher.email,
+        code: createTotp(teacher.email, teacher.secret).generate({ timestamp: Date.now() + 30000 }),
+      },
+    });
+    expect(admitted.statusCode, admitted.body).toBe(200);
+    expect(admitted.json().data.dashboardPath).toBe('/teacher');
+    expect(admitted.json().data.user.teacherApprovalPending).toBe(false);
+  });
+  it('requires a superadmin and CSRF, makes retries safe and records the real approving actor', async () => {
+    const teacher = await selfRegisteredTeacher(),
+      root = await active('superadmin'),
+      signed = await login(root),
+      url = `/api/v1/admin/accounts/${teacher.id}/approve-teacher`;
+    expect((await app.inject({ method: 'POST', url, payload: {} })).statusCode).toBe(401);
+    for (const role of ['student', 'teacher', 'admin'] as const) {
+      const other = await login(await active(role));
+      expect(
+        (
+          await app.inject({
+            method: 'POST',
+            url,
+            headers: { cookie: other.cookie, 'x-csrf-token': other.csrf },
+            payload: {},
+          })
+        ).statusCode,
+      ).toBe(403);
+    }
+    expect(
+      (await app.inject({ method: 'POST', url, headers: { cookie: signed.cookie }, payload: {} }))
+        .statusCode,
+    ).toBe(403);
+    const headers = { cookie: signed.cookie, 'x-csrf-token': signed.csrf };
+    expect(
+      (await app.inject({ method: 'POST', url, headers, payload: { approvedBy: root.id } }))
+        .statusCode,
+    ).toBe(400);
+    const results = await Promise.all([
+      app.inject({ method: 'POST', url, headers, payload: {} }),
+      app.inject({ method: 'POST', url, headers, payload: {} }),
+    ]);
+    expect(results.map((r) => r.statusCode)).toEqual([200, 200]);
+    const detail = (
+      await app.inject({ url: `/api/v1/admin/accounts/${teacher.id}`, headers })
+    ).json().data;
+    expect(detail.teacherApproval).toMatchObject({
+      pending: false,
+      approvedBy: { id: root.id, email: root.email },
+    });
+    expect(detail.teacherApproval.approvedAt).toMatch(/^\d{4}-/);
+    expect(
+      (
+        await db.query('SELECT actor_id,target_id FROM security_audit WHERE action=$1', [
+          'teacher.registration_approved',
+        ])
+      ).rows,
+    ).toEqual([{ actor_id: root.id, target_id: teacher.id }]);
+    expect(
+      (await app.inject({ url: '/api/v1/admin/accounts?approval=pending', headers })).json().data,
+    ).toEqual([]);
+    expect(
+      (
+        await app.inject({
+          method: 'POST',
+          url: `/api/v1/admin/accounts/${root.id}/approve-teacher`,
+          headers,
+          payload: {},
+        })
+      ).statusCode,
+    ).toBe(400);
+  });
+  it('does not let a valid session, manual browser access, or ordinary account verification bypass teacher approval', async () => {
+    const teacher = await active('teacher'),
+      session = await login(teacher);
+    await db.query('UPDATE users SET teacher_approval_required=true WHERE id=$1', [teacher.id]);
+    expect(
+      (
+        await app.inject({ url: '/api/v1/auth/session', headers: { cookie: session.cookie } })
+      ).json().data.user,
+    ).toBeNull();
+    expect(
+      (await app.inject({ url: '/api/v1/teacher/students', headers: { cookie: session.cookie } }))
+        .statusCode,
+    ).toBe(401);
+    const root = await active('superadmin'),
+      signed = await login(root),
+      headers = { cookie: signed.cookie, 'x-csrf-token': signed.csrf };
+    expect(
+      (
+        await app.inject({
+          method: 'POST',
+          url: `/api/v1/admin/accounts/${teacher.id}`,
+          headers,
+          payload: { isBlocked: false, isActive: true, accessVerified: true },
+        })
+      ).statusCode,
+    ).toBe(200);
+    expect(
+      (
+        await db.query<{ teacher_approval_required: boolean }>(
+          'SELECT teacher_approval_required FROM users WHERE id=$1',
+          [teacher.id],
+        )
+      ).rows[0]!.teacher_approval_required,
+    ).toBe(true);
+    const link = (
+      await app.inject({
+        method: 'POST',
+        url: '/api/v1/admin/browser-access-links',
+        headers,
+        payload: { label: 'Teacher review', singleUse: false, operationId: randomUUID() },
+      })
+    ).json().data;
+    const u = new URL(link.url),
+      preview = await app.inject({ url: u.pathname + u.search });
+    const deviceCookie = cookie(preview, 'luch_browser_access'),
+      proof = /name="proof" value="([^"]+)"/.exec(preview.body)![1]!;
+    expect(
+      (
+        await app.inject({
+          method: 'POST',
+          url: '/browser-access',
+          headers: {
+            cookie: deviceCookie,
+            origin: new URL(settings.APP_URL).origin,
+            'content-type': 'application/x-www-form-urlencoded',
+          },
+          payload: new URLSearchParams({ token: u.searchParams.get('token')!, proof }).toString(),
+        })
+      ).statusCode,
+    ).toBe(303);
+    expect(
+      (
+        await app.inject({
+          url: '/api/v1/teacher/students',
+          headers: { cookie: `${session.cookie}; ${deviceCookie}` },
+        })
+      ).statusCode,
+    ).toBe(401);
+  });
+});
 
 describe('accounts acceptance', () => {
   it('completes registration, email verification, QR enrollment and a persistent session', async () => {

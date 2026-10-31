@@ -123,7 +123,18 @@ test('luch engine saves both languages, resumes after login and shares all evide
     expect(adminView.attempts[0].usedHints).toHaveLength(1);
     await admin.screenshot({ path: 'test-results/engine-admin.png', fullPage: true });
     const teacher = await teacherContext.newPage();
-    await enroll(teacher, `engine-teacher-${Date.now()}@example.test`, 'teacher');
+    const teacherEmail = `engine-teacher-${Date.now()}@example.test`,
+      teacherKey = await enroll(teacher, teacherEmail, 'teacher');
+    expect((await (await teacher.request.get('/api/v1/auth/session')).json()).data.user).toBeNull();
+    await admin.goto('/admin');
+    await admin.getByRole('button', { name: `Открыть ${teacherEmail}`, exact: true }).click();
+    await admin
+      .getByRole('button', { name: 'Подтвердить регистрацию преподавателя', exact: true })
+      .click();
+    await expect(
+      admin.getByRole('region', { name: 'Подтверждение регистрации преподавателя', exact: true }),
+    ).toContainText('Регистрацию подтвердил:');
+    await signInUI(teacher, teacherEmail, teacherKey, 30000);
     const teacherUser = (await (await teacher.request.get('/api/v1/auth/session')).json()).data
         .user,
       adminSession = (await (await admin.request.get('/api/v1/auth/session')).json()).data;

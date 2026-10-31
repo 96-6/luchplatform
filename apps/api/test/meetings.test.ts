@@ -149,6 +149,60 @@ async function entered() {
   return { ...g, m, t, s };
 }
 describe('meeting scheduler and open-source conferencing integration', () => {
+  it('keeps a previously connected participant visible during a network loss and restores the same identity', async () => {
+    const g = await entered();
+    expect(
+      (await room(g.teacher, g.m.id)).participants.find((p) => p.identity === g.s.session.id)
+        ?.connectionState,
+    ).toBe('connected');
+    video.peers = video.peers.filter((p) => p.identity !== g.s.session.id);
+    for (const actor of [g.teacher, g.student]) {
+      const state = await room(actor, g.m.id);
+      expect(state.participants.find((p) => p.identity === g.s.session.id)).toMatchObject({
+        name: g.student.actor.user.name,
+        connectionState: 'reconnecting',
+        warnings: [],
+      });
+    }
+    video.peers.push({ identity: g.s.session.id, tracks: [] });
+    expect(
+      (await room(g.teacher, g.m.id)).participants.find((p) => p.identity === g.s.session.id)
+        ?.connectionState,
+    ).toBe('connected');
+    await post(g.student, `/meetings/${g.m.id}/sessions/${g.s.session.id}/leave`, {});
+    expect(
+      (await room(g.teacher, g.m.id)).participants.some((p) => p.identity === g.s.session.id),
+    ).toBe(false);
+  });
+  it('keeps never-connected admissions out of presence and never reveals disconnected VANISH observers', async () => {
+    const g = await entered(),
+      root = await f.active('superadmin');
+    const peer = await join(g.peer, g.m.id);
+    await mod(g.teacher, g.m.id, 'admit', { targetId: peer.session.id });
+    const hidden = (
+      await post(root, `/meetings/${g.m.id}/join`, { operationId: randomUUID(), vanish: true })
+    ).session;
+    video.peers.push({ identity: hidden.id, tracks: [] });
+    await room(g.teacher, g.m.id);
+    video.peers = video.peers.filter((p) => p.identity !== hidden.id);
+    const state = await room(g.teacher, g.m.id);
+    expect(
+      state.participants.some((p) => p.identity === hidden.id || p.identity === peer.session.id),
+    ).toBe(false);
+    await mod(g.teacher, g.m.id, 'kick', { targetId: g.s.session.id });
+    expect(
+      (await room(g.teacher, g.m.id)).participants.some((p) => p.identity === g.s.session.id),
+    ).toBe(false);
+  });
+  it('distinguishes an SFU status outage from an observed participant disconnect', async () => {
+    const g = await entered();
+    await room(g.teacher, g.m.id);
+    video.fail = true;
+    const state = await room(g.teacher, g.m.id);
+    expect(state.available).toBe(false);
+    expect(state.participants).toHaveLength(2);
+    expect(state.participants.every((p) => p.connectionState === 'unknown')).toBe(true);
+  });
   it.each(["role='admin'", 'is_active=false', 'is_blocked=true'])(
     'removes an existing hidden connection when its account loses access: %s',
     async (change) => {

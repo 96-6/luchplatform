@@ -1,3 +1,4 @@
+import { reloadMeeting } from './meetings.helpers';
 import { expect, test, type Page } from '@playwright/test';
 import { passwordUI, secondFactorUI } from './password.helpers';
 import { csrf, login, root, videoBrowser, enter, connected, keys } from './meetings.helpers';
@@ -50,7 +51,7 @@ test('guest invitation uses real media, persists images and files, and reuses th
       guest = await gc.newPage();
     await login(teacher, 'meeting-adhoc-tutor');
     const { id, url } = await createAdhoc(teacher, 'Внеплановая встреча с гостем');
-    await teacher.reload();
+    await reloadMeeting(teacher);
     await expect(teacher.getByLabel('Ссылка для участников', { exact: true })).toHaveValue(url);
     await enter(teacher, id, true);
     await connected(teacher);
@@ -117,14 +118,16 @@ test('guest invitation uses real media, persists images and files, and reuses th
     const download = teacher.waitForEvent('download');
     await attachment.click();
     expect((await download).suggestedFilename()).toBe('задание.txt');
-    await guest.reload();
+    await reloadMeeting(guest);
     await expect(
       guest.getByRole('button', { name: 'Войти во встречу', exact: true }),
     ).toBeEnabled();
     await guest.getByRole('button', { name: 'Войти во встречу', exact: true }).click();
     await connected(guest);
     await guest.getByRole('button', { name: 'Чат', exact: true }).click();
-    await expect(guest.getByRole('log')).toContainText('задание.txt');
+    await expect(
+      guest.getByRole('log').getByRole('link', { name: 'задание.txt', exact: true }),
+    ).toBeVisible();
     await guest.setViewportSize({ width: 390, height: 844 });
     expect(await guest.evaluate(() => document.documentElement.scrollWidth <= innerWidth)).toBe(
       true,
@@ -136,8 +139,10 @@ test('guest invitation uses real media, persists images and files, and reuses th
       data: { operationId: crypto.randomUUID(), action: 'end', revision: m.revision },
     });
     expect(end.status(), await end.text()).toBe(200);
-    await guest.reload();
-    await expect(guest.getByRole('log')).toContainText('задание.txt');
+    await reloadMeeting(guest);
+    await expect(
+      guest.getByRole('log').getByRole('link', { name: 'задание.txt', exact: true }),
+    ).toBeVisible();
     await expect(guest.getByLabel('Сообщение в чат', { exact: true })).toHaveCount(0);
     await teacher.goto(`/meetings/${id}`);
     const restarting = teacher.waitForResponse(
@@ -194,7 +199,7 @@ test('single-use registered invitation returns through password login and reject
       .getByRole('button', { name: 'Присоединиться по приглашению', exact: true })
       .click();
     await expect(student).toHaveURL(new RegExp(`/meetings/${id}/room$`));
-    await student.reload();
+    await reloadMeeting(student);
     await expect(
       student.getByRole('heading', { name: 'Личная ссылка', exact: true }),
     ).toBeVisible();
@@ -243,7 +248,7 @@ test('superadmin configures file limits and upload failures can be retried witho
     await admin.getByLabel('Срок хранения больших файлов, дней', { exact: true }).fill('2');
     await admin.getByRole('button', { name: 'Сохранить настройки файлов', exact: true }).click();
     await expect(admin.getByText('Настройки файлов сохранены.', { exact: true })).toBeVisible();
-    await admin.reload();
+    await reloadMeeting(admin);
     await expect(admin.getByLabel('Максимальный размер файла, МБ', { exact: true })).toHaveValue(
       '1',
     );

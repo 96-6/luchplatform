@@ -1,5 +1,6 @@
 export * from './reports.js';
 export * from './browsers.js';
+export * from './browser-access.js';
 export * from './navigation.js';
 export * from './operations.js';
 import { z } from 'zod';

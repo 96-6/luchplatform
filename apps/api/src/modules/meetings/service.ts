@@ -704,14 +704,23 @@ export class MeetingsService {
         )
       ).rows;
       const participants = [];
-      for (const p of peers) {
-        const s = sessions.find((s) => s.id === p.identity && s.state === 'admitted');
-        if (!s) continue;
+      for (const s of sessions.filter((s) => s.state === 'admitted')) {
+        const p = peers.find((p) => p.identity === s.id);
+        // Only participants previously observed at the SFU get a reconnecting tile.
+        if (!p && !s.first_connected_at) continue;
+        if (
+          !p &&
+          (a.m.status !== 'live' ||
+            a.member?.blocked_at ||
+            !(own?.state === 'admitted' || a.canManage))
+        )
+          continue;
         const member = a.members.find((m) => m.user_id === s.user_id);
-        await tx.query(
-          'UPDATE meeting_sessions SET first_connected_at=COALESCE(first_connected_at,$2),last_seen_at=$2 WHERE id=$1',
-          [s.id, new Date(this.now())],
-        );
+        if (p)
+          await tx.query(
+            'UPDATE meeting_sessions SET first_connected_at=COALESCE(first_connected_at,$2),last_seen_at=$2 WHERE id=$1',
+            [s.id, new Date(this.now())],
+          );
         // Presence is private even from other meeting managers and hidden observers.
         if (s.vanish) continue;
         const warnings = [];
@@ -724,7 +733,7 @@ export class MeetingsService {
             } | null;
             if (
               report?.match &&
-              p.tracks.some((t) => t.sid === report.trackSid && t.source === kind && !t.muted)
+              p?.tracks.some((t) => t.sid === report.trackSid && t.source === kind && !t.muted)
             )
               warnings.push({
                 kind,
@@ -735,6 +744,11 @@ export class MeetingsService {
           }
         participants.push({
           identity: s.id,
+          connectionState: p
+            ? ('connected' as const)
+            : available
+              ? ('reconnecting' as const)
+              : ('unknown' as const),
           userId: s.user_id,
           name: s.full_name,
           role:

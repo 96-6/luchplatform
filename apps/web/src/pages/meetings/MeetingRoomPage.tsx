@@ -1,4 +1,4 @@
-import { t as tr, dateLocale } from '../../i18n';
+import { t as tr } from '../../i18n';
 import {
   createContext,
   useContext,
@@ -40,6 +40,7 @@ import { api, ApiError, setMeetingCsrf } from '../../lib/api';
 import { useResource } from '../../lib/useResource';
 import { ErrorState, LoadingState } from '../../components/States';
 import { MeetingChat } from './MeetingChat';
+import { useMeetingNavigation } from './MeetingNavigation';
 import {
   MeetingVideoTrack,
   RecordingProtectionNotice,
@@ -233,6 +234,24 @@ function JoinedRoom({
   }, [id, initialSession.id]);
   const self = state.data?.self;
   const admitted = self?.state === 'admitted' && state.data?.meeting.status === 'live';
+  const { register } = useMeetingNavigation();
+  const leaveRef = useRef<() => Promise<void>>(async () => {});
+  leaveRef.current = async () => {
+    await api(`/meetings/${id}/sessions/${initialSession.id}/leave`, okSchema, {
+      body: {},
+      keepalive: true,
+    });
+    setToken(null);
+    left();
+  };
+  const holding = Boolean(
+    state.data &&
+    ['waiting', 'admitted'].includes(self?.state ?? '') &&
+    ['scheduled', 'live'].includes(state.data.meeting.status),
+  );
+  useEffect(() => {
+    if (holding) return register(initialSession.id, () => leaveRef.current());
+  }, [holding, register, initialSession.id]);
   useEffect(() => {
     if (admitted && !token && !tokenError) void fetchToken();
   }, [admitted, token, tokenError, fetchToken]);
@@ -260,7 +279,7 @@ function JoinedRoom({
   const data = state.data;
   const finished = ['completed', 'cancelled'].includes(data.meeting.status);
   return (
-    <>
+    <div className="meeting-room">
       <div className="meeting-title">
         <div>
           {!guest && <Link to={`/meetings/${id}`}>{tr('← Карточка занятия')}</Link>}
@@ -330,7 +349,7 @@ function JoinedRoom({
           <button onClick={() => void fetchToken()}>{tr('Подключиться снова')}</button>
         </p>
       )}
-    </>
+    </div>
   );
 }
 function Conference({
@@ -362,7 +381,19 @@ function Conference({
     [ending, setEnding] = useState(false);
   const pending = useRef<z.infer<typeof moderateMeetingSchema> | null>(null);
   const self = data.self!;
-  const peers = allPeers.filter((p) => !(self.vanish && p.isLocal));
+  const visiblePeers = allPeers.filter((p) => !(self.vanish && p.isLocal));
+  const peers = [
+    ...visiblePeers,
+    ...data.participants
+      .filter((p) => !visiblePeers.some((s) => s.identity === p.identity))
+      .map((p) => ({
+        identity: p.identity,
+        name: p.name,
+        isLocal: p.identity === self.id,
+        isMicrophoneEnabled: false,
+        isSpeaking: false,
+      })),
+  ];
   const protectedCall = data.meeting.recordingProtectionEnabled;
   const viewer = `${room.localParticipant.name || tr('Участник')} · ${self.id.replaceAll('-', '').slice(0, 12)}`;
   async function moderate(
@@ -404,292 +435,320 @@ function Conference({
   );
   return (
     <div
-      className={`conference${protectedCall ? ' recording-protected' : ''}`}
+      className={`conference${chatOpen ? ' chat-open' : ''}${protectedCall ? ' recording-protected' : ''}`}
       data-testid="video-conference"
     >
-      {protectedCall && <RecordingProtectionNotice />}
-      {self.vanish && (
-        <p className="inline-message" role="status" data-testid="vanish-status">
-          {tr('VANISH-режим активен. Вы скрыты от участников; вход сохранён в журнале.')}
+      <div className="conference-main" data-testid="meeting-stage">
+        {protectedCall && <RecordingProtectionNotice />}
+        {self.vanish && (
+          <p className="inline-message" role="status" data-testid="vanish-status">
+            {tr('VANISH-режим активен. Вы скрыты от участников; вход сохранён в журнале.')}
+          </p>
+        )}
+        <p className="meeting-connection" role="status">
+          {connection === ConnectionState.Connected
+            ? tr('Соединение установлено')
+            : connection === ConnectionState.Reconnecting ||
+                connection === ConnectionState.SignalReconnecting
+              ? tr('Восстанавливаем соединение…')
+              : tr('Подключение…')}{' '}
+          {tr('· Участников: ')}
+          {peers.length}
         </p>
-      )}
-      <p className="meeting-connection" role="status">
-        {connection === ConnectionState.Connected
-          ? tr('Соединение установлено')
-          : connection === ConnectionState.Reconnecting ||
-              connection === ConnectionState.SignalReconnecting
-            ? tr('Восстанавливаем соединение…')
-            : tr('Подключение…')}{' '}
-        {tr('· Участников: ')}
-        {peers.length}
-      </p>
-      {!data.available && (
-        <p role="alert" className="error">
-          {tr(
-            'Состояние видеосервиса временно недоступно. Управление будет повторено после восстановления.',
-          )}
-        </p>
-      )}
-      {data.pendingCommands > 0 && (
-        <p role="status" className="warning">
-          {tr('Команд ожидает доставки: ')}
-          {data.pendingCommands}
-          {tr('. Не считайте отключение подтверждённым до доставки.')}
-        </p>
-      )}
-      {!self.vanish && (
-        <DeviceReporter id={data.meeting.id} sid={self.id} initialRevision={self.deviceRevision} />
-      )}
+        {!data.available && (
+          <p role="alert" className="error">
+            {tr(
+              'Состояние видеосервиса временно недоступно. Управление будет повторено после восстановления.',
+            )}
+          </p>
+        )}
+        {data.pendingCommands > 0 && (
+          <p role="status" className="warning">
+            {tr('Команд ожидает доставки: ')}
+            {data.pendingCommands}
+            {tr('. Не считайте отключение подтверждённым до доставки.')}
+          </p>
+        )}
+        {!self.vanish && (
+          <DeviceReporter
+            id={data.meeting.id}
+            sid={self.id}
+            initialRevision={self.deviceRevision}
+          />
+        )}
 
-      {screens.length > 0 && (
-        <section className="screen-stage" aria-label={tr('Демонстрации экрана')}>
-          {screens.map((t) => (
-            <div key={t.participant.identity} className="screen-share">
-              <p>
-                {tr('Экран: ')}
-                {t.participant.name}
-              </p>
-              {isTrackReference(t) && <MeetingVideoTrack trackRef={t} protected={protectedCall} />}
-              {protectedCall && <RecordingWatermark viewer={viewer} />}
-            </div>
-          ))}
-        </section>
-      )}
-      <div
-        className="participant-grid"
-        aria-label={tr('Участники видеовстречи')}
-        data-count={peers.length}
-      >
-        {peers.map((p) => {
-          const info = data.participants.find((x) => x.identity === p.identity),
-            track = tracks.find(
-              (t) => t.participant.identity === p.identity && t.source === Track.Source.Camera,
-            );
-          return (
-            <article
-              className={`participant-tile tile-tone-${peers.indexOf(p) % 6} ${pinned === p.identity ? 'pinned' : ''} ${p.isSpeaking ? 'speaking' : ''}`}
-              key={p.identity}
-              data-testid="meeting-participant"
-              data-identity={p.identity}
-            >
-              <div className="participant-top">
-                <strong>
-                  <CallIcon name={p.isMicrophoneEnabled ? 'mic' : 'muted'} />{' '}
-                  {info?.name ?? p.name ?? tr('Участник')} {p.isLocal ? tr('(вы)') : ''}
-                </strong>
-                {info?.handRaisedAt && (
-                  <span className="raised-hand" aria-label={tr('Рука поднята')}>
-                    ✋
-                  </span>
+        {screens.length > 0 && (
+          <section className="screen-stage" aria-label={tr('Демонстрации экрана')}>
+            {screens.map((t) => (
+              <div key={t.participant.identity} className="screen-share">
+                <p>
+                  {tr('Экран: ')}
+                  {t.participant.name}
+                </p>
+                {isTrackReference(t) && (
+                  <MeetingVideoTrack trackRef={t} protected={protectedCall} />
                 )}
-                <DeviceWarnings info={info} />
+                {protectedCall && <RecordingWatermark viewer={viewer} />}
               </div>
-              {track &&
-              isTrackReference(track) &&
-              track.publication.track &&
-              !track.publication.isMuted ? (
-                <MeetingVideoTrack trackRef={track} protected={protectedCall} />
-              ) : (
-                <div className="participant-placeholder" aria-label={tr('Камера выключена')}>
-                  {(info?.name ?? p.name ?? '?').slice(0, 1)}
+            ))}
+          </section>
+        )}
+        <div
+          className="participant-grid"
+          aria-label={tr('Участники видеовстречи')}
+          data-count={peers.length}
+        >
+          {peers.map((p) => {
+            const info = data.participants.find((x) => x.identity === p.identity),
+              reconnecting =
+                info?.connectionState === 'reconnecting' ||
+                !visiblePeers.some((s) => s.identity === p.identity),
+              track = tracks.find(
+                (t) => t.participant.identity === p.identity && t.source === Track.Source.Camera,
+              );
+            return (
+              <article
+                className={`participant-tile tile-tone-${peers.indexOf(p) % 6} ${pinned === p.identity ? 'pinned' : ''} ${p.isSpeaking ? 'speaking' : ''}`}
+                key={p.identity}
+                data-testid="meeting-participant"
+                data-identity={p.identity}
+                data-connection={reconnecting ? 'reconnecting' : 'connected'}
+              >
+                <div className="participant-top">
+                  <strong>
+                    <CallIcon name={p.isMicrophoneEnabled ? 'mic' : 'muted'} />{' '}
+                    {info?.name ?? p.name ?? tr('Участник')} {p.isLocal ? tr('(вы)') : ''}
+                  </strong>
+                  {info?.handRaisedAt && (
+                    <span className="raised-hand" aria-label={tr('Рука поднята')}>
+                      ✋
+                    </span>
+                  )}
+                  <DeviceWarnings info={info} />
                 </div>
-              )}
-              {protectedCall && <RecordingWatermark viewer={viewer} />}
-              <p className="participant-caption">
-                {info?.role === 'organizer'
-                  ? tr('Организатор')
-                  : info?.role === 'superadmin'
-                    ? tr('Суперадмин')
-                    : info?.role === 'admin'
-                      ? tr('Администратор')
-                      : info?.role === 'guest'
-                        ? tr('Гость')
-                        : tr('Участник')}{' '}
-                · {p.isMicrophoneEnabled ? tr('Микрофон включён') : tr('Микрофон выключен')}{' '}
-                {p.isSpeaking ? tr('· Говорит') : ''}
-              </p>
-              <div className="participant-tools">
-                <button
-                  className="secondary"
-                  onClick={() => setPinned((v) => (v === p.identity ? null : p.identity))}
-                  aria-label={`${pinned === p.identity ? tr('Открепить') : tr('Закрепить')}: ${info?.name ?? p.name}`}
-                >
-                  <CallIcon name="pin" />
-                  <span className="sr-only">
-                    {pinned === p.identity ? tr('Открепить') : tr('Закрепить')}
-                  </span>
-                </button>
-                <button
-                  className="secondary"
-                  onClick={(e) =>
-                    void e.currentTarget
-                      .closest('article')
-                      ?.requestFullscreen()
-                      .catch(() => setError(tr('Полноэкранный режим недоступен в этом браузере.')))
-                  }
-                >
-                  <CallIcon name="expand" />
-                  <span className="sr-only">{tr('На весь экран')}</span>
-                </button>
-              </div>
-              {data.meeting.canManage &&
-                !p.isLocal &&
-                info &&
-                (info.role !== 'superadmin' || session.user?.role === 'superadmin') && (
-                  <details className="participant-moderation">
-                    <summary>{tr('Управление участником')}</summary>
-                    <div className="button-row">
-                      <button
-                        disabled={busy}
-                        onClick={() =>
-                          void moderate(
-                            info.audioAllowed ? 'mute_audio' : 'allow_audio',
-                            p.identity,
-                          )
-                        }
-                      >
-                        {info.audioAllowed ? tr('Отключить микрофон') : tr('Разрешить микрофон')}
-                      </button>
-                      <button
-                        disabled={busy}
-                        onClick={() =>
-                          void moderate(
-                            info.videoAllowed ? 'disable_video' : 'allow_video',
-                            p.identity,
-                          )
-                        }
-                      >
-                        {info.videoAllowed ? tr('Отключить камеру') : tr('Разрешить камеру')}
-                      </button>
-                      <button
-                        disabled={busy}
-                        onClick={() =>
-                          void moderate(
-                            info.screenAllowed ? 'stop_screen' : 'allow_screen',
-                            p.identity,
-                          )
-                        }
-                      >
-                        {info.screenAllowed
-                          ? tr('Запретить демонстрацию')
-                          : tr('Разрешить демонстрацию')}
-                      </button>
-                      {info.handRaisedAt && (
+                {reconnecting ? (
+                  <div className="participant-reconnecting" role="status">
+                    <span className="connection-spinner" aria-hidden="true" />
+                    <span>{tr('У участника проблемы с соединением')}</span>
+                  </div>
+                ) : track &&
+                  isTrackReference(track) &&
+                  track.publication.track &&
+                  !track.publication.isMuted ? (
+                  <MeetingVideoTrack trackRef={track} protected={protectedCall} />
+                ) : (
+                  <div className="participant-placeholder" aria-label={tr('Камера выключена')}>
+                    {(info?.name ?? p.name ?? '?').slice(0, 1)}
+                  </div>
+                )}
+                {protectedCall && <RecordingWatermark viewer={viewer} />}
+                <p className="participant-caption">
+                  {info?.role === 'organizer'
+                    ? tr('Организатор')
+                    : info?.role === 'superadmin'
+                      ? tr('Суперадмин')
+                      : info?.role === 'admin'
+                        ? tr('Администратор')
+                        : info?.role === 'guest'
+                          ? tr('Гость')
+                          : tr('Участник')}{' '}
+                  · {p.isMicrophoneEnabled ? tr('Микрофон включён') : tr('Микрофон выключен')}{' '}
+                  {p.isSpeaking ? tr('· Говорит') : ''}
+                </p>
+                <div className="participant-tools">
+                  <button
+                    className="secondary"
+                    onClick={() => setPinned((v) => (v === p.identity ? null : p.identity))}
+                    aria-label={`${pinned === p.identity ? tr('Открепить') : tr('Закрепить')}: ${info?.name ?? p.name}`}
+                  >
+                    <CallIcon name="pin" />
+                    <span className="sr-only">
+                      {pinned === p.identity ? tr('Открепить') : tr('Закрепить')}
+                    </span>
+                  </button>
+                  <button
+                    className="secondary"
+                    onClick={(e) =>
+                      void e.currentTarget
+                        .closest('article')
+                        ?.requestFullscreen()
+                        .catch(() =>
+                          setError(tr('Полноэкранный режим недоступен в этом браузере.')),
+                        )
+                    }
+                  >
+                    <CallIcon name="expand" />
+                    <span className="sr-only">{tr('На весь экран')}</span>
+                  </button>
+                </div>
+                {data.meeting.canManage &&
+                  !p.isLocal &&
+                  info &&
+                  (info.role !== 'superadmin' || session.user?.role === 'superadmin') && (
+                    <details className="participant-moderation">
+                      <summary>{tr('Управление участником')}</summary>
+                      <div className="button-row">
                         <button
                           disabled={busy}
-                          onClick={() => void moderate('lower_hand', p.identity)}
+                          onClick={() =>
+                            void moderate(
+                              info.audioAllowed ? 'mute_audio' : 'allow_audio',
+                              p.identity,
+                            )
+                          }
                         >
-                          {tr('Опустить руку участника')}
+                          {info.audioAllowed ? tr('Отключить микрофон') : tr('Разрешить микрофон')}
                         </button>
-                      )}
-                      <button
-                        className="danger"
-                        disabled={busy}
-                        onClick={() => void moderate('kick', p.identity)}
-                      >
-                        {tr('Удалить из встречи')}
-                      </button>
-                    </div>
-                  </details>
-                )}
-            </article>
-          );
-        })}
-      </div>
-      {data.meeting.canManage && (
-        <details className="conference-manage" open={data.waiting.length > 0 ? true : undefined}>
-          <summary>
-            {tr('Управление встречей · ')}
-            {data.waiting.length}
-          </summary>
-          <section className="panel meeting-moderation" aria-label={tr('Управление встречей')}>
-            <h2>{tr('Управление встречей')}</h2>
-            <div className="button-row">
-              <button disabled={busy} onClick={() => void moderate('mute_all')}>
-                {tr('Отключить микрофоны учеников')}
-              </button>
-              <button
-                disabled={busy}
-                onClick={() => void moderate(data.meeting.locked ? 'unlock' : 'lock')}
-              >
-                {data.meeting.locked ? tr('Открыть вход') : tr('Закрыть вход')}
-              </button>
-              <button className="danger" disabled={busy} onClick={() => setEnding((v) => !v)}>
-                {tr('Завершить встречу для всех')}
-              </button>
-            </div>
-            {ending && (
-              <div className="inline-message">
-                <p>
-                  {tr(
-                    'Все участники будут отключены. Итог и домашние задания сохраняются в карточке занятия.',
+                        <button
+                          disabled={busy}
+                          onClick={() =>
+                            void moderate(
+                              info.videoAllowed ? 'disable_video' : 'allow_video',
+                              p.identity,
+                            )
+                          }
+                        >
+                          {info.videoAllowed ? tr('Отключить камеру') : tr('Разрешить камеру')}
+                        </button>
+                        <button
+                          disabled={busy}
+                          onClick={() =>
+                            void moderate(
+                              info.screenAllowed ? 'stop_screen' : 'allow_screen',
+                              p.identity,
+                            )
+                          }
+                        >
+                          {info.screenAllowed
+                            ? tr('Запретить демонстрацию')
+                            : tr('Разрешить демонстрацию')}
+                        </button>
+                        {info.handRaisedAt && (
+                          <button
+                            disabled={busy}
+                            onClick={() => void moderate('lower_hand', p.identity)}
+                          >
+                            {tr('Опустить руку участника')}
+                          </button>
+                        )}
+                        <button
+                          className="danger"
+                          disabled={busy}
+                          onClick={() => void moderate('kick', p.identity)}
+                        >
+                          {tr('Удалить из встречи')}
+                        </button>
+                      </div>
+                    </details>
                   )}
-                </p>
-                <button className="danger" disabled={busy} onClick={() => void moderate('end')}>
-                  {tr('Подтвердить завершение для всех')}
+              </article>
+            );
+          })}
+        </div>
+        {data.meeting.canManage && (
+          <details className="conference-manage" open={data.waiting.length > 0 ? true : undefined}>
+            <summary>
+              {tr('Управление встречей · ')}
+              {data.waiting.length}
+            </summary>
+            <section className="panel meeting-moderation" aria-label={tr('Управление встречей')}>
+              <h2>{tr('Управление встречей')}</h2>
+              <div className="button-row">
+                <button disabled={busy} onClick={() => void moderate('mute_all')}>
+                  {tr('Отключить микрофоны учеников')}
+                </button>
+                <button
+                  disabled={busy}
+                  onClick={() => void moderate(data.meeting.locked ? 'unlock' : 'lock')}
+                >
+                  {data.meeting.locked ? tr('Открыть вход') : tr('Закрыть вход')}
+                </button>
+                <button className="danger" disabled={busy} onClick={() => setEnding((v) => !v)}>
+                  {tr('Завершить встречу для всех')}
                 </button>
               </div>
-            )}
-            <h3>
-              {tr('Зал ожидания · ')}
-              {data.waiting.length}
-            </h3>
-            {data.waiting.length ? (
-              <ul className="meeting-agenda">
-                {data.waiting.map((p) => (
-                  <li key={p.identity}>
-                    <strong>{p.name}</strong>
-                    <button disabled={busy} onClick={() => void moderate('admit', p.identity)}>
-                      {tr('Допустить: ')}
-                      {p.name}
-                    </button>
-                    <button
-                      className="secondary danger"
-                      disabled={busy}
-                      onClick={() => void moderate('kick', p.identity)}
-                    >
-                      {tr('Отказать: ')}
-                      {p.name}
-                    </button>
-                  </li>
-                ))}
-              </ul>
-            ) : (
-              <p>{tr('Ожидающих участников нет.')}</p>
-            )}
-            {data.meeting.members.some((m) => m.blocked) && (
-              <details>
-                <summary>{tr('Удалённые участники')}</summary>
-                {data.meeting.members
-                  .filter((m) => m.blocked)
-                  .map((m) => (
-                    <p key={m.id}>
-                      {m.name}{' '}
-                      <button disabled={busy} onClick={() => void moderate('restore', m.id)}>
-                        {tr('Разрешить возврат: ')}
-                        {m.name}
-                      </button>
-                    </p>
+              {ending && (
+                <div className="inline-message">
+                  <p>
+                    {tr(
+                      'Все участники будут отключены. Итог и домашние задания сохраняются в карточке занятия.',
+                    )}
+                  </p>
+                  <button className="danger" disabled={busy} onClick={() => void moderate('end')}>
+                    {tr('Подтвердить завершение для всех')}
+                  </button>
+                </div>
+              )}
+              <h3>
+                {tr('Зал ожидания · ')}
+                {data.waiting.length}
+              </h3>
+              {data.waiting.length ? (
+                <ul className="meeting-agenda">
+                  {data.waiting.map((p) => (
+                    <li key={p.identity} className="meeting-lobby-person">
+                      <strong className="meeting-lobby-name">{p.name}</strong>
+                      <div className="meeting-lobby-actions">
+                        <button
+                          aria-label={tr('Допустить: ') + p.name}
+                          disabled={busy}
+                          onClick={() => void moderate('admit', p.identity)}
+                        >
+                          {tr('Допустить')}
+                        </button>
+                        <button
+                          className="secondary danger"
+                          aria-label={tr('Отказать: ') + p.name}
+                          disabled={busy}
+                          onClick={() => void moderate('kick', p.identity)}
+                        >
+                          {tr('Отказать')}
+                        </button>
+                      </div>
+                    </li>
                   ))}
-              </details>
+                </ul>
+              ) : (
+                <p>{tr('Ожидающих участников нет.')}</p>
+              )}
+              {data.meeting.members.some((m) => m.blocked) && (
+                <details>
+                  <summary>{tr('Удалённые участники')}</summary>
+                  {data.meeting.members
+                    .filter((m) => m.blocked)
+                    .map((m) => (
+                      <p key={m.id}>
+                        {m.name}{' '}
+                        <button disabled={busy} onClick={() => void moderate('restore', m.id)}>
+                          {tr('Разрешить возврат: ')}
+                          {m.name}
+                        </button>
+                      </p>
+                    ))}
+                </details>
+              )}
+            </section>
+          </details>
+        )}
+        {error && (
+          <p role="alert" className="error">
+            {error}
+            {pending.current && (
+              <button
+                disabled={busy}
+                onClick={() => void moderate(pending.current!.action, pending.current!.targetId)}
+              >
+                {tr('Повторить команду')}
+              </button>
             )}
-          </section>
-        </details>
-      )}
-      {error && (
-        <p role="alert" className="error">
-          {error}
-          {pending.current && (
-            <button
-              disabled={busy}
-              onClick={() => void moderate(pending.current!.action, pending.current!.targetId)}
-            >
-              {tr('Повторить команду')}
-            </button>
-          )}
-        </p>
-      )}
-      <aside className="meeting-chat-panel" hidden={!chatOpen}>
+          </p>
+        )}
+      </div>
+      <aside
+        className="meeting-chat-panel"
+        aria-label={tr('Боковая панель чата')}
+        hidden={!chatOpen}
+      >
         <div className="chat-panel-title">
           <strong>{tr('Чат встречи')}</strong>
           <button
@@ -725,8 +784,8 @@ function DeviceWarnings({ info }: { info: MeetingRoomState['participants'][numbe
             className="device-warning"
             title={
               w.kind === 'camera'
-                ? tr('Возможно, виртуальная камера')
-                : tr('Возможно, виртуальный микрофон')
+                ? tr('Возможно, виртуальная камера — {0}', [w.label])
+                : tr('Возможно, виртуальный микрофон — {0}', [w.label])
             }
             aria-label={
               w.kind === 'camera'
@@ -763,21 +822,10 @@ function DeviceWarnings({ info }: { info: MeetingRoomState['participants'][numbe
           {opened === w.kind && (
             <div role="note" className="device-warning-detail">
               <strong>
-                {tr('Возможно, участник использует')}{' '}
-                {w.kind === 'camera' ? tr('виртуальную камеру') : tr('виртуальный микрофон')} — «
-                {w.label}».
+                {w.kind === 'camera'
+                  ? tr('Возможно, виртуальная камера — {0}', [w.label])
+                  : tr('Возможно, виртуальный микрофон — {0}', [w.label])}
               </strong>
-              <p>
-                {tr('Совпадение: ')}
-                {w.match}
-                {tr(
-                  '. Название сообщено браузером и может быть изменено. Это не доказательство нарушения.',
-                )}
-              </p>
-              <small>
-                {tr('Доступно организаторам и суперадмину ·')}{' '}
-                {new Date(w.reportedAt).toLocaleTimeString(dateLocale)}
-              </small>
               <button className="secondary" onClick={() => setOpened(null)}>
                 {tr('Закрыть сведения')}
               </button>

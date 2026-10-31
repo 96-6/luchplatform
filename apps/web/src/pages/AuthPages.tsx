@@ -290,6 +290,11 @@ export function RegisterPage() {
           <option value="student">{t('Ученик')}</option>
           <option value="teacher">{t('Преподаватель')}</option>
         </select>
+        {role === 'teacher' && (
+          <p className="muted">
+            {t('Для доступа преподавателя требуется подтверждение регистрации суперадмином.')}
+          </p>
+        )}
         <CaptchaField captcha={captcha} />
         {error && (
           <p className="error inline-message" role="alert">
@@ -372,7 +377,7 @@ export function AuthenticatorPage() {
   const [code, setCode] = useState('');
   const [busy, setBusy] = useState(false);
   const [error, setError] = useState<Error | null>(null);
-  const [awaiting, setAwaiting] = useState(false);
+  const [awaiting, setAwaiting] = useState<'network' | 'teacher_approval' | null>(null);
   async function confirm(event: FormEvent) {
     event.preventDefault();
     setBusy(true);
@@ -383,7 +388,7 @@ export function AuthenticatorPage() {
         body: { code, ...(check ? { captcha: check } : {}) },
       });
       auth.accept(result.session);
-      if (result.awaitingReview) setAwaiting(true);
+      if (result.awaitingReview) setAwaiting(result.reviewReason ?? 'network');
       else navigate(result.session.dashboardPath ?? '/student', { replace: true });
     } catch (failure) {
       setError(failure as Error);
@@ -396,7 +401,11 @@ export function AuthenticatorPage() {
     return (
       <section className="auth-card panel">
         <h1>{t('Authenticator подключён')}</h1>
-        <p>{t('Доступ ожидает проверки администратором.')}</p>
+        <p>
+          {awaiting === 'teacher_approval'
+            ? t('Регистрация преподавателя ожидает подтверждения суперадмином.')
+            : t('Доступ ожидает проверки администратором.')}
+        </p>
         <Link to="/login">{t('Вернуться ко входу')}</Link>
       </section>
     );

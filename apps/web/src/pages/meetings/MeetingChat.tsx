@@ -13,6 +13,10 @@ type Upload = {
   data: z.infer<typeof meetingFileSchema> | null;
   error: string;
 };
+const fileSize = (bytes: number) => {
+  const mb = bytes / 1024 / 1024;
+  return `${mb > 0 && mb < 0.01 ? '< ' + (0.01).toLocaleString(dateLocale) : mb.toLocaleString(dateLocale, { maximumFractionDigits: 2 })} ${tr('МБ')}`;
+};
 export function MeetingChat({ id, readOnly = false }: { id: string; readOnly?: boolean }) {
   const { data, error, refresh } = usePolling(
       `/meetings/${id}/messages`,
@@ -148,25 +152,39 @@ export function MeetingChat({ id, readOnly = false }: { id: string; readOnly?: b
             {m.attachments.map((f) => (
               <div className="meeting-attachment" key={f.id}>
                 {f.deleted ? (
-                  <p>
-                    {f.filename} · {tr('Срок хранения файла истёк.')}
+                  <p aria-label={f.filename} title={f.filename}>
+                    {tr('Срок хранения файла истёк.')} ({fileSize(f.sizeBytes)})
                   </p>
                 ) : (
                   <>
-                    <a href={f.url} download={f.filename}>
+                    <a
+                      className="attachment-download"
+                      href={f.url}
+                      download={f.filename}
+                      aria-label={f.filename}
+                      title={tr('Скачать {0}', [f.filename])}
+                    >
                       {f.mediaType.startsWith('image/') && (
                         <img src={f.url} alt={f.filename} loading="lazy" />
                       )}
-                      <span>{f.filename}</span>
+                      <span className="attachment-download-label">
+                        <svg
+                          width="20"
+                          height="20"
+                          viewBox="0 0 24 24"
+                          fill="none"
+                          stroke="currentColor"
+                          strokeWidth="1.8"
+                          aria-hidden="true"
+                        >
+                          <path d="M12 3v12m-5-5 5 5 5-5M4 16v5h16v-5" />
+                        </svg>
+                        <span>({fileSize(f.sizeBytes)})</span>
+                      </span>
                     </a>
                     <small>
-                      {(f.sizeBytes / 1024 / 1024).toLocaleString(dateLocale, {
-                        maximumFractionDigits: 2,
-                      })}{' '}
-                      {tr('МБ')}
                       {f.expiresAt
-                        ? ' · ' +
-                          tr('Будет удалён {0}', [new Date(f.expiresAt).toLocaleString(dateLocale)])
+                        ? tr('Будет удалён {0}', [new Date(f.expiresAt).toLocaleString(dateLocale)])
                         : ''}
                     </small>
                   </>
@@ -224,7 +242,9 @@ export function MeetingChat({ id, readOnly = false }: { id: string; readOnly?: b
           <ul className="meeting-upload-list">
             {uploads.map((u) => (
               <li key={u.key}>
-                <span>{u.file.name}</span>
+                <span className="meeting-upload-name" title={u.file.name}>
+                  {u.file.name}
+                </span>
                 <span role="status">
                   {u.data ? tr('Файл загружен') : u.error ? '' : tr('Загрузка: {0}%', [u.progress])}
                 </span>

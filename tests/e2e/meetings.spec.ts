@@ -1,3 +1,4 @@
+import { reloadMeeting } from './meetings.helpers';
 import { expect, test, type Page } from '@playwright/test';
 import {
   csrf,
@@ -65,7 +66,7 @@ test('calendar persists a group meeting, retries lost create, reschedules and ca
     await expect(
       page.getByRole('heading', { name: 'Календарь и сохранение занятия', exact: true }),
     ).toBeVisible();
-    await page.reload();
+    await reloadMeeting(page);
     await teacher.getByRole('button', { name: 'Изменить расписание', exact: true }).click();
     const edit = teacher.getByRole('region', { name: 'Изменение видеозанятия', exact: true });
     await edit
@@ -81,7 +82,7 @@ test('calendar persists a group meeting, retries lost create, reschedules and ca
       .toBe(2);
     await teacher.getByRole('button', { name: 'Отменить занятие', exact: true }).click();
     await expect(teacher.locator('.eyebrow')).toContainText('Отменено');
-    await page.reload();
+    await reloadMeeting(page);
     await expect(page.locator('.eyebrow')).toContainText('Отменено');
     await expect(page.getByRole('link', { name: 'Открыть видеовстречу', exact: true })).toHaveCount(
       0,
@@ -283,7 +284,7 @@ for (const language of ['ru', 'en'] as const)
       await studentPage.getByRole('button', { name: 'Выйти', exact: true }).click();
       await login(studentPage, `meeting-${language}-student`, 30000);
       await studentPage.goto(`/meetings/${id}`);
-      await studentPage.reload();
+      await reloadMeeting(studentPage);
       await expect(
         studentPage.getByRole('link', { name: 'Открыть домашнее задание в плане →', exact: true }),
       ).toBeVisible();
@@ -394,7 +395,7 @@ test('real screen share, moderation, permission failure, locked reconnect, root 
     if ((await teacher.locator('.conference-manage').getAttribute('open')) === null)
       await teacher.locator('.conference-manage > summary').click();
     await teacher.getByRole('button', { name: 'Закрыть вход', exact: true }).click();
-    await studentPage.reload();
+    await reloadMeeting(studentPage);
     await studentPage.getByRole('button', { name: 'Войти во встречу', exact: true }).click();
     await connected(studentPage);
     const ticket = (

@@ -3,6 +3,7 @@ import { LanguageSelector } from '../i18n/LanguageSelector';
 import { useEffect, useState, type ReactNode } from 'react';
 import { NavLink, useLocation, useNavigate } from 'react-router-dom';
 import { useAuth } from '../auth/AuthContext';
+import { useMeetingNavigation } from '../pages/meetings/MeetingNavigation';
 
 const navigation = [
   { to: '/', label: t('Главная'), icon: '⌂' },
@@ -22,6 +23,7 @@ const navigation = [
 export function Layout({ children, devTools }: { children: ReactNode; devTools: boolean }) {
   const [open, setOpen] = useState(false);
   const auth = useAuth();
+  const meetingNavigation = useMeetingNavigation();
   const navigate = useNavigate();
   const [logoutError, setLogoutError] = useState('');
   const user = auth.session.user;
@@ -57,7 +59,9 @@ export function Layout({ children, devTools }: { children: ReactNode; devTools: 
     setOpen(false);
   }, [location.pathname]);
   return (
-    <div className="app-shell">
+    <div
+      className={`app-shell${/^\/(?:guest\/)?meetings\/[^/]+\/room$/.test(location.pathname) ? ' meeting-workspace' : ''}`}
+    >
       <a className="skip-link" href="#content">
         {t('К содержимому')}
       </a>
@@ -126,10 +130,14 @@ export function Layout({ children, devTools }: { children: ReactNode; devTools: 
                   className="secondary"
                   onClick={() => {
                     setLogoutError('');
-                    void auth
-                      .logout()
-                      .then(() => navigate('/login', { replace: true }))
-                      .catch((error: Error) => setLogoutError(t(error.message)));
+                    meetingNavigation.request({
+                      href: '/login',
+                      action: () =>
+                        auth
+                          .logout()
+                          .then(() => navigate('/login', { replace: true }))
+                          .catch((error: Error) => setLogoutError(t(error.message))),
+                    });
                   }}
                 >
                   {t('Выйти')}
