@@ -149,6 +149,225 @@ async function entered() {
   return { ...g, m, t, s };
 }
 describe('meeting scheduler and open-source conferencing integration', () => {
+  it.each(["role='admin'", 'is_active=false', 'is_blocked=true'])(
+    'removes an existing hidden connection when its account loses access: %s',
+    async (change) => {
+      const g = await entered(),
+        root = await f.active('superadmin');
+      const { session: s } = await post(root, `/meetings/${g.m.id}/join`, {
+        operationId: randomUUID(),
+        vanish: true,
+      });
+      video.peers.push({ identity: s.id, tracks: [] });
+      await f.db.query(`UPDATE users SET ${change} WHERE id=$1`, [root.actor.user.id]);
+      await new MeetingsService(f.db, video).recover();
+      expect(video.calls.some((c) => c.kind === 'remove' && c.identity === s.id)).toBe(true);
+      expect(
+        (await f.db.query('SELECT state FROM meeting_sessions WHERE id=$1', [s.id])).rows[0]?.state,
+      ).toBe('removed');
+      expect(video.peers.some((p) => p.identity === s.id)).toBe(false);
+    },
+  );
+  it('limits VANISH to superadmins, requires CSRF and never starts a meeting invisibly', async () => {
+    const g = await group(),
+      admin = await f.active('admin'),
+      root = await f.active('superadmin'),
+      m = await create(g.teacher, [g.student]);
+    for (const actor of [g.teacher, g.student, admin])
+      await post(actor, `/meetings/${m.id}/join`, { operationId: randomUUID(), vanish: true }, 403);
+    const denied = await f.app.inject({
+      method: 'POST',
+      url: `/api/v1/meetings/${m.id}/join`,
+      headers: { cookie: root.headers.cookie },
+      payload: { operationId: randomUUID(), vanish: true },
+    });
+    expect(denied.statusCode).toBe(403);
+    await post(root, `/meetings/${m.id}/join`, { operationId: randomUUID(), vanish: 'true' }, 400);
+    await post(
+      root,
+      `/meetings/${m.id}/join`,
+      { operationId: randomUUID(), vanish: true, hidden: true },
+      400,
+    );
+    await post(root, `/meetings/${m.id}/join`, { operationId: randomUUID(), vanish: true }, 409);
+    expect((await room(root, m.id)).meeting.status).toBe('scheduled');
+    expect(await count('meeting_sessions')).toBe(0);
+  });
+  it('persists VANISH, hides presence from every room reader and issues subscribe-only hidden grants', async () => {
+    const g = await entered(),
+      root = await f.active('superadmin'),
+      admin = await f.active('admin');
+    const operationId = randomUUID(),
+      body = { operationId, vanish: true };
+    const result = joinMeetingSchema.parse(await post(root, `/meetings/${g.m.id}/join`, body));
+    const sid = result.session.id;
+    expect(result.session).toMatchObject({
+      vanish: true,
+      state: 'admitted',
+      audioAllowed: false,
+      videoAllowed: false,
+      screenAllowed: false,
+    });
+    expect((await post(root, `/meetings/${g.m.id}/join`, body)).session.id).toBe(sid);
+    expect(
+      (await post(root, `/meetings/${g.m.id}/join`, { operationId: randomUUID(), vanish: true }))
+        .session.id,
+    ).toBe(sid);
+    video.peers.push({ identity: sid, tracks: [] });
+    for (const actor of [g.student, g.teacher, admin, root]) {
+      const state = await room(actor, g.m.id);
+      expect(state.participants.map((p) => p.identity)).toEqual([g.t.session.id, g.s.session.id]);
+      expect(state.waiting).toEqual([]);
+      expect(state.meeting.members.some((m) => m.id === root.actor.user.id)).toBe(false);
+    }
+    const state = await new MeetingsService(f.db, video).room(root.actor, g.m.id, sid);
+    expect(state.self).toMatchObject({ id: sid, vanish: true });
+    const issued = await post(root, `/meetings/${g.m.id}/sessions/${sid}/token`, {});
+    const verifier = new TokenVerifier(f.settings.LIVEKIT_API_KEY, f.settings.LIVEKIT_API_SECRET);
+    const claims = await verifier.verify(issued.token);
+    expect(claims.video).toMatchObject({
+      hidden: true,
+      canSubscribe: true,
+      canPublish: false,
+      canPublishSources: [],
+      canPublishData: false,
+      roomAdmin: false,
+      canUpdateOwnMetadata: false,
+    });
+    const service = new MeetingsService(f.db, video),
+      roomName = claims.video!.room!;
+    const refreshed = await service.signal(root.actor, sid, roomName, true);
+    expect((await verifier.verify(refreshed)).video?.hidden).toBe(true);
+    expect(video.calls.findLast((c) => c.kind === 'permissions')?.policy).toMatchObject({
+      vanish: true,
+      audioAllowed: false,
+      videoAllowed: false,
+      screenAllowed: false,
+    });
+    expect(
+      (
+        await f.db.query(
+          'SELECT request FROM meeting_operations WHERE actor_id=$1 AND operation_id=$2',
+          [root.actor.user.id, operationId],
+        )
+      ).rows[0]?.request,
+    ).toEqual({ id: g.m.id, vanish: true });
+    expect(
+      (
+        await f.db.query(
+          "SELECT action FROM security_audit WHERE actor_id=$1 AND action='meeting.vanish_joined'",
+          [root.actor.user.id],
+        )
+      ).rows,
+    ).toHaveLength(2);
+    const other = await f.app.inject({
+      url: `/api/v1/meetings/${g.m.id}/room-state?sessionId=${sid}`,
+      headers: admin.headers,
+    });
+    expect(other.statusCode).toBe(404);
+  });
+  it('rejects hand, device reports, messages and uploads while hidden, then permits an ordinary visible rejoin', async () => {
+    const g = await entered(),
+      root = await f.active('superadmin');
+    const body = { operationId: randomUUID(), vanish: true };
+    const { session: s } = await post(root, `/meetings/${g.m.id}/join`, body);
+    await post(root, `/meetings/${g.m.id}/sessions/${s.id}/hand`, { raised: true }, 403);
+    await post(
+      root,
+      `/meetings/${g.m.id}/sessions/${s.id}/devices`,
+      { revision: 1, camera: null, microphone: null },
+      403,
+    );
+    await post(
+      root,
+      `/meetings/${g.m.id}/messages`,
+      { operationId: randomUUID(), text: 'hidden message' },
+      403,
+    );
+    const upload = await f.app.inject({
+      method: 'POST',
+      url: `/api/v1/meetings/${g.m.id}/files/${randomUUID()}`,
+      headers: {
+        ...root.headers,
+        'content-type': 'application/octet-stream',
+        'x-file-name': 'test.txt',
+      },
+      payload: Buffer.from('hidden file'),
+    });
+    expect(upload.statusCode).toBe(403);
+    await post(root, `/meetings/${g.m.id}/join`, { operationId: randomUUID() }, 409);
+    await post(
+      root,
+      `/meetings/${g.m.id}/join`,
+      { operationId: body.operationId, vanish: false },
+      409,
+    );
+    await mod(g.teacher, g.m.id, 'kick', { targetId: s.id }, 404);
+    await post(root, `/meetings/${g.m.id}/sessions/${s.id}/leave`, {});
+    await post(root, `/meetings/${g.m.id}/sessions/${s.id}/leave`, {});
+    expect(
+      (
+        await f.db.query(
+          "SELECT action FROM security_audit WHERE actor_id=$1 AND action='meeting.vanish_left'",
+          [root.actor.user.id],
+        )
+      ).rows,
+    ).toHaveLength(1);
+    await post(root, `/meetings/${g.m.id}/sessions/${s.id}/token`, {}, 403);
+    const ordinary = await join(root, g.m.id);
+    expect(ordinary.session).toMatchObject({
+      vanish: false,
+      audioAllowed: true,
+      videoAllowed: true,
+      screenAllowed: true,
+    });
+    video.peers.push({ identity: ordinary.session.id, tracks: [] });
+    expect(
+      (await room(g.student, g.m.id)).participants.some((p) => p.identity === ordinary.session.id),
+    ).toBe(true);
+    await post(root, `/meetings/${g.m.id}/join`, { operationId: randomUUID(), vanish: true }, 409);
+  });
+  it('keeps hidden permissions during moderation and rejects tokens and reconnects after role loss or meeting end', async () => {
+    const g = await group(),
+      root = await f.active('superadmin');
+    const m = await create(g.teacher, [g.student], { coorganizerIds: [root.actor.user.id] });
+    await join(g.teacher, m.id);
+    const { session: s } = await post(root, `/meetings/${m.id}/join`, {
+      operationId: randomUUID(),
+      vanish: true,
+    });
+    const service = new MeetingsService(f.db, video);
+    video.peers.push({ identity: s.id, tracks: [] });
+    await mod(root, m.id, 'allow_audio', { targetId: s.id }, 403);
+    const otherRoot = await f.active('superadmin');
+    await mod(otherRoot, m.id, 'allow_audio', { targetId: s.id });
+    expect(video.calls.findLast((c) => c.kind === 'permissions')?.policy).toMatchObject({
+      vanish: true,
+      audioAllowed: false,
+      videoAllowed: false,
+      screenAllowed: false,
+    });
+    const issued = await post(root, `/meetings/${m.id}/sessions/${s.id}/token`, {});
+    const claims = await new TokenVerifier(
+      f.settings.LIVEKIT_API_KEY,
+      f.settings.LIVEKIT_API_SECRET,
+    ).verify(issued.token);
+    const demoted = { ...root.actor, user: { ...root.actor.user, role: 'admin' as const } };
+    await expect(service.token(demoted, m.id, s.id)).rejects.toMatchObject({
+      code: 'MEETING_VANISH_DENIED',
+    });
+    await expect(service.signal(demoted, s.id, claims.video!.room!, true)).rejects.toMatchObject({
+      code: 'MEETING_VANISH_DENIED',
+    });
+    await mod(g.teacher, m.id, 'end', { revision: (await room(g.teacher, m.id)).meeting.revision });
+    await expect(service.signal(root.actor, s.id, claims.video!.room!)).rejects.toMatchObject({
+      code: 'MEETING_NOT_ADMITTED',
+    });
+    expect(
+      (await f.db.query('SELECT state,vanish,ended_at FROM meeting_sessions WHERE id=$1', [s.id]))
+        .rows[0],
+    ).toMatchObject({ state: 'removed', vanish: true, ended_at: expect.anything() });
+  });
   it('limits recording protection settings to superadmins with CSRF and validates revisions', async () => {
     const root = await f.active('superadmin');
     const endpoint = '/api/v1/admin/meeting-recording-policy';

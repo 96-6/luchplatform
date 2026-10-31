@@ -1,4 +1,17 @@
 export const english = {
+  'Войти в VANISH-режиме': 'Join in VANISH mode',
+  'Вы видите и слышите встречу, но не отображаетесь участникам. Камера, микрофон, демонстрация, рука и отправка сообщений недоступны. Вход сохраняется в журнале.':
+    'You can see and hear the meeting without appearing to participants. Camera, microphone, screen sharing, raised hand and sending messages are unavailable. Your entry is recorded in the audit log.',
+  'VANISH доступен после начала встречи.': 'VANISH is available after the meeting starts.',
+  'VANISH-режим активен. Вы скрыты от участников; вход сохранён в журнале.':
+    'VANISH mode is active. You are hidden from participants; your entry is recorded in the audit log.',
+  'VANISH-режим доступен только суперадмину.': 'VANISH mode is available to superadmins only.',
+  'В VANISH-режиме доступны просмотр и прослушивание.':
+    'VANISH mode allows watching and listening only.',
+  'Для VANISH-режима дождитесь начала встречи.':
+    'Wait for the meeting to start before joining in VANISH mode.',
+  'Сначала выйдите из текущего подключения, чтобы сменить режим.':
+    'Leave your current connection before changing the join mode.',
   'Выберите деактивацию или блокировку.': 'Choose either deactivation or blocking.',
   'Подключаемся к платформе…': 'Connecting to the platform…',
   'Открываем видеокомнату…': 'Opening the video room…',

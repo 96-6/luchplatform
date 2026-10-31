@@ -48,6 +48,9 @@ export const updateMeetingSchema = meetingDraftSchema.safeExtend({
   revision: z.number().int().positive(),
 });
 export const meetingOperationSchema = z.strictObject({ operationId: uuid });
+export const joinMeetingRequestSchema = meetingOperationSchema.extend({
+  vanish: z.boolean().default(false),
+});
 export const meetingSchema = z.object({
   id: uuid,
   title: z.string(),
@@ -122,6 +125,7 @@ export const meetingsQuerySchema = z
   );
 export const meetingSessionSchema = z.object({
   id: uuid,
+  vanish: z.boolean(),
   state: z.enum(['waiting', 'admitted', 'left', 'removed']),
   handRaisedAt: iso.nullable(),
   deviceRevision: z.number().int().nonnegative().default(0),

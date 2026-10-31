@@ -71,18 +71,20 @@ export function MeetingRoomPage() {
 }
 function RoomEntry({ id }: { id: string }) {
   const { guest, admitted: guestAdmitted } = useContext(GuestRoom);
+  const { session } = useAuth();
   const { state, refresh } = useResource(`/meetings/${id}`, meetingSchema),
     [joined, setJoined] = useState<MeetingSession | null>(null),
+    [vanish, setVanish] = useState(false),
     [busy, setBusy] = useState(false),
     [error, setError] = useState('');
-  const pending = useRef<string | null>(null);
+  const pending = useRef<{ operationId: string; vanish: boolean } | null>(null);
   async function enter() {
     setBusy(true);
     setError('');
     try {
-      pending.current ??= crypto.randomUUID();
+      pending.current ??= { operationId: crypto.randomUUID(), vanish };
       const result = await api(`/meetings/${id}/join`, joinMeetingSchema, {
-        body: { operationId: pending.current },
+        body: pending.current,
       });
       setJoined(result.session);
       pending.current = null;
@@ -123,13 +125,35 @@ function RoomEntry({ id }: { id: string }) {
           <p>
             {meetingTime(m)} · {m.timeZone}
           </p>
-          <p>
-            {tr(
-              'Камера и микрофон при входе выключены. Вы сможете включить их и выбрать устройства в комнате.',
-            )}
-          </p>
+          {!vanish && (
+            <p>
+              {tr(
+                'Камера и микрофон при входе выключены. Вы сможете включить их и выбрать устройства в комнате.',
+              )}
+            </p>
+          )}
           {m.lobbyEnabled && !m.canManage && (
             <p>{tr('Организатор допустит вас из зала ожидания.')}</p>
+          )}
+          {!guest && session.user?.role === 'superadmin' && (
+            <div>
+              <label className="checkbox">
+                <input
+                  type="checkbox"
+                  checked={vanish}
+                  disabled={busy || Boolean(pending.current) || m.status !== 'live'}
+                  onChange={(e) => setVanish(e.target.checked)}
+                  aria-describedby="vanish-description"
+                />
+                {tr('Войти в VANISH-режиме')}
+              </label>
+              <p id="vanish-description">
+                {tr(
+                  'Вы видите и слышите встречу, но не отображаетесь участникам. Камера, микрофон, демонстрация, рука и отправка сообщений недоступны. Вход сохраняется в журнале.',
+                )}
+              </p>
+              {m.status !== 'live' && <p>{tr('VANISH доступен после начала встречи.')}</p>}
+            </div>
           )}
           <button disabled={busy || !m.canJoin || !m.videoConfigured} onClick={() => void enter()}>
             {busy
@@ -321,7 +345,7 @@ function Conference({
   leaving: boolean;
 }) {
   const room = useRoomContext(),
-    peers = useParticipants(),
+    allPeers = useParticipants(),
     tracks = useTracks(
       [
         { source: Track.Source.Camera, withPlaceholder: true },
@@ -338,6 +362,7 @@ function Conference({
     [ending, setEnding] = useState(false);
   const pending = useRef<z.infer<typeof moderateMeetingSchema> | null>(null);
   const self = data.self!;
+  const peers = allPeers.filter((p) => !(self.vanish && p.isLocal));
   const protectedCall = data.meeting.recordingProtectionEnabled;
   const viewer = `${room.localParticipant.name || tr('Участник')} · ${self.id.replaceAll('-', '').slice(0, 12)}`;
   async function moderate(
@@ -383,6 +408,11 @@ function Conference({
       data-testid="video-conference"
     >
       {protectedCall && <RecordingProtectionNotice />}
+      {self.vanish && (
+        <p className="inline-message" role="status" data-testid="vanish-status">
+          {tr('VANISH-режим активен. Вы скрыты от участников; вход сохранён в журнале.')}
+        </p>
+      )}
       <p className="meeting-connection" role="status">
         {connection === ConnectionState.Connected
           ? tr('Соединение установлено')
@@ -407,7 +437,9 @@ function Conference({
           {tr('. Не считайте отключение подтверждённым до доставки.')}
         </p>
       )}
-      <DeviceReporter id={data.meeting.id} sid={self.id} initialRevision={self.deviceRevision} />
+      {!self.vanish && (
+        <DeviceReporter id={data.meeting.id} sid={self.id} initialRevision={self.deviceRevision} />
+      )}
 
       {screens.length > 0 && (
         <section className="screen-stage" aria-label={tr('Демонстрации экрана')}>
@@ -668,7 +700,7 @@ function Conference({
             ×
           </button>
         </div>
-        <MeetingChat id={data.meeting.id} />
+        <MeetingChat id={data.meeting.id} readOnly={self.vanish} />
       </aside>
       <MediaControls
         id={data.meeting.id}
@@ -882,7 +914,7 @@ function MediaControls({
         <button
           className="secondary"
           aria-pressed={Boolean(self.handRaisedAt)}
-          disabled={busy}
+          disabled={busy || self.vanish}
           onClick={() => {
             setBusy(true);
             void api(`/meetings/${id}/sessions/${self.id}/hand`, okSchema, {
@@ -905,7 +937,7 @@ function MediaControls({
           <span>{leaving ? tr('Выходим…') : tr('Покинуть встречу')}</span>
         </button>
       </div>
-      {(!self.audioAllowed || !self.videoAllowed || !self.screenAllowed) && (
+      {!self.vanish && (!self.audioAllowed || !self.videoAllowed || !self.screenAllowed) && (
         <p role="status">
           {tr('Организатор ограничил:')}{' '}
           {[

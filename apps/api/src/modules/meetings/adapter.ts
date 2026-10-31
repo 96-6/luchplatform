@@ -1,7 +1,12 @@
 import { AccessToken, RoomServiceClient, TrackSource } from 'livekit-server-sdk';
 import type { Settings } from '../../config.js';
 import { AppError } from '../../errors.js';
-export type MediaPolicy = { audioAllowed: boolean; videoAllowed: boolean; screenAllowed: boolean };
+export type MediaPolicy = {
+  audioAllowed: boolean;
+  videoAllowed: boolean;
+  screenAllowed: boolean;
+  vanish?: boolean;
+};
 export type RtcPeer = {
   identity: string;
   tracks: {
@@ -25,6 +30,7 @@ export const videoUnavailable = () =>
 const missing = (e: unknown) =>
   Boolean(e && typeof e === 'object' && 'code' in e && e.code === 'not_found');
 function sources(p: MediaPolicy) {
+  if (p.vanish) return [];
   return [
     ...(p.audioAllowed ? [TrackSource.MICROPHONE] : []),
     ...(p.videoAllowed ? [TrackSource.CAMERA] : []),
@@ -108,6 +114,7 @@ export class LiveKitVideo implements MeetingVideo {
             canPublishSources: sources(p),
             canPublishData: false,
             canUpdateMetadata: false,
+            hidden: p.vanish ?? false,
           },
         });
         for (const t of peer.tracks) {
@@ -146,6 +153,7 @@ export class LiveKitVideo implements MeetingVideo {
       canPublishData: false,
       canUpdateOwnMetadata: false,
       roomAdmin: false,
+      hidden: p.vanish ?? false,
     });
     return token.toJwt();
   }
