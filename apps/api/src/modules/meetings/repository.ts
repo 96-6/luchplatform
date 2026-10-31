@@ -43,6 +43,7 @@ export type MemberRow = {
 };
 export type SessionRow = {
   id: string;
+  vanish: boolean;
   meeting_id: string;
   user_id: string;
   guest_id?: string | null;
@@ -292,7 +293,12 @@ export async function session(
     throw new AppError(404, 'MEETING_SESSION_NOT_FOUND', 'Подключение не найдено.');
   return s;
 }
-export function policy(p?: Pick<MemberRow, 'audio_allowed' | 'video_allowed' | 'screen_allowed'>) {
+export function policy(
+  p?: Pick<MemberRow, 'audio_allowed' | 'video_allowed' | 'screen_allowed'>,
+  s?: Pick<SessionRow, 'vanish'>,
+) {
+  if (s?.vanish)
+    return { audioAllowed: false, videoAllowed: false, screenAllowed: false, vanish: true };
   return {
     audioAllowed: p?.audio_allowed ?? true,
     videoAllowed: p?.video_allowed ?? true,
@@ -301,10 +307,11 @@ export function policy(p?: Pick<MemberRow, 'audio_allowed' | 'video_allowed' | '
 }
 export const sessionView = (s: SessionRow, p?: MemberRow) => ({
   id: s.id,
+  vanish: s.vanish,
   state: s.state,
   handRaisedAt: iso(s.hand_raised_at),
   deviceRevision: s.device_revision ?? 0,
-  ...policy(p),
+  ...policy(p, s),
 });
 
 export const deadline = (m: Pick<MeetingRow, 'kind' | 'status' | 'ends_at'>) =>

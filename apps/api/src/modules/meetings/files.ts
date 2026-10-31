@@ -57,15 +57,20 @@ export async function fileAccess(
   if (write) {
     if (a.m.status !== 'live' || now > deadline(a.m))
       throw new AppError(409, 'MEETING_CLOSED', 'Занятие завершено или отменено.');
-    if (
-      !(
-        await tx.query(
-          "SELECT 1 FROM meeting_sessions WHERE meeting_id=$1 AND COALESCE(user_id,guest_id)=$2 AND state='admitted'",
-          [id, actor.user.id],
-        )
-      ).rows.length
-    )
+    const active = (
+      await tx.query<{ vanish: boolean }>(
+        "SELECT vanish FROM meeting_sessions WHERE meeting_id=$1 AND COALESCE(user_id,guest_id)=$2 AND state='admitted'",
+        [id, actor.user.id],
+      )
+    ).rows[0];
+    if (!active)
       throw new AppError(403, 'MEETING_NOT_ADMITTED', 'Сначала присоединитесь к встрече.');
+    if (active.vanish)
+      throw new AppError(
+        403,
+        'MEETING_VANISH_READ_ONLY',
+        'В VANISH-режиме доступны просмотр и прослушивание.',
+      );
   }
   return a;
 }

@@ -201,6 +201,8 @@ for (const prefix of [
   'teacher-empty-tutor',
   'teacher-retry-student',
   'meeting-adhoc-tutor',
+  'meeting-vanish-tutor',
+  'meeting-vanish-student',
   'meeting-protection-tutor',
   'meeting-single-tutor',
   'meeting-single-student',

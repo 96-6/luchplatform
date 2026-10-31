@@ -160,6 +160,15 @@ it('applies the recording policy to guest rooms and forbids guest policy changes
     teacher = await f.active('teacher');
   const created = await create(teacher);
   const guest = await redeem(created.token, 'Гость с защитой');
+  await post(
+    guest.headers,
+    `/meetings/${created.meeting.id}/join`,
+    {
+      operationId: randomUUID(),
+      vanish: true,
+    },
+    403,
+  );
   const before = await f.app.inject({
     url: `/api/v1/meetings/${created.meeting.id}`,
     headers: guest.headers,
