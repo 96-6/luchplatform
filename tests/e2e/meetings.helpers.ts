@@ -88,12 +88,13 @@ export async function preparePlan(p: Page, language: 'ru' | 'en') {
 }
 export async function videoBrowser(playwright: Playwright) {
   return playwright.chromium.launch({
-    headless: !process.env.LUCH_VIDEO_TEST_ENV,
+    headless: !process.env.LUCH_VIDEO_TEST_ENV || process.env.LUCH_VIDEO_TEST_HEADLESS === 'true',
     ...(process.env.PLAYWRIGHT_EXECUTABLE_PATH
       ? { executablePath: process.env.PLAYWRIGHT_EXECUTABLE_PATH }
       : {}),
     args: [
       '--no-sandbox',
+      '--no-zygote',
       '--disable-dev-shm-usage',
       '--use-fake-ui-for-media-stream',
       '--use-fake-device-for-media-stream',
@@ -157,6 +158,20 @@ export async function connected(p: Page) {
   await expect(p.locator('.meeting-connection')).toContainText('Соединение установлено', {
     timeout: 30000,
   });
+}
+// An explicit browser refresh confirms its native beforeunload prompt; SPA links
+// are covered separately through the meeting's three-choice navigation dialog.
+export async function reloadMeeting(p: Page) {
+  const accept = async (dialog: import('@playwright/test').Dialog) => {
+    if (dialog.type() === 'beforeunload') await dialog.accept();
+    else await dialog.dismiss();
+  };
+  p.on('dialog', accept);
+  try {
+    await p.reload();
+  } finally {
+    p.off('dialog', accept);
+  }
 }
 export async function signalAccepted(page: Page, serverUrl: string, token: string) {
   return page.evaluate(

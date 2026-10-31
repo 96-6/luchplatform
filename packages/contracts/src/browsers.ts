@@ -131,6 +131,7 @@ export const browserDecisionSchema = z.object({
     'not_allowed',
     'inconsistent',
     'capabilities',
+    'manual',
   ]),
   message: z.string().nullable(),
   policyRevision: z.number().int().positive(),

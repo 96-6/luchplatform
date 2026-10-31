@@ -171,7 +171,6 @@ export async function buildApp(
       return;
     await network.check(request, undefined, false);
   });
-  await registerBrowserSecurity(app, auth);
   app.addHook('onClose', async () => {
     await database.close();
   });
@@ -246,6 +245,7 @@ export async function buildApp(
       },
     });
   });
+  await registerBrowserSecurity(app, auth);
   app.get('/api/v1/system', async (request) => ({
     data: { application: 'ЛУЧ', stage: 'assistant', devToolsEnabled: settings.ENABLE_DEV_TOOLS },
     requestId: request.id,

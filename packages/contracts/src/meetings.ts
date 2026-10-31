@@ -166,6 +166,7 @@ export const roomStateSchema = z.object({
   participants: z.array(
     z.object({
       identity: uuid,
+      connectionState: z.enum(['connected', 'reconnecting', 'unknown']),
       userId: uuid,
       name: z.string(),
       role: z.enum(['organizer', 'student', 'admin', 'superadmin', 'participant', 'guest']),
