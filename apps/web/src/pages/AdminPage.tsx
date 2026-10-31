@@ -80,10 +80,11 @@ export function AdminPage() {
 function Accounts() {
   const [search, setSearch] = useState('');
   const [filter, setFilter] = useState('');
+  const [pendingOnly, setPendingOnly] = useState(false);
   const [selected, setSelected] = useState<string | null>(null);
   const [detailVersion, setDetailVersion] = useState(0);
   const { state, refresh } = useResource(
-    `/admin/accounts?search=${encodeURIComponent(filter)}`,
+    `/admin/accounts?search=${encodeURIComponent(filter)}${pendingOnly ? '&approval=pending' : ''}`,
     usersSchema,
     true,
   );
@@ -116,6 +117,14 @@ function Accounts() {
         />
         <button>{t('Найти')}</button>
       </form>
+      <label className="checkbox-row">
+        <input
+          type="checkbox"
+          checked={pendingOnly}
+          onChange={(e) => setPendingOnly(e.target.checked)}
+        />
+        {t('Только преподаватели, ожидающие подтверждения')}
+      </label>
       {state.status === 'loading' ? (
         <LoadingState />
       ) : state.status === 'error' ? (
@@ -139,6 +148,7 @@ function Accounts() {
                           : t('Суперадмин')}
                     {!user.isActive ? t(' · деактивирован') : ''}
                     {user.isBlocked ? t(' · заблокирован') : ''}
+                    {user.teacherApprovalPending ? t(' · ожидает подтверждения регистрации') : ''}
                   </span>
                   <button
                     className="secondary"
@@ -222,6 +232,20 @@ function AccountDetail({
       setBusy(false);
     }
   }
+  async function approveTeacher() {
+    setBusy(true);
+    setError(null);
+    try {
+      await api(`/admin/accounts/${id}/approve-teacher`, userSchema, { body: {} });
+      setMessage(t('Регистрация преподавателя подтверждена.'));
+      refresh();
+      onSaved();
+    } catch (failure) {
+      setError(failure as Error);
+    } finally {
+      setBusy(false);
+    }
+  }
   async function unassign(teacherId: string, studentId: string) {
     setBusy(true);
     setError(null);
@@ -244,6 +268,27 @@ function AccountDetail({
     <section className="panel">
       <h2>{t('Карточка аккаунта для отладки')}</h2>
       <UserSummary user={state.data.user} />
+      {(state.data.teacherApproval?.pending || state.data.teacherApproval?.approvedAt) && (
+        <section aria-label={t('Подтверждение регистрации преподавателя')}>
+          {state.data.teacherApproval.pending && (
+            <div className="warning">
+              <p>{t('Регистрация преподавателя ожидает подтверждения суперадмином.')}</p>
+              <button disabled={busy} onClick={() => void approveTeacher()}>
+                {t('Подтвердить регистрацию преподавателя')}
+              </button>
+            </div>
+          )}
+          {state.data.teacherApproval.approvedAt && state.data.teacherApproval.approvedBy && (
+            <p>
+              {t('Регистрацию подтвердил: {0} ({1}) · {2}', [
+                state.data.teacherApproval.approvedBy.name,
+                state.data.teacherApproval.approvedBy.email,
+                new Date(state.data.teacherApproval.approvedAt).toLocaleString(dateLocale),
+              ])}
+            </p>
+          )}
+        </section>
+      )}
       <AdminPassword
         key={id}
         userId={id}

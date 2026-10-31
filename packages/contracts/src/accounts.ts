@@ -14,6 +14,7 @@ export const userSchema = z.object({
   emailVerified: z.boolean(),
   authenticatorEnabled: z.boolean(),
   passwordConfigured: z.boolean(),
+  teacherApprovalPending: z.boolean().default(false),
   createdAt: z.iso.datetime(),
 });
 export const sessionSchema = z.object({
@@ -89,7 +90,11 @@ export const enrollmentSchema = z.object({
   qrDataUrl: z.string().startsWith('data:image/png;base64,'),
   expiresAt: z.iso.datetime(),
 });
-export const completionSchema = z.object({ session: sessionSchema, awaitingReview: z.boolean() });
+export const completionSchema = z.object({
+  session: sessionSchema,
+  awaitingReview: z.boolean(),
+  reviewReason: z.enum(['network', 'teacher_approval']).nullable().default(null),
+});
 export const messageSchema = z.object({ message: z.string() });
 export const probeTargetSchema = z.object({
   id: z.enum(['youtube', 'telegram', 'whatsapp']),
@@ -182,6 +187,14 @@ export const accountDetailSchema = z.object({
   students: usersSchema,
   progress: learningProgressSchema,
   assessments: z.array(assessmentSchema),
+  teacherApproval: z
+    .object({
+      pending: z.boolean(),
+      approvedAt: z.iso.datetime().nullable(),
+      approvedBy: z.object({ id: z.uuid(), name: z.string(), email: z.email() }).nullable(),
+    })
+    .nullable()
+    .default(null),
 });
 export const mailSchema = z.array(
   z.object({

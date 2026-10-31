@@ -14,10 +14,12 @@ import { getPolicy, ipAllowed, normalizeIp, validateRanges } from '../security/p
 import { AppError } from '../../errors.js';
 import { learningProgress } from '../engine/repository.js';
 import { AccountCredentials } from './credentials.js';
+import { TeacherRegistrationApproval } from './teacher-approval.js';
 
 export async function registerAccountRoutes(app: FastifyInstance, auth: AuthService) {
   const db = auth.database;
   const credentials = new AccountCredentials(db, auth.crypto);
+  const teacherApproval = new TeacherRegistrationApproval(db);
   const idOf = (value: unknown) => z.object({ id: z.uuid() }).parse(value).id;
   app.post('/api/v1/admin/accounts', async (request) => {
     const actor = await auth.requireActor(request, 'superadmin', true);
@@ -88,15 +90,16 @@ export async function registerAccountRoutes(app: FastifyInstance, auth: AuthServ
   });
   app.get('/api/v1/admin/accounts', async (request) => {
     const actor = await auth.requireActor(request, 'superadmin');
-    const { search, role } = z
+    const { search, role, approval } = z
       .strictObject({
         search: z.string().max(100).default(''),
         role: z.enum(['student', 'teacher', 'admin', 'superadmin']).optional(),
+        approval: z.literal('pending').optional(),
       })
       .parse(request.query);
     const result = await db.query<UserRow>(
-      'SELECT * FROM users WHERE ($2::text IS NULL OR role=$2) AND (email ILIKE $1 OR full_name ILIKE $1) ORDER BY created_at DESC,id LIMIT 100',
-      [`%${search}%`, role ?? null],
+      "SELECT * FROM users WHERE ($2::text IS NULL OR role=$2) AND (email ILIKE $1 OR full_name ILIKE $1) AND ($3::boolean=false OR (role='teacher' AND teacher_approval_required)) ORDER BY created_at DESC,id LIMIT 100",
+      [`%${search}%`, role ?? null, approval === 'pending'],
     );
     await audit(db, actor.user.id, 'accounts.list_view');
     return { data: result.rows.map(managementUser), requestId: request.id };
@@ -127,6 +130,7 @@ export async function registerAccountRoutes(app: FastifyInstance, auth: AuthServ
     return {
       data: {
         user: managementUser(user),
+        teacherApproval: await teacherApproval.details(user),
         teachers: teachers.rows.map(publicUser),
         students: students.rows.map(publicUser),
         progress: await learningProgress(db, id),
@@ -138,6 +142,14 @@ export async function registerAccountRoutes(app: FastifyInstance, auth: AuthServ
           createdAt: new Date(row.created_at).toISOString(),
         })),
       },
+      requestId: request.id,
+    };
+  });
+  app.post('/api/v1/admin/accounts/:id/approve-teacher', async (request) => {
+    const actor = await auth.requireActor(request, 'superadmin', true);
+    z.strictObject({}).parse(request.body);
+    return {
+      data: await teacherApproval.approve(actor, idOf(request.params)),
       requestId: request.id,
     };
   });

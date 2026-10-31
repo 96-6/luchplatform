@@ -2209,4 +2209,15 @@ export const english = {
   'Яндекс Браузер (Chromium)': 'Yandex Browser (Chromium)',
   'Для Яндекс Браузера в обычном режиме задан отдельный минимум Chromium с учётом его выпусков. Усиленный режим запрещает Яндекс при любой версии.':
     'In basic mode, Yandex Browser has a separate Chromium minimum for its release schedule. Enhanced mode blocks Yandex at every version.',
+  'Для доступа преподавателя требуется подтверждение регистрации суперадмином.':
+    'Teacher access requires a superadmin to approve the registration.',
+  'Регистрация преподавателя ожидает подтверждения суперадмином.':
+    'Teacher registration is awaiting superadmin approval.',
+  'Только преподаватели, ожидающие подтверждения': 'Only teachers awaiting approval',
+  '· ожидает подтверждения регистрации': '· registration awaiting approval',
+  'Подтверждение регистрации преподавателя': 'Teacher registration approval',
+  'Подтвердить регистрацию преподавателя': 'Approve teacher registration',
+  'Регистрация преподавателя подтверждена.': 'Teacher registration approved.',
+  'Регистрацию подтвердил: {0} ({1}) · {2}': 'Registration approved by: {0} ({1}) · {2}',
+  'Выберите аккаунт преподавателя.': 'Select a teacher account.',
 } as const;

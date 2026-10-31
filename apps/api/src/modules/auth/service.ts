@@ -62,8 +62,15 @@ export class AuthService {
     const protectedHash = await this.passwords.protect(input.password);
     const mailId = await this.database.transaction(async (tx) => {
       const inserted = await tx.query<UserRow>(
-        'INSERT INTO users (id,email,full_name,role,password_hash_ciphertext,password_changed_at) VALUES ($1,$2,$3,$4,$5,now()) ON CONFLICT (email) DO NOTHING RETURNING *',
-        [randomUUID(), input.email, input.name, input.role, protectedHash],
+        'INSERT INTO users (id,email,full_name,role,password_hash_ciphertext,password_changed_at,teacher_approval_required) VALUES ($1,$2,$3,$4,$5,now(),$6) ON CONFLICT (email) DO NOTHING RETURNING *',
+        [
+          randomUUID(),
+          input.email,
+          input.name,
+          input.role,
+          protectedHash,
+          input.role === 'teacher',
+        ],
       );
       const user =
         inserted.rows[0] ??
@@ -218,6 +225,7 @@ export class AuthService {
     request: FastifyRequest,
     localDebug = false,
   ) {
+    assertTeacherApproval(user);
     const previous = request.cookies[this.sessionCookie];
     if (previous)
       await tx.query('UPDATE auth_sessions SET revoked_at=now() WHERE token_hash=$1', [
@@ -261,15 +269,24 @@ export class AuthService {
       ]);
       await audit(tx, user.id, 'authenticator.enabled', user.id);
       const policy = await getPolicy(tx);
-      if (policy.vpnCheckEnabled && !activated.accessVerified)
+      if (activated.teacherApprovalPending || (policy.vpnCheckEnabled && !activated.accessVerified))
         return {
           session: anonymousSession,
           awaitingReview: true,
+          reviewReason: activated.teacherApprovalPending
+            ? ('teacher_approval' as const)
+            : ('network' as const),
           created: null,
           userId: activated.id,
         };
       const created = await this.newSession(tx, activated, request);
-      return { session: created.session, awaitingReview: false, created, userId: activated.id };
+      return {
+        session: created.session,
+        awaitingReview: false,
+        reviewReason: null,
+        created,
+        userId: activated.id,
+      };
     });
     reply.clearCookie(this.enrollmentCookie, { path: '/' });
     if (result.created)
@@ -279,7 +296,11 @@ export class AuthService {
         this.cookieOptions(result.created.hours * 3600),
       );
     await this.network.linkUser(request, result.userId);
-    return { session: result.session, awaitingReview: result.awaitingReview };
+    return {
+      session: result.session,
+      awaitingReview: result.awaitingReview,
+      reviewReason: result.reviewReason,
+    };
   }
   async login(request: FastifyRequest, reply: FastifyReply, email: string, password: string) {
     const original = (
@@ -319,6 +340,7 @@ export class AuthService {
         );
         return { step: 'enrollment' as const };
       }
+      assertTeacherApproval(publicUser(user));
       await tx.query(
         'INSERT INTO auth_login_challenges (token_hash,user_id,auth_revision,expires_at) VALUES ($1,$2,$3,$4)',
         [hashToken(value), user.id, user.auth_revision, expiresAt],
@@ -582,7 +604,7 @@ export class AuthService {
     const result = await this.database.query<
       UserRow & { session_id: string; token_hash: string; local_debug: boolean }
     >(
-      `SELECT u.*,s.id AS session_id,s.token_hash,s.local_debug FROM auth_sessions s JOIN users u ON u.id=s.user_id WHERE s.token_hash=$1 AND s.revoked_at IS NULL AND s.expires_at>now() AND u.is_blocked=false AND u.is_active=true AND u.email_verified_at IS NOT NULL AND u.totp_enabled_at IS NOT NULL AND s.auth_revision=u.auth_revision AND (s.local_debug=true OR u.password_hash_ciphertext IS NOT NULL)`,
+      `SELECT u.*,s.id AS session_id,s.token_hash,s.local_debug FROM auth_sessions s JOIN users u ON u.id=s.user_id WHERE s.token_hash=$1 AND s.revoked_at IS NULL AND s.expires_at>now() AND u.is_blocked=false AND u.is_active=true AND u.email_verified_at IS NOT NULL AND u.totp_enabled_at IS NOT NULL AND s.auth_revision=u.auth_revision AND (s.local_debug=true OR u.password_hash_ciphertext IS NOT NULL) AND (u.role<>'teacher' OR u.teacher_approval_required=false)`,
       [hashToken(value)],
     );
     const row = result.rows[0];
@@ -658,4 +680,12 @@ function assertAccountAccess(user: UserRow) {
     );
   if (!user.is_active)
     throw new AppError(403, 'ACCOUNT_DEACTIVATED', 'Ваш аккаунт деактивирован администратором');
+}
+function assertTeacherApproval(user: User) {
+  if (user.teacherApprovalPending)
+    throw new AppError(
+      403,
+      'TEACHER_APPROVAL_REQUIRED',
+      'Регистрация преподавателя ожидает подтверждения суперадмином.',
+    );
 }

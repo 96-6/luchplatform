@@ -13,6 +13,9 @@ export type UserRow = {
   last_totp_counter: string | number;
   password_hash_ciphertext: string | null;
   password_changed_at: Date | string | null;
+  teacher_approval_required: boolean;
+  teacher_approved_at: Date | string | null;
+  teacher_approved_by: string | null;
   auth_revision: number;
   is_demo: boolean;
   is_blocked: boolean;
@@ -30,6 +33,7 @@ export function publicUser(row: UserRow): User {
     emailVerified: Boolean(row.email_verified_at),
     authenticatorEnabled: Boolean(row.totp_enabled_at),
     passwordConfigured: Boolean(row.password_hash_ciphertext),
+    teacherApprovalPending: row.role === 'teacher' && row.teacher_approval_required,
     isDemo: row.is_demo,
     isBlocked: row.is_blocked,
     isActive: row.is_active,

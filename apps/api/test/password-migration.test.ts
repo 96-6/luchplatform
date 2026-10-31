@@ -108,6 +108,8 @@ it('upgrades a populated pre-password database, revokes old login state and pres
       '022_yandex_browser_minimum.sql',
       '023_meeting_vanish.sql',
       '024_browser_manual_access.sql',
+      '025_browser_chromium_minimum.sql',
+      '026_teacher_registration_approval.sql',
     ]);
     expect(await migrate(db)).toEqual([]);
     const migrated = (await db.query<UserRow>('SELECT * FROM users WHERE id=$1', [id])).rows[0]!;
