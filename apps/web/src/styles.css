@@ -1457,6 +1457,9 @@ button.danger {
   overflow: auto;
   padding: 0.2rem;
 }
+.conference-main > * {
+  flex-shrink: 0;
+}
 .meeting-workspace {
   height: 100vh;
   height: 100dvh;
@@ -1591,7 +1594,7 @@ button.danger {
   grid-template-columns: repeat(3, minmax(0, 1fr));
   gap: 0.55rem;
   margin: 0;
-  flex: 1;
+  flex: 1 0 auto;
   min-height: 0;
   grid-auto-rows: minmax(11rem, 1fr);
   align-content: stretch;

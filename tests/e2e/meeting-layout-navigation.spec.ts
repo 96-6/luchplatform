@@ -1,5 +1,5 @@
 import { expect, test } from '@playwright/test';
-import { connected, createUI, csrf, enter, link, login, videoBrowser } from './meetings.helpers';
+import { connected, createUI, enter, link, login, videoBrowser } from './meetings.helpers';
 if (process.env.CI && !process.env.LUCH_VIDEO_TEST_ENV)
   throw Error('Real LiveKit is required for meeting layout and navigation acceptance.');
 test('meeting fills the workspace, docks chat, preserves disconnected tiles and confirms navigation', async ({
@@ -23,7 +23,7 @@ test('meeting fills the workspace, docks chat, preserves disconnected tiles and 
       student = await login(studentPage, 'meeting-layout-student');
     await link(browser, tutor.user.id, [student.user.id]);
     const id = await createUI(teacher, [student.user.name], 'ru', 'Адаптивная встреча');
-    await teacher.getByRole('link', { name: 'Открыть видеовстречу', exact: true }).click();
+    await teacher.getByRole('link', { name: 'Начать видеозанятие', exact: true }).click();
     await teacher.getByRole('button', { name: 'Начать встречу', exact: true }).click();
     await connected(teacher);
     const s = await enter(studentPage, id),
@@ -36,6 +36,8 @@ test('meeting fills the workspace, docks chat, preserves disconnected tiles and 
     const nameBox = await row.locator('strong').boundingBox(),
       buttonBox = await admit.boundingBox();
     expect(buttonBox!.x - nameBox!.x - nameBox!.width).toBeGreaterThanOrEqual(12);
+    await row.scrollIntoViewIfNeeded();
+    await teacher.screenshot({ path: 'test-results/meeting-lobby-buttons.png', fullPage: true });
     await admit.click();
     await connected(studentPage);
     await expect(teacher.getByTestId('meeting-participant')).toHaveCount(2);
