@@ -318,7 +318,7 @@ UUID операции сохраняется вместе с точным зап
 | GET      | `/meetings?from=ISO&to=ISO`               | Период до 93 дней; `limit` 1–100, `beforeStartsAt`/`beforeId` из `nextCursor`                                                            |
 | POST     | `/meetings`                               | Создать встречу из `createMeetingSchema`, вернуть `Meeting`                                                                              |
 | GET/POST | `/meetings/:id`                           | Прочитать / изменить расписание до начала с `revision` и `operationId`                                                                   |
-| POST     | `/meetings/:id/join`                      | `{ operationId }`; сохранённая сессия ожидания/допуска и встреча                                                                         |
+| POST     | `/meetings/:id/join`                      | `{ operationId, vanish?: boolean }`; сохранённая сессия ожидания/допуска и встреча                                                       |
 | GET      | `/meetings/:id/room-state?sessionId=UUID` | Собственная сессия, доступность, фактические подключения, руки, приватные предупреждения и очередь ожидания для ведущего                 |
 | POST     | `/meetings/:id/sessions/:sid/token`       | `{}`; допуск к видеосвязи для собственной допущенной сессии                                                                              |
 | POST     | `/meetings/:id/sessions/:sid/leave`       | `{}`; выход из своего подключения                                                                                                        |
@@ -337,6 +337,8 @@ UUID операции сохраняется вместе с точным зап
 Итог после завершения: комментарий 1–3000; `homework[]` до 50 строк `{ studentId, planId, exerciseId, reason, dueAt }`. План принадлежит участнику и языку встречи; действуют прежние проверки доступа преподавателя. Все назначения используют существующий банк и luch engine. Повтор UUID безопасен, другой запрос с прежним UUID — `MEETING_OPERATION_CONFLICT`; устаревшие редакции — `MEETING_CHANGED` / `MEETING_SUMMARY_CHANGED`. `MEETING_NOT_ADMITTED`, `MEETING_REMOVED`, `MEETING_NOT_OPEN`, `MEETING_CLOSED` описывают состояние входа. `VIDEO_NOT_CONFIGURED` / `VIDEO_UNAVAILABLE` — технические состояния без изменения оценок. Чат ограничен 20 новыми сообщениями в минуту; история принимает пару `beforeCreatedAt`/`beforeId`.
 
 Браузерный `serverUrl` указывает на `/api/v1/video` приложения. WebSocket `/video/rtc` и `/video/rtc/v1` и их GET `/validate` требуют действующую сессию, собственный подписанный допуск и текущее разрешение подключения. Старый допуск удалённого/вышедшего участника не даёт повторного входа. Порт сигнализации SFU — внутренний.
+
+`joinMeetingRequestSchema` принимает необязательный `vanish` (по умолчанию `false`). Значение `true` разрешено только суперадмину для начавшейся встречи. `meetingSessionSchema` возвращает собственный `vanish`; скрытые сессии не включаются в `participants`/`waiting`. Режим закреплён за подключением: повтор входа возвращает его же, другой режим до выхода даёт `MEETING_JOIN_MODE_CONFLICT`. `MEETING_VANISH_DENIED` обозначает отсутствие роли, `MEETING_VANISH_READ_ONLY` — запрет руки, отчёта устройств, сообщений или загрузки в скрытом режиме. Обычная модерация и её аудит сохраняются. Инструкция — [VANISH](MEETINGS.md#vanish-режим-суперадмина).
 
 Настройка и ограничения — [MEETINGS.md](MEETINGS.md).
 

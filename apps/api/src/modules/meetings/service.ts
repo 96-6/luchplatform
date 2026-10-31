@@ -35,6 +35,14 @@ import {
 } from './repository.js';
 type Draft = z.infer<typeof createMeetingSchema>;
 const closed = () => new AppError(409, 'MEETING_CLOSED', 'Занятие завершено или отменено.');
+const vanishDenied = () =>
+  new AppError(403, 'MEETING_VANISH_DENIED', 'VANISH-режим доступен только суперадмину.');
+const vanishReadOnly = () =>
+  new AppError(
+    403,
+    'MEETING_VANISH_READ_ONLY',
+    'В VANISH-режиме доступны просмотр и прослушивание.',
+  );
 export class MeetingsService {
   constructor(
     readonly db: Database,
@@ -287,14 +295,21 @@ export class MeetingsService {
       await tx.query('DELETE FROM meeting_device_reports WHERE session_id=$1', [s.id]);
     }
   }
-  async join(actor: MeetingActor, id: string, operationId: string) {
+  async join(actor: MeetingActor, id: string, operationId: string, vanish = false) {
+    if (vanish && actor.user.role !== 'superadmin') throw vanishDenied();
     const sid = await this.db.transaction(async (tx) => {
       await this.opLock(tx, actor, operationId);
       const a = await access(tx, actor, id, true),
-        request = { id };
+        request = { id, ...(vanish ? { vanish: true } : {}) };
       const old = await oldOperation(tx, actor, operationId, 'join', request);
       if (old) return old.result_id!;
       if (!['scheduled', 'live'].includes(a.m.status) || this.now() > deadline(a.m)) throw closed();
+      if (vanish && a.m.status !== 'live')
+        throw new AppError(
+          409,
+          'MEETING_NOT_STARTED',
+          'Для VANISH-режима дождитесь начала встречи.',
+        );
       if (a.member?.blocked_at)
         throw new AppError(403, 'MEETING_REMOVED', 'Организатор удалил вас из встречи.');
       let s = (
@@ -303,6 +318,12 @@ export class MeetingsService {
           [id, actor.user.id],
         )
       ).rows[0];
+      if (s && s.vanish !== vanish)
+        throw new AppError(
+          409,
+          'MEETING_JOIN_MODE_CONFLICT',
+          'Сначала выйдите из текущего подключения, чтобы сменить режим.',
+        );
       if (
         !a.canManage &&
         ((!s && a.m.locked) || this.now() < new Date(a.m.starts_at).getTime() - 900000)
@@ -313,7 +334,7 @@ export class MeetingsService {
         const sid = randomUUID();
         s = (
           await tx.query<SessionRow>(
-            `INSERT INTO meeting_sessions (id,meeting_id,user_id,state,created_at,guest_id) VALUES ($1,$2,$3,$4,$5,$6) RETURNING *`,
+            `INSERT INTO meeting_sessions (id,meeting_id,user_id,state,created_at,guest_id,vanish) VALUES ($1,$2,$3,$4,$5,$6,$7) RETURNING *`,
             [
               sid,
               id,
@@ -321,6 +342,7 @@ export class MeetingsService {
               a.canManage || (!a.m.lobby_enabled && a.m.status === 'live') ? 'admitted' : 'waiting',
               new Date(this.now()),
               isGuest(actor) ? actor.user.id : null,
+              vanish,
             ],
           )
         ).rows[0]!;
@@ -346,7 +368,13 @@ export class MeetingsService {
           'UPDATE meeting_guests SET admitted_at=COALESCE(admitted_at,$2) WHERE id=$1',
           [actor.user.id, new Date(this.now())],
         );
-      if (!isGuest(actor)) await audit(tx, actor.user.id, 'meeting.join_requested', actor.user.id);
+      if (!isGuest(actor))
+        await audit(
+          tx,
+          actor.user.id,
+          vanish ? 'meeting.vanish_joined' : 'meeting.join_requested',
+          actor.user.id,
+        );
       return s.id;
     });
     return this.db.transaction(async (tx) => {
@@ -362,11 +390,17 @@ export class MeetingsService {
     return this.db.transaction(async (tx) => {
       const a = await access(tx, actor, id, true),
         s = await session(tx, actor, sid, id);
+      if (s.vanish && actor.user.role !== 'superadmin') throw vanishDenied();
       if (a.m.status !== 'live' || this.now() > deadline(a.m)) throw closed();
       if (s.state !== 'admitted' || a.member?.blocked_at)
         throw new AppError(403, 'MEETING_NOT_ADMITTED', 'Дождитесь допуска организатора.');
       await this.video.ensureRoom(a.m.room_name);
-      const token = await this.video.token(a.m.room_name, s.id, actor.user.name, policy(a.member));
+      const token = await this.video.token(
+        a.m.room_name,
+        s.id,
+        actor.user.name,
+        policy(a.member, s),
+      );
       if (!isGuest(actor)) await audit(tx, actor.user.id, 'meeting.token_issued', actor.user.id);
       return {
         token,
@@ -389,6 +423,7 @@ export class MeetingsService {
       if (!found) throw new AppError(403, 'MEETING_NOT_ADMITTED', 'Подключение недоступно.');
       const a = await access(tx, actor, found.meeting_id, true),
         s = await session(tx, actor, sid, found.meeting_id);
+      if (s.vanish && actor.user.role !== 'superadmin') throw vanishDenied();
       if (
         a.m.room_name !== roomName ||
         a.m.status !== 'live' ||
@@ -397,8 +432,8 @@ export class MeetingsService {
         a.member?.blocked_at
       )
         throw new AppError(403, 'MEETING_NOT_ADMITTED', 'Подключение недоступно.');
-      if (connected) await this.video.permissions(roomName, sid, policy(a.member));
-      return this.video.token(roomName, sid, actor.user.name, policy(a.member));
+      if (connected) await this.video.permissions(roomName, sid, policy(a.member, s));
+      return this.video.token(roomName, sid, actor.user.name, policy(a.member, s));
     });
   }
   async leave(actor: MeetingActor, id: string, sid: string) {
@@ -412,6 +447,7 @@ export class MeetingsService {
       );
       await tx.query('DELETE FROM meeting_device_reports WHERE session_id=$1', [sid]);
       await command(tx, id, 'remove', { identity: sid }, this.now());
+      if (s.vanish) await audit(tx, actor.user.id, 'meeting.vanish_left', actor.user.id);
     });
     await this.drain(id);
     return { ok: true };
@@ -420,6 +456,7 @@ export class MeetingsService {
     return this.db.transaction(async (tx) => {
       const a = await access(tx, actor, id, true),
         s = await session(tx, actor, sid, id);
+      if (s.vanish) throw vanishReadOnly();
       if (
         s.state !== 'admitted' ||
         a.m.status !== 'live' ||
@@ -484,7 +521,11 @@ export class MeetingsService {
               [id, input.targetId ?? null],
             )
           ).rows[0];
-          if (!s || !['waiting', 'admitted'].includes(s.state))
+          if (
+            !s ||
+            !['waiting', 'admitted'].includes(s.state) ||
+            (s.vanish && actor.user.role !== 'superadmin')
+          )
             throw new AppError(
               404,
               'MEETING_PARTICIPANT_NOT_FOUND',
@@ -560,7 +601,13 @@ export class MeetingsService {
       )
     ).rows;
     for (const s of sessions)
-      await command(tx, a.m.id, 'permissions', { identity: s.id, ...p }, this.now());
+      await command(
+        tx,
+        a.m.id,
+        'permissions',
+        { identity: s.id, ...(s.vanish ? policy(member, s) : p) },
+        this.now(),
+      );
   }
   async drain(meetingId?: string) {
     if (!this.video.configured) return;
@@ -578,6 +625,7 @@ export class MeetingsService {
               audioAllowed: boolean;
               videoAllowed: boolean;
               screenAllowed: boolean;
+              vanish?: boolean;
             };
           }>(
             `SELECT c.*,m.room_name FROM meeting_commands c JOIN scheduled_meetings m ON m.id=c.meeting_id WHERE c.status='pending' AND c.retry_at<=$1 AND ($2::uuid IS NULL OR c.meeting_id=$2) AND NOT EXISTS(SELECT 1 FROM meeting_commands earlier WHERE earlier.meeting_id=c.meeting_id AND earlier.sequence<c.sequence AND earlier.status='pending') ORDER BY c.sequence LIMIT 1 FOR UPDATE OF c SKIP LOCKED`,
@@ -591,6 +639,7 @@ export class MeetingsService {
               audioAllowed: c.payload.audioAllowed,
               videoAllowed: c.payload.videoAllowed,
               screenAllowed: c.payload.screenAllowed,
+              ...(c.payload.vanish ? { vanish: true } : {}),
             });
           else if (c.kind === 'remove') await this.video.remove(c.room_name, c.payload.identity);
           else await this.video.close(c.room_name);
@@ -663,6 +712,8 @@ export class MeetingsService {
           'UPDATE meeting_sessions SET first_connected_at=COALESCE(first_connected_at,$2),last_seen_at=$2 WHERE id=$1',
           [s.id, new Date(this.now())],
         );
+        // Presence is private even from other meeting managers and hidden observers.
+        if (s.vanish) continue;
         const warnings = [];
         if (a.canInspect)
           for (const kind of ['camera', 'microphone'] as const) {
@@ -718,7 +769,7 @@ export class MeetingsService {
         participants,
         waiting: a.canManage
           ? sessions
-              .filter((s) => s.state === 'waiting')
+              .filter((s) => s.state === 'waiting' && !s.vanish)
               .map((s) => ({
                 identity: s.id,
                 userId: s.user_id,
@@ -738,6 +789,7 @@ export class MeetingsService {
     return this.db.transaction(async (tx) => {
       const a = await access(tx, actor, id, true),
         s = await session(tx, actor, sid, id);
+      if (s.vanish) throw vanishReadOnly();
       if (a.m.status !== 'live' || s.state !== 'admitted' || a.member?.blocked_at) throw closed();
       const old = (
         await tx.query<{ revision: number; request: unknown }>(
@@ -965,6 +1017,18 @@ export class MeetingsService {
   }
   async recover() {
     await this.db.transaction(async (tx) => {
+      const revoked = (
+        await tx.query<{ id: string; meeting_id: string }>(
+          `SELECT s.id,s.meeting_id FROM meeting_sessions s JOIN users u ON u.id=s.user_id JOIN scheduled_meetings m ON m.id=s.meeting_id WHERE s.vanish AND s.state='admitted' AND (u.role<>'superadmin' OR NOT u.is_active OR u.is_blocked) ORDER BY m.id,s.id FOR UPDATE OF m,s SKIP LOCKED`,
+        )
+      ).rows;
+      for (const s of revoked) {
+        await tx.query("UPDATE meeting_sessions SET state='removed',ended_at=$2 WHERE id=$1", [
+          s.id,
+          new Date(this.now()),
+        ]);
+        await command(tx, s.meeting_id, 'remove', { identity: s.id }, this.now());
+      }
       const rows = (
         await tx.query<{ id: string }>(
           `SELECT id FROM scheduled_meetings WHERE status='live' AND ends_at IS NOT NULL AND ((kind='scheduled' AND ends_at<$1) OR (kind='adhoc' AND ends_at<=$2)) ORDER BY id FOR UPDATE SKIP LOCKED`,

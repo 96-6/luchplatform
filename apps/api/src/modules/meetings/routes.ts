@@ -17,6 +17,7 @@ import {
   updateMeetingSchema,
   meetingsQuerySchema,
   meetingOperationSchema,
+  joinMeetingRequestSchema,
   moderateMeetingSchema,
   deviceReportSchema,
   sendMeetingMessageSchema,
@@ -64,14 +65,18 @@ export async function registerMeetingRoutes(
     ),
     requestId: r.id,
   }));
-  app.post('/api/v1/meetings/:id/join', async (r) => ({
-    data: await service.join(
-      await meetingActor(auth, r, ids.parse(r.params).id, true),
-      ids.parse(r.params).id,
-      meetingOperationSchema.parse(r.body).operationId,
-    ),
-    requestId: r.id,
-  }));
+  app.post('/api/v1/meetings/:id/join', async (r) => {
+    const input = joinMeetingRequestSchema.parse(r.body);
+    return {
+      data: await service.join(
+        await meetingActor(auth, r, ids.parse(r.params).id, true),
+        ids.parse(r.params).id,
+        input.operationId,
+        input.vanish,
+      ),
+      requestId: r.id,
+    };
+  });
   app.get('/api/v1/meetings/:id/room-state', async (r) => ({
     data: await service.room(
       await meetingActor(auth, r, ids.parse(r.params).id),
