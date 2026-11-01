@@ -18,6 +18,11 @@ import {
 } from '@luch/contracts';
 import { AccountCrypto, createTotp } from '../src/modules/auth/crypto.js';
 import { fixturePasswordHash, passwordLogin } from './helpers/password.js';
+if (
+  process.env.TEST_DATABASE_URL &&
+  !new URL(process.env.TEST_DATABASE_URL).pathname.includes('test')
+)
+  throw Error('Use an isolated test database.');
 
 const alias = randomBytes(16).toString('hex'),
   installed = '1'.repeat(40),
