@@ -4,6 +4,8 @@ data
 .git
 .env
 .env.*
+!.env.example
+!.env.compose.example
 coverage
 playwright-report
 test-results

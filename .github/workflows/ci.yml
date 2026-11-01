@@ -6,6 +6,63 @@ on:
 permissions:
   contents: read
 jobs:
+  managed-updates:
+    runs-on: ubuntu-24.04
+    services:
+      postgres:
+        image: postgres:17-alpine
+        env:
+          POSTGRES_USER: luch
+          POSTGRES_PASSWORD: ci-updater-only
+          POSTGRES_DB: luch_updater_test
+        ports: ['5432:5432']
+        options: >-
+          --health-cmd "pg_isready -U luch -d luch_updater_test"
+          --health-interval 5s --health-timeout 5s --health-retries 12
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 24
+          cache: npm
+      - run: npm ci
+      - run: npm run build
+      - run: npx playwright install --with-deps chromium
+      - name: Install PostgreSQL 17 backup and recovery tools
+        run: |
+          sudo install -d /usr/share/postgresql-common/pgdg
+          sudo curl --fail --silent --show-error -o /usr/share/postgresql-common/pgdg/apt.postgresql.org.asc https://www.postgresql.org/media/keys/ACCC4CF8.asc
+          echo 'deb [signed-by=/usr/share/postgresql-common/pgdg/apt.postgresql.org.asc] https://apt.postgresql.org/pub/repos/apt noble-pgdg main' | sudo tee /etc/apt/sources.list.d/pgdg.list
+          sudo apt-get update
+          sudo apt-get install -y postgresql-client-17
+          echo /usr/lib/postgresql/17/bin >> "$GITHUB_PATH"
+      - name: Start LiveKit for managed-server signalling and active-call checks
+        run: |
+          node scripts/prepare-video-test.mjs
+          docker run -d --name luch-update-video-test --network host -v "$PWD/data/video-test/livekit.yaml:/etc/livekit.yaml:ro" livekit/livekit-server:v1.13.10 --config /etc/livekit.yaml
+          for attempt in $(seq 1 30); do
+            if curl --fail --silent http://127.0.0.1:7880 > /dev/null; then break; fi
+            sleep 1
+          done
+          curl --fail --silent http://127.0.0.1:7880 > /dev/null
+      - name: Managed update and rollback with persistent PGlite
+        run: node scripts/test-updater.mjs
+        env:
+          UPDATER_TEST_VIDEO_ENV: data/video-test/environment.json
+      - name: Managed update and rollback with native PostgreSQL
+        run: node scripts/test-updater.mjs
+        env:
+          UPDATER_TEST_DATABASE_URL: postgresql://luch:ci-updater-only@127.0.0.1:5432/luch_updater_test
+          UPDATER_TEST_VIDEO_ENV: data/video-test/environment.json
+      - name: Stop managed-server video fixture
+        if: always()
+        run: docker rm -f luch-update-video-test || true
+      - uses: actions/upload-artifact@v4
+        if: always()
+        with:
+          name: managed-update-screenshots
+          path: test-results/updater-*.png
+          retention-days: 7
   check:
     runs-on: ubuntu-latest
     services:
@@ -135,6 +192,21 @@ jobs:
           docker compose --env-file .env.compose exec -T app node scripts/operations-smoke.mjs verify
           docker compose --env-file .env.compose exec -T app node apps/api/dist/modules/content/cli.js export --package luch-demo --file /tmp/luch-demo-reopened.json
           docker compose --env-file .env.compose exec -T app node --input-type=module -e 'import { readFile } from "node:fs/promises"; import assert from "node:assert/strict"; const a=JSON.parse(await readFile("/tmp/luch-demo-export.json","utf8")); const b=JSON.parse(await readFile("/tmp/luch-demo-reopened.json","utf8")); assert.deepEqual(a,b); assert.deepEqual([b.routes.length,b.lessons.length,b.exercises.length],[2,12,48]);'
+      - name: Real update across the Compose app and agent containers
+        timeout-minutes: 10
+        run: |
+          node scripts/compose-update-fixture.mjs
+          docker compose --env-file .env.compose stop updater
+          docker compose --env-file .env.compose cp data/compose-update-fixture updater:/releases/fixture-source
+          docker compose --env-file .env.compose run --rm --no-deps --user root --entrypoint chown updater -R 1000:1000 /releases/fixture-source
+          docker compose --env-file .env.compose run --rm --no-deps --entrypoint node -e APP_ENV=test updater scripts/compose-updates-smoke.mjs
+          docker compose --env-file .env.compose restart app updater
+          for attempt in $(seq 1 60); do
+            if curl --fail --silent http://localhost:3000/api/v1/health/ready > /dev/null; then break; fi
+            sleep 1
+          done
+          node scripts/compose-update-fixture.mjs verify
+          docker compose --env-file .env.compose exec -T -e APP_ENV=test updater node scripts/compose-updates-smoke.mjs verify
       - name: Compose logs
         if: failure()
         run: docker compose --env-file .env.compose logs --no-color || true

@@ -108,7 +108,7 @@ export function Layout({ children, devTools }: { children: ReactNode; devTools: 
               {t('Суперадмин')}
             </NavLink>
           )}
-          {devTools && (!user || user.role === 'superadmin') && (
+          {(user?.role === 'superadmin' || (devTools && !user)) && (
             <NavLink to="/system">
               <span aria-hidden="true">⚙</span>
               {t('Проверка системы')}

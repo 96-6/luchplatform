@@ -2,6 +2,8 @@ import { MeetingFileSettings } from './meetings/MeetingExtras';
 import { MeetingRecordingSettings } from './meetings/MeetingRecordingSettings';
 import { BrowserSecuritySettings } from './BrowserSecuritySettings';
 import { BrowserManualAccessSettings } from './BrowserManualAccessSettings';
+import { UpdatesPanel, usePlatformUpdates } from './UpdatesPanel';
+import { SystemStatusPanel } from './SystemStatusPanel';
 import { t, dateLocale } from '../i18n';
 import { useEffect, useState, type FormEvent } from 'react';
 import { Link, useSearchParams } from 'react-router-dom';
@@ -28,6 +30,7 @@ import { AdminCreateAccount, AdminAuthenticator, AdminPassword } from './AdminCr
 export function AdminPage() {
   const [params, setParams] = useSearchParams();
   const tab = params.get('tab') ?? 'accounts';
+  const updates = usePlatformUpdates();
   return (
     <>
       <p className="eyebrow">{t('Управление платформой')}</p>
@@ -48,19 +51,29 @@ export function AdminPage() {
           ['accounts', t('Аккаунты пользователей')],
           ['security', t('Настройки безопасности')],
           ['audit', t('Журнал действий')],
+          ['system', t('Система')],
+          ['updates', t('Обновления')],
         ].map(([value, label]) => (
           <button
             role="tab"
+            aria-label={label}
             aria-selected={tab === value}
             className={tab === value ? '' : 'secondary'}
             key={value}
             onClick={() => setParams({ tab: value! })}
           >
             {label}
+            {value === 'updates' && updates.data?.updateAvailable && (
+              <span className="update-dot" role="img" aria-label={t('Доступно обновление')} />
+            )}
           </button>
         ))}
       </div>
-      {tab === 'security' ? (
+      {tab === 'updates' ? (
+        <UpdatesPanel updates={updates} />
+      ) : tab === 'system' ? (
+        <SystemStatusPanel />
+      ) : tab === 'security' ? (
         <>
           <SecuritySettings />
           <BrowserSecuritySettings />

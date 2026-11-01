@@ -64,6 +64,22 @@ await mkdir(new URL('../data/', import.meta.url), { recursive: true });
 await writeFile(new URL('../data/e2e-mic.wav', import.meta.url), mic);
 const app = await buildApp(settings, database, {
   captchaGenerator: () => 'ABCDE',
+  updateFetch: async (url) => {
+    if (url.endsWith('/branches/main'))
+      return Response.json({
+        commit: {
+          sha: '2'.repeat(40),
+          commit: { tree: { sha: '3'.repeat(40) }, committer: { date: '2026-11-01T00:00:00Z' } },
+        },
+      });
+    if (url.includes('/git/trees/'))
+      return Response.json({
+        truncated: false,
+        tree: [{ path: 'README.md', type: 'blob', sha: '4'.repeat(40) }],
+      });
+    if (url.includes('/compare/')) return Response.json({ status: 'ahead' });
+    throw Error('Unexpected GitHub fixture path');
+  },
   providerFetch: async (url, options) => {
     if (String(url) === 'https://api.heygen.com/v3/videos')
       return Response.json({ data: { video_id: 'e2e-avatar-video' } });
@@ -162,6 +178,9 @@ app.post('/__e2e/browser-policy-reset', async (request, reply) => {
   return reply.code(204).send();
 });
 for (const prefix of [
+  'audit-updates-superadmin',
+  'audit-status-superadmin',
+  'audit-updates-student',
   'browser-yandex-student',
   'engine-retry',
   'engine-control',

@@ -8,6 +8,7 @@ x-app-environment: &app-environment
   DATABASE_SSL: 'false'
   ENABLE_DEV_TOOLS: ${ENABLE_DEV_TOOLS:-false}
   SERVE_WEB: 'true'
+  UPDATE_STATE_DIRECTORY: /updates
   LOG_LEVEL: ${LOG_LEVEL:-info}
   AUTH_ENCRYPTION_KEY: ${AUTH_ENCRYPTION_KEY:?Run node scripts/setup.mjs --compose}
   MAIL_MODE: ${MAIL_MODE:-local}
@@ -79,6 +80,8 @@ services:
     environment: *app-environment
     volumes:
       - meeting_files:/app/data/meeting-files
+      - update_state:/updates
+      - update_releases:/releases
     ports:
       - '127.0.0.1:${APP_PORT:-3000}:3000'
     depends_on:
@@ -97,6 +100,23 @@ services:
       interval: 10s
       timeout: 5s
       retries: 6
+  updater:
+    build:
+      context: .
+      target: updater
+    image: luchplatform-updater:local
+    init: true
+    restart: unless-stopped
+    environment: *app-environment
+    volumes:
+      - meeting_files:/app/data/meeting-files
+      - update_state:/updates
+      - update_releases:/releases
+    depends_on:
+      app:
+        condition: service_healthy
 volumes:
   db_data:
   meeting_files:
+  update_state:
+  update_releases:

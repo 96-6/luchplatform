@@ -24,14 +24,29 @@ try {
         .close()
         .then(() => {
           process.exitCode = 0;
+          if (process.connected) process.disconnect?.();
         })
         .catch(() => {
           process.exitCode = 1;
+          if (process.connected) process.disconnect?.();
         });
     });
   }
   try {
     await app.listen({ host: settings.API_HOST, port: settings.API_PORT });
+    if (process.send) {
+      process.send({ type: 'luch:ready' });
+      process.on('message', (message: unknown) => {
+        if (!message || typeof message !== 'object' || !('type' in message)) return;
+        if (message.type === 'luch:quiesce' && 'id' in message && typeof message.id === 'string') {
+          const id = message.id;
+          void app.quiesceForUpdate().then(
+            (ready) => process.send?.({ type: 'luch:quiesced', id, ready }),
+            () => process.send?.({ type: 'luch:quiesced', id, ready: false }),
+          );
+        } else if (message.type === 'luch:resume') app.resumeAfterUpdate();
+      });
+    }
   } catch (error) {
     await app.close();
     throw error;
