@@ -43,6 +43,9 @@ const secret = randomBytes(32).toString('base64'),
   actorId = randomUUID();
 let supervisor, browser, workerPromise, worker, page;
 const env = {
+  ...(process.env.UPDATER_TEST_VIDEO_ENV
+    ? JSON.parse(await readFile(process.env.UPDATER_TEST_VIDEO_ENV, 'utf8'))
+    : {}),
   APP_ENV: 'test',
   APP_URL: 'http://127.0.0.1:3309',
   API_HOST: '127.0.0.1',
@@ -200,9 +203,17 @@ try {
     ...(process.env.PLAYWRIGHT_EXECUTABLE_PATH
       ? { executablePath: process.env.PLAYWRIGHT_EXECUTABLE_PATH }
       : {}),
-    args: ['--no-sandbox', '--disable-dev-shm-usage'],
+    args: [
+      '--no-sandbox',
+      '--disable-dev-shm-usage',
+      '--use-fake-ui-for-media-stream',
+      '--use-fake-device-for-media-stream',
+    ],
   });
-  const context = await browser.newContext({ locale: 'ru-RU' });
+  const context = await browser.newContext({
+    locale: 'ru-RU',
+    permissions: ['camera', 'microphone'],
+  });
   page = await context.newPage();
   page.on('pageerror', (e) => console.error('Browser error:', e.message));
   await page.goto(env.APP_URL + '/login');
@@ -217,6 +228,44 @@ try {
     .getByRole('button', { name: 'Обновить систему', exact: true })
     .waitFor({ state: 'visible' });
   assert(await page.getByRole('img', { name: 'Доступно обновление' }).count());
+  let call, meetingId, meetingCsrf;
+  if (process.env.UPDATER_TEST_VIDEO_ENV) {
+    meetingCsrf = (await (await page.request.get(env.APP_URL + '/api/v1/auth/session')).json()).data
+      .csrfToken;
+    const created = await page.request.post(env.APP_URL + '/api/v1/meetings/adhoc', {
+      headers: { 'x-csrf-token': meetingCsrf },
+      data: {
+        operationId: randomUUID(),
+        title: 'Managed update live-call acceptance',
+        language: 'ru',
+        timeZone: 'UTC',
+        durationMinutes: null,
+        reusable: true,
+        allowGuests: false,
+        expiresAt: null,
+        lobbyEnabled: false,
+      },
+    });
+    assert.equal(created.status(), 200, await created.text());
+    meetingId = (await created.json()).data.meeting.id;
+    call = await context.newPage();
+    await call.goto(env.APP_URL + `/meetings/${meetingId}/room`);
+    await call.getByRole('button', { name: 'Начать встречу', exact: true }).click();
+    await waitFor(
+      async () =>
+        (await call.locator('.meeting-connection').innerText()).includes('Соединение установлено'),
+      30000,
+    );
+    await call.getByRole('button', { name: 'Включить камеру', exact: true }).click();
+    await call.getByRole('button', { name: 'Выключить камеру', exact: true }).waitFor();
+    await waitFor(
+      async () =>
+        call
+          .locator('video')
+          .evaluateAll((elements) => elements.some((video) => video.readyState >= 2)),
+      30000,
+    );
+  }
   await page.evaluate(() => {
     window.__updatePageIdentity = 'same-document';
   });
@@ -238,6 +287,29 @@ try {
   });
   await page.getByRole('button', { name: 'Обновить систему', exact: true }).click();
   await page.getByRole('button', { name: 'Начать обновление', exact: true }).click();
+  if (call) {
+    const jobId = (await (await page.request.get(env.APP_URL + '/api/v1/admin/updates')).json())
+      .data.latestJob.id;
+    await waitFor(
+      async () =>
+        (await json(resolve(state, 'jobs', jobId + '.json')))?.phase === 'waiting_for_meetings',
+      15 * 60 * 1000,
+    );
+    assert(
+      (await call.locator('.meeting-connection').innerText()).includes('Соединение установлено'),
+    );
+    assert.equal((await deployment(config)).current, 'initial');
+    assert.equal((await fetch(env.APP_URL + '/api/v1/health/ready')).status, 200);
+    const ended = await page.request.post(env.APP_URL + `/api/v1/meetings/${meetingId}/moderate`, {
+      headers: { 'x-csrf-token': meetingCsrf },
+      data: { operationId: randomUUID(), action: 'end' },
+    });
+    assert.equal(ended.status(), 200, await ended.text());
+    await call.close();
+    console.log(
+      'PASS: real LiveKit signalling, camera publication and waiting for the active call through the stable supervisor.',
+    );
+  }
   await waitFor(
     async () => {
       const d = await deployment(config);
