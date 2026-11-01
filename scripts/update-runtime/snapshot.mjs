@@ -114,14 +114,20 @@ export class DatabaseSnapshot {
         preserveTimestamps: true,
       });
       const failed = this.databaseDirectory + '.failed-' + Date.now();
-      await rename(this.databaseDirectory, failed);
+      let moved = false;
+      try {
+        await rename(this.databaseDirectory, failed);
+        moved = true;
+      } catch (error) {
+        if (error.code !== 'ENOENT') throw error;
+      }
       try {
         await rename(temporary, this.databaseDirectory);
       } catch (error) {
-        await rename(failed, this.databaseDirectory);
+        if (moved) await rename(failed, this.databaseDirectory);
         throw error;
       }
-      await rm(failed, { recursive: true, force: true });
+      if (moved) await rm(failed, { recursive: true, force: true });
     } else {
       const archive = resolve(this.directory, 'database.dump');
       const listing = await command('pg_restore', ['--list', archive], {
@@ -173,11 +179,14 @@ export class DatabaseSnapshot {
         }
         psql.stdin.on('error', () => finish(Error('Database restore failed')));
         psql.stdin.write('DROP SCHEMA public CASCADE;\nCREATE SCHEMA public;\n');
-        restore.stdout.pipe(psql.stdin);
+        // EOF must not commit a partial SQL stream when pg_restore itself fails.
+        restore.stdout.pipe(psql.stdin, { end: false });
+        restore.stdout.once('error', () => finish(Error('Database restore failed')));
         restore.once('error', () => finish(Error('Database restore tool unavailable')));
         psql.once('error', () => finish(Error('Database restore tool unavailable')));
-        restore.once('exit', (code) => {
+        restore.once('close', (code) => {
           restoreCode = code === 0 ? 0 : -1;
+          if (code === 0 && !finished) psql.stdin.end();
           finish(code === 0 ? null : Error('Database restore failed'));
         });
         psql.once('exit', (code) => {

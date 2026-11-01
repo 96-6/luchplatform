@@ -15,6 +15,7 @@ import { command } from './update-runtime/commands.mjs';
 import { atomic, json, sleep, deployment } from './update-runtime/shared.mjs';
 import { runSupervisor } from './update-runtime/supervisor.mjs';
 import { UpdateWorker } from './update-runtime/worker.mjs';
+import { DatabaseSnapshot } from './update-runtime/snapshot.mjs';
 import { writeBuildInfo, inspectSource } from './build-info.mjs';
 
 process.umask(0o077);
@@ -41,7 +42,7 @@ const secret = randomBytes(32).toString('base64'),
   password = 'Isolated updater fixture password 2026!',
   totp = createTotp(email),
   actorId = randomUUID();
-let supervisor, browser, workerPromise, worker, page;
+let supervisor, browser, workerPromise, worker, page, db;
 const env = {
   ...(process.env.UPDATER_TEST_VIDEO_ENV
     ? JSON.parse(await readFile(process.env.UPDATER_TEST_VIDEO_ENV, 'utf8'))
@@ -173,7 +174,7 @@ try {
   const remote = resolve(directory, 'remote.git');
   await command('git', ['clone', '--bare', initial, remote], { quiet: true });
   await git(['checkout', 'HEAD~1']);
-  let db = await createDatabase(settings);
+  db = await createDatabase(settings);
   await migrate(db);
   await db.query(
     "INSERT INTO users(id,email,full_name,role,email_verified_at,totp_enabled_at,totp_secret_ciphertext,access_verified,password_hash_ciphertext,password_changed_at) VALUES($1,$2,$3,'superadmin',now(),now(),$4,true,$5,now())",
@@ -431,6 +432,50 @@ try {
       (native ? 'native PostgreSQL' : 'persistent PGlite') +
       ').',
   );
+  if (native) {
+    db = await createDatabase(settings);
+    await db.exec(
+      "CREATE TABLE restore_atomic_fixture(value text); INSERT INTO restore_atomic_fixture VALUES('must survive a truncated SQL stream')",
+    );
+    await db.close();
+    const actualRestore = (
+      await command('which', ['pg_restore'], { quiet: true, capture: true })
+    ).trim();
+    const bin = resolve(directory, 'broken-restore-tool');
+    await mkdir(bin);
+    await writeFile(
+      resolve(bin, 'pg_restore'),
+      `#!/usr/bin/env node
+const {spawnSync}=require('node:child_process');
+if(process.argv.includes('--list')||process.argv.includes('--version')){const r=spawnSync(${JSON.stringify(actualRestore)},process.argv.slice(2),{stdio:'inherit'});process.exit(r.status??1);}
+process.stdout.end('CREATE TABLE should_not_commit(id integer);\\n');
+setTimeout(()=>process.exit(1),300);
+`,
+      { mode: 0o700 },
+    );
+    const previousPath = process.env.PATH;
+    process.env.PATH = bin + ':' + previousPath;
+    try {
+      const snapshot = new DatabaseSnapshot(config, resolve(config.backupsDir, failureId));
+      await snapshot.prepare();
+      await assert.rejects(snapshot.restore());
+    } finally {
+      process.env.PATH = previousPath;
+    }
+    db = await createDatabase(settings);
+    assert.equal(
+      (await db.query('SELECT value FROM restore_atomic_fixture')).rows[0].value,
+      'must survive a truncated SQL stream',
+    );
+    assert.equal(
+      (await db.query("SELECT to_regclass('public.should_not_commit') AS name")).rows[0].name,
+      null,
+    );
+    await db.close();
+    console.log(
+      'PASS: a restore tool failure after stdout EOF cannot commit a partial PostgreSQL restore.',
+    );
+  }
 } catch (error) {
   if (page) {
     console.error(
@@ -454,5 +499,6 @@ try {
   if (workerPromise) await workerPromise.catch(() => {});
   if (browser) await browser.close();
   if (supervisor) await supervisor.close();
+  if (db) await db.close().catch(() => {});
   await rm(directory, { recursive: true, force: true });
 }
