@@ -4,6 +4,8 @@ import { resolve } from 'node:path';
 import { loadSettings } from '../apps/api/dist/config.js';
 import { createDatabase } from '../apps/api/dist/db/database.js';
 import { publicUser } from '../apps/api/dist/modules/accounts/repository.js';
+import { MeetingsService } from '../apps/api/dist/modules/meetings/service.js';
+import { LiveKitVideo } from '../apps/api/dist/modules/meetings/adapter.js';
 import { installedBuild } from '../apps/api/dist/modules/updates/build.js';
 import { UpdatesService } from '../apps/api/dist/modules/updates/service.js';
 import { GitHubUpdates } from '../apps/api/dist/modules/updates/github.js';
@@ -81,6 +83,22 @@ if (process.argv.includes('verify')) {
       sessionId: randomUUID(),
       tokenHash: 'fixture',
     };
+    // Earlier persistence fixtures deliberately kept their ad-hoc room live.
+    // Finish them through the real meeting service before testing the switch.
+    const meetings = new MeetingsService(db, new LiveKitVideo(settings));
+    for (const meeting of (
+      await db.query("SELECT id,revision FROM scheduled_meetings WHERE status='live'")
+    ).rows)
+      await meetings.moderate(actor, meeting.id, {
+        operationId: randomUUID(),
+        action: 'end',
+        revision: meeting.revision,
+      });
+    assert.equal(
+      (await db.query("SELECT count(*)::int AS n FROM scheduled_meetings WHERE status='live'"))
+        .rows[0].n,
+      0,
+    );
     const service = new UpdatesService(
       db,
       await installedBuild(settings),
@@ -97,7 +115,25 @@ if (process.argv.includes('verify')) {
   } finally {
     await db.close();
   }
-  await running;
+  let deadline;
+  try {
+    await Promise.race([
+      running,
+      new Promise((_, reject) => {
+        deadline = setTimeout(
+          () => {
+            worker.stop();
+            reject(Error('Compose update acceptance timed out'));
+          },
+          8 * 60 * 1000,
+        );
+      }),
+    ]);
+  } finally {
+    clearTimeout(deadline);
+    worker.stop();
+    await running.catch(() => {});
+  }
   const result = await json(resolve('/updates/jobs', job.id + '.json'));
   assert.equal(result.phase, 'completed', JSON.stringify(result));
   for (let attempt = 0; attempt < 60; attempt++) {

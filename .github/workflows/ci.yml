@@ -193,6 +193,7 @@ jobs:
           docker compose --env-file .env.compose exec -T app node apps/api/dist/modules/content/cli.js export --package luch-demo --file /tmp/luch-demo-reopened.json
           docker compose --env-file .env.compose exec -T app node --input-type=module -e 'import { readFile } from "node:fs/promises"; import assert from "node:assert/strict"; const a=JSON.parse(await readFile("/tmp/luch-demo-export.json","utf8")); const b=JSON.parse(await readFile("/tmp/luch-demo-reopened.json","utf8")); assert.deepEqual(a,b); assert.deepEqual([b.routes.length,b.lessons.length,b.exercises.length],[2,12,48]);'
       - name: Real update across the Compose app and agent containers
+        timeout-minutes: 10
         run: |
           node scripts/compose-update-fixture.mjs
           docker compose --env-file .env.compose stop updater
