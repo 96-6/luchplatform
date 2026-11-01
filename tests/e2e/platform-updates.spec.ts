@@ -7,6 +7,8 @@ test('superadmin checks the persisted release, sees a red dot and cannot apply w
   await page.getByRole('tab', { name: 'Обновления', exact: true }).click();
   await page.getByRole('button', { name: 'Проверить обновления', exact: true }).click();
   await expect(page.getByRole('img', { name: 'Доступно обновление' })).toBeVisible();
+  await page.getByRole('tab', { name: 'Система', exact: true }).click();
+  await page.getByRole('tab', { name: 'Обновления', exact: true }).click();
   await expect(page.getByRole('button', { name: 'Обновить систему', exact: true })).toBeDisabled();
   await expect(page.getByText(/Агент обновления недоступен/)).toBeVisible();
   const data = (await (await page.request.get('/api/v1/admin/updates')).json()).data;

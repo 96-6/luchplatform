@@ -56,6 +56,7 @@ export function AdminPage() {
         ].map(([value, label]) => (
           <button
             role="tab"
+            aria-label={label}
             aria-selected={tab === value}
             className={tab === value ? '' : 'secondary'}
             key={value}

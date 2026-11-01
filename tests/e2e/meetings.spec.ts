@@ -38,9 +38,8 @@ test('calendar persists a group meeting, retries lost create, reschedules and ca
     const f = teacher.getByRole('region', { name: 'Новое видеозанятие', exact: true });
     await f.getByLabel('Название занятия', { exact: true }).fill('Календарь и сохранение занятия');
     await f.getByLabel('Язык занятия', { exact: true }).selectOption('en');
-    await f
-      .getByLabel('Начало занятия', { exact: true })
-      .fill(new Date(Date.now() + 86400000).toISOString().slice(0, 16));
+    const plannedDate = new Date(Date.now() + 86400000).toISOString().slice(0, 16);
+    await f.getByLabel('Начало занятия', { exact: true }).fill(plannedDate);
     await f.getByRole('checkbox', { name: new RegExp(student.user.name) }).check();
     await f.getByRole('checkbox', { name: new RegExp(peer.user.name) }).check();
     let lost = true;
@@ -62,6 +61,8 @@ test('calendar persists a group meeting, retries lost create, reschedules and ca
     expect(operations[0]).toBe(operations[1]);
     const id = teacher.url().split('/').at(-1)!;
     await page.goto('/schedule');
+    // Tomorrow can belong to the next week, especially when this test runs on Sunday.
+    await page.getByLabel('Дата календаря', { exact: true }).fill(plannedDate.slice(0, 10));
     await page.getByRole('link', { name: 'Календарь и сохранение занятия', exact: true }).click();
     await expect(
       page.getByRole('heading', { name: 'Календарь и сохранение занятия', exact: true }),
