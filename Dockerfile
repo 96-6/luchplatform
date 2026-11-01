@@ -8,11 +8,23 @@ RUN npm ci --no-audit --no-fund
 COPY . .
 RUN npm run build && npm prune --omit=dev --no-audit --no-fund
 
+FROM postgres:17-bookworm AS updater
+COPY --from=build /usr/local/ /usr/local/
+RUN apt-get update && apt-get install -y --no-install-recommends git python3 make g++ ca-certificates && rm -rf /var/lib/apt/lists/* && groupadd -g 1000 node && useradd -u 1000 -g node -m node
+WORKDIR /app
+COPY --from=build --chown=node:node /app /app
+RUN mkdir -p /updates /releases /app/data/meeting-files && chown -R node:node /updates /releases /app/data
+ENV NODE_ENV=production
+USER node
+ENTRYPOINT ["node", "scripts/update-runtime/container.mjs", "worker"]
+
 FROM node:24-bookworm-slim AS runtime
 RUN apt-get update && apt-get install -y --no-install-recommends fonts-dejavu-core && rm -rf /var/lib/apt/lists/*
 ENV NODE_ENV=production
 WORKDIR /app
 COPY --from=build /app/package.json ./package.json
+COPY --from=build /app/build-info.json ./build-info.json
+COPY --from=build /app/scripts/update-runtime ./scripts/update-runtime
 COPY --from=build /app/node_modules ./node_modules
 COPY --from=build /app/apps/api/package.json ./apps/api/package.json
 COPY --from=build /app/apps/api/dist ./apps/api/dist
@@ -34,7 +46,7 @@ COPY --from=build /app/scripts/operations-smoke.mjs ./scripts/operations-smoke.m
 COPY --from=build /app/apps/web/package.json ./apps/web/package.json
 COPY --from=build /app/apps/web/dist ./apps/web/dist
 COPY --from=build /app/packages/contracts ./packages/contracts
-RUN mkdir -p /app/data/meeting-files && chown -R node:node /app/data
+RUN mkdir -p /app/data/meeting-files /updates /releases && chown -R node:node /app/data /updates /releases
 USER node
 EXPOSE 3000
-CMD ["node", "apps/api/dist/server.js"]
+CMD ["node", "scripts/update-runtime/container.mjs"]

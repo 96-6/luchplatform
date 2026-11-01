@@ -14,8 +14,9 @@
   "scripts": {
     "setup": "node scripts/setup.mjs && npm run db:migrate",
     "dev": "npm run build -w @luch/contracts && concurrently --kill-others -n api,web \"npm run dev -w @luch/api\" \"npm run dev -w @luch/web\"",
-    "build": "npm run build -w @luch/contracts && npm run build -w @luch/api && npm run build -w @luch/web",
+    "build": "node scripts/build-info.mjs && npm run build -w @luch/contracts && npm run build -w @luch/api && npm run build -w @luch/web",
     "start": "node apps/api/dist/server.js",
+    "start:managed": "node scripts/start-managed.mjs",
     "typecheck": "npm run build -w @luch/contracts && npm run typecheck --workspaces --if-present && node scripts/check-locales.mjs",
     "db:migrate": "npm run build -w @luch/contracts && npm run db:migrate -w @luch/api",
     "db:smoke": "npm run build -w @luch/contracts && npm run db:smoke -w @luch/api",

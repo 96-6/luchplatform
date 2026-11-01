@@ -57,6 +57,17 @@ import { CaptchaService } from './modules/security/captcha.js';
 import { NetworkService, type IpInspector } from './modules/security/network.js';
 import { ipAllowed, validateRanges } from './modules/security/policy.js';
 import { registerBrowserSecurity } from './modules/security/browsers.js';
+import { installedBuild } from './modules/updates/build.js';
+import { UpdateSpool } from './modules/updates/spool.js';
+import { GitHubUpdates, type UpdateFetch } from './modules/updates/github.js';
+import { UpdatesService } from './modules/updates/service.js';
+import { registerUpdateRoutes } from './modules/updates/routes.js';
+declare module 'fastify' {
+  interface FastifyInstance {
+    quiesceForUpdate(): Promise<boolean>;
+    resumeAfterUpdate(): void;
+  }
+}
 
 export async function buildApp(
   settings: Settings,
@@ -67,6 +78,8 @@ export async function buildApp(
     providerFetch?: ProviderFetch;
     meetingVideo?: MeetingVideo;
     testWebRoot?: string;
+    updateFetch?: UpdateFetch;
+    testInstalledBuild?: import('@luch/contracts').BuildInfo;
   } = {},
 ) {
   const crypto = new AccountCrypto(settings.AUTH_ENCRYPTION_KEY);
@@ -109,6 +122,25 @@ export async function buildApp(
     requestTimeout: 30 * 60 * 1000,
   });
   const allowedOrigin = new URL(settings.APP_URL).origin;
+  let maintenance = false;
+  const writes = new Set<string>();
+  app.addHook('onRequest', async (request) => {
+    if (!['GET', 'HEAD', 'OPTIONS'].includes(request.method)) {
+      if (maintenance)
+        throw new AppError(
+          503,
+          'PLATFORM_UPDATING',
+          'Система обновляется. Дождитесь завершения и повторите действие.',
+        );
+      writes.add(request.id);
+    }
+  });
+  app.addHook('onResponse', async (request) => {
+    writes.delete(request.id);
+  });
+  app.addHook('onRequestAbort', async (request) => {
+    writes.delete(request.id);
+  });
   await app.register(cors, {
     origin: allowedOrigin,
     methods: ['GET', 'POST', 'OPTIONS'],
@@ -171,8 +203,13 @@ export async function buildApp(
       return;
     await network.check(request, undefined, false);
   });
+  let updates: UpdatesService | undefined;
   app.addHook('onClose', async () => {
-    await database.close();
+    try {
+      await updates?.close();
+    } finally {
+      await database.close();
+    }
   });
   app.setErrorHandler((error, request, reply) => {
     if (
@@ -279,6 +316,15 @@ export async function buildApp(
   );
   await registerMeetingRoutes(app, auth, meetings, settings.APP_ENV !== 'test');
   await registerOperationsRoutes(app, auth, new OperationsService(database, settings, meetings));
+  if (options.testInstalledBuild && settings.APP_ENV !== 'test')
+    throw Error('A build override is test-only.');
+  updates = new UpdatesService(
+    database,
+    options.testInstalledBuild ?? (await installedBuild(settings)),
+    new UpdateSpool(settings.UPDATE_STATE_DIRECTORY),
+    new GitHubUpdates(options.updateFetch),
+  );
+  await registerUpdateRoutes(app, auth, updates, settings.APP_ENV !== 'test');
   await registerMeetingSignalling(app, auth, meetings, settings);
   await registerContentRoutes(app, auth);
   await registerEngineRoutes(app, auth);
@@ -320,5 +366,33 @@ export async function buildApp(
       },
     });
   });
-  return app;
+  return Object.assign(app, {
+    async quiesceForUpdate() {
+      const live = async () =>
+        Number(
+          (
+            await database.query<{ n: number }>(
+              "SELECT count(*)::int AS n FROM scheduled_meetings WHERE status='live'",
+            )
+          ).rows[0]!.n,
+        );
+      if (await live()) return false;
+      maintenance = true;
+      const deadline = Date.now() + 30000;
+      try {
+        while (writes.size && Date.now() < deadline) await new Promise((r) => setTimeout(r, 25));
+        if (writes.size || (await live())) {
+          maintenance = false;
+          return false;
+        }
+        return true;
+      } catch (error) {
+        maintenance = false;
+        throw error;
+      }
+    },
+    resumeAfterUpdate() {
+      maintenance = false;
+    },
+  });
 }

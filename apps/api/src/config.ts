@@ -18,6 +18,7 @@ const settingsSchema = z
     LOCAL_DEBUG_ADMIN_ALIAS: z.string().max(254).default(''),
     SERVE_WEB: flag.default(false),
     LOG_LEVEL: z.enum(['debug', 'info', 'warn', 'error', 'silent']).default('info'),
+    UPDATE_STATE_DIRECTORY: z.string().default(''),
     AUTH_ENCRYPTION_KEY: z.string().default(''),
     MAIL_MODE: z.enum(['local', 'smtp']).default('local'),
     SMTP_HOST: z.string().default(''),

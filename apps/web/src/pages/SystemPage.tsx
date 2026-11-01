@@ -10,8 +10,18 @@ import {
 import { api } from '../lib/api';
 import { useResource } from '../lib/useResource';
 import { LoadingState, EmptyState, ErrorState, StatusState } from '../components/States';
+import { useAuth } from '../auth/AuthContext';
+import { SystemStatusPanel } from './SystemStatusPanel';
 
 export function SystemPage({ enabled }: { enabled: boolean }) {
+  const auth = useAuth();
+  if (auth.session.user?.role === 'superadmin')
+    return (
+      <>
+        <h1>{t('Проверка системы')}</h1>
+        <SystemStatusPanel />
+      </>
+    );
   if (!enabled) return <StatusState status={404} />;
   return <SystemCheck />;
 }

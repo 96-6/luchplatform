@@ -21,8 +21,12 @@ export class NavigationService {
       throw e;
     }
     const db = this.auth.database;
-    if (target.kind === 'development' && !this.auth.settings.ENABLE_DEV_TOOLS)
-      throw new AppError(404, 'PAGE_NOT_FOUND', 'Страница не найдена.');
+    if (target.kind === 'development' && !this.auth.settings.ENABLE_DEV_TOOLS) {
+      const actor = await this.auth.actor(request);
+      if (actor?.user.role !== 'superadmin')
+        throw new AppError(404, 'PAGE_NOT_FOUND', 'Страница не найдена.');
+      await this.auth.requireActor(request, 'superadmin');
+    }
     if (
       target.kind === 'mailbox' &&
       !(

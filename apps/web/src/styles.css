@@ -2181,3 +2181,53 @@ button.danger {
 .meeting-file-picker input {
   max-width: 100%;
 }
+
+.update-dot {
+  display: inline-block;
+  width: 0.65rem;
+  height: 0.65rem;
+  border-radius: 50%;
+  background: #d02d39;
+  margin-inline-start: 0.6rem;
+  box-shadow: 0 0 0 2px white;
+}
+.update-available {
+  color: #a52b32;
+  font-weight: 700;
+}
+.system-facts {
+  display: grid;
+  grid-template-columns: minmax(9rem, 1fr) minmax(0, 2fr);
+  gap: 0.7rem 1.5rem;
+  overflow-wrap: anywhere;
+}
+.system-facts dt {
+  font-weight: 600;
+}
+.system-facts dd {
+  margin: 0;
+}
+.system-facts.stale {
+  opacity: 0.6;
+}
+.update-log {
+  background: #171e28;
+  color: #e4edf2;
+  padding: 1rem;
+  border-radius: 0.7rem;
+  height: min(24rem, 50vh);
+  overflow: auto;
+  white-space: pre-wrap;
+  overflow-wrap: anywhere;
+  font-size: 0.85rem;
+  line-height: 1.6;
+}
+@media (max-width: 600px) {
+  .system-facts {
+    grid-template-columns: 1fr;
+    gap: 0.25rem;
+  }
+  .system-facts dd {
+    margin-bottom: 0.7rem;
+  }
+}
