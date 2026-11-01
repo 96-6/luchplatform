@@ -8,7 +8,7 @@ import { atomic, json, environment } from './update-runtime/shared.mjs';
 import { command } from './update-runtime/commands.mjs';
 
 process.umask(0o077);
-const root = fileURLToPath(new URL('../', import.meta.url));
+const root = resolve(fileURLToPath(new URL('../', import.meta.url)));
 let envFile = resolve(root, '.env');
 try {
   process.loadEnvFile(envFile);

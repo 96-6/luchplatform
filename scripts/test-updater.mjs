@@ -286,10 +286,17 @@ try {
       } catch {}
   });
   await page.getByRole('button', { name: 'Обновить систему', exact: true }).click();
+  const applied = page.waitForResponse(
+    (response) =>
+      response.url().endsWith('/api/v1/admin/updates/apply') &&
+      response.request().method() === 'POST',
+  );
   await page.getByRole('button', { name: 'Начать обновление', exact: true }).click();
+  const appliedResponse = await applied;
+  assert.equal(appliedResponse.status(), 200, await appliedResponse.text());
+  const acceptedJob = (await appliedResponse.json()).data;
   if (call) {
-    const jobId = (await (await page.request.get(env.APP_URL + '/api/v1/admin/updates')).json())
-      .data.latestJob.id;
+    const jobId = acceptedJob.id;
     await waitFor(
       async () =>
         (await json(resolve(state, 'jobs', jobId + '.json')))?.phase === 'waiting_for_meetings',
