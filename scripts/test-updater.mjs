@@ -307,9 +307,12 @@ try {
     );
     assert.equal((await deployment(config)).current, 'initial');
     assert.equal((await fetch(env.APP_URL + '/api/v1/health/ready')).status, 200);
+    const revision = (
+      await (await page.request.get(env.APP_URL + `/api/v1/meetings/${meetingId}`)).json()
+    ).data.revision;
     const ended = await page.request.post(env.APP_URL + `/api/v1/meetings/${meetingId}/moderate`, {
       headers: { 'x-csrf-token': meetingCsrf },
-      data: { operationId: randomUUID(), action: 'end' },
+      data: { operationId: randomUUID(), action: 'end', revision },
     });
     assert.equal(ended.status(), 200, await ended.text());
     await call.close();
