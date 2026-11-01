@@ -84,6 +84,7 @@ export async function runSupervisor(config, { startWorker = true } = {}) {
     loaded = release;
     const current = child;
     current.on('message', (message) => {
+      if (child !== current) return;
       if (message?.type === 'luch:ready') ready = true;
       if (message?.type === 'luch:quiesced') {
         const done = waiting.get(message.id);
@@ -219,6 +220,7 @@ export async function runSupervisor(config, { startWorker = true } = {}) {
       else res.destroy();
     });
   });
+  server.requestTimeout = 30 * 60 * 1000;
   server.on('upgrade', (req, socket, head) => {
     if (!serving || !ready) {
       socket.end('HTTP/1.1 503 Service Unavailable\r\nConnection: close\r\n\r\n');
