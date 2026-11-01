@@ -145,12 +145,16 @@ export class DatabaseSnapshot {
           }),
         );
         const psql = trackChild(
-          spawn('psql', ['-X', '--set=ON_ERROR_STOP=1', '--single-transaction'], {
-            env: this.pgEnv,
-            stdio: ['pipe', 'ignore', 'ignore'],
-            shell: false,
-            detached: true,
-          }),
+          spawn(
+            'psql',
+            ['-X', '--no-password', '--set=ON_ERROR_STOP=1', '--single-transaction', '--file=-'],
+            {
+              env: this.pgEnv,
+              stdio: ['pipe', 'ignore', 'ignore'],
+              shell: false,
+              detached: true,
+            },
+          ),
         );
         let restoreCode = null,
           psqlCode = null,
