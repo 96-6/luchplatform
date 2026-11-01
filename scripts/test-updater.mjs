@@ -168,7 +168,9 @@ try {
   const target = await targetVersion(
     '0.1.1',
     '028',
-    "CREATE TABLE updater_fixture(value text NOT NULL); INSERT INTO updater_fixture VALUES('preserved');\n",
+    // Keep the native migration observable even on a runner faster than the UI's polling interval.
+    "CREATE TABLE updater_fixture(value text NOT NULL); INSERT INTO updater_fixture VALUES('preserved');\n" +
+      (native ? 'SELECT pg_sleep(3);\n' : ''),
   );
   // Restore installed source before initial migrations; Git main remains the update source separately.
   const remote = resolve(directory, 'remote.git');
