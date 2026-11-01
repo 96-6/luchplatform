@@ -13,6 +13,15 @@ import { GitHubUpdates } from './github.js';
 import { UpdateSpool } from './spool.js';
 
 const SIX_HOURS = 6 * 60 * 60 * 1000;
+export async function activeMeetingCount(db: Database) {
+  return Number(
+    (
+      await db.query<{ n: number }>(
+        "SELECT count(*)::int AS n FROM scheduled_meetings m WHERE m.status='live' AND EXISTS(SELECT 1 FROM meeting_sessions s WHERE s.meeting_id=m.id AND s.state='admitted')",
+      )
+    ).rows[0]!.n,
+  );
+}
 const terminal = (phase: string) => ['completed', 'failed', 'rollback_failed'].includes(phase);
 type Channel = {
   checked_at: Date | string | null;
@@ -152,13 +161,7 @@ export class UpdatesService {
     const jobs = (
       await this.db.query<JobRow>(selectJob + ' ORDER BY j.created_at DESC,j.id DESC LIMIT 20')
     ).rows;
-    const live = Number(
-      (
-        await this.db.query<{ n: number }>(
-          "SELECT count(*)::int AS n FROM scheduled_meetings WHERE status='live'",
-        )
-      ).rows[0]!.n,
-    );
+    const live = await activeMeetingCount(this.db);
     let status: UpdateOverview['status'] = 'unknown';
     if (c.latest_commit) {
       if (this.build.fingerprint && this.build.fingerprint === c.latest_fingerprint)

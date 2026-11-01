@@ -60,7 +60,7 @@ import { registerBrowserSecurity } from './modules/security/browsers.js';
 import { installedBuild } from './modules/updates/build.js';
 import { UpdateSpool } from './modules/updates/spool.js';
 import { GitHubUpdates, type UpdateFetch } from './modules/updates/github.js';
-import { UpdatesService } from './modules/updates/service.js';
+import { UpdatesService, activeMeetingCount } from './modules/updates/service.js';
 import { registerUpdateRoutes } from './modules/updates/routes.js';
 declare module 'fastify' {
   interface FastifyInstance {
@@ -368,14 +368,7 @@ export async function buildApp(
   });
   return Object.assign(app, {
     async quiesceForUpdate() {
-      const live = async () =>
-        Number(
-          (
-            await database.query<{ n: number }>(
-              "SELECT count(*)::int AS n FROM scheduled_meetings WHERE status='live'",
-            )
-          ).rows[0]!.n,
-        );
+      const live = () => activeMeetingCount(database);
       if (await live()) return false;
       maintenance = true;
       const deadline = Date.now() + 30000;

@@ -115,6 +115,51 @@ async function login(email = alias, instance = app, database = db, key = account
   };
 }
 describe('platform update controls', () => {
+  it('allows a saved empty meeting while retaining admitted and reconnecting VANISH sessions as active', async () => {
+    const headers = await login();
+    const created = await app.inject({
+      method: 'POST',
+      url: '/api/v1/meetings/adhoc',
+      headers,
+      payload: {
+        operationId: randomUUID(),
+        title: 'Empty retained meeting',
+        language: 'ru',
+        timeZone: 'UTC',
+        durationMinutes: null,
+        reusable: true,
+        allowGuests: false,
+        expiresAt: null,
+        lobbyEnabled: false,
+      },
+    });
+    expect(created.statusCode, created.body).toBe(200);
+    const id = created.json().data.meeting.id,
+      userId = (await app.inject({ url: '/api/v1/auth/session', headers })).json().data.user.id;
+    await db.query("UPDATE scheduled_meetings SET status='live' WHERE id=$1", [id]);
+    try {
+      expect(await app.quiesceForUpdate()).toBe(true);
+      app.resumeAfterUpdate();
+      const sessionId = randomUUID();
+      await db.query(
+        "INSERT INTO meeting_sessions(id,meeting_id,user_id,state,first_connected_at,created_at,vanish) VALUES($1,$2,$3,'admitted',now(),now(),true)",
+        [sessionId, id, userId],
+      );
+      expect(await app.quiesceForUpdate()).toBe(false);
+      expect(
+        (await app.inject({ url: '/api/v1/admin/updates', headers })).json().data.liveMeetings,
+      ).toBe(1);
+      await db.query("UPDATE meeting_sessions SET state='left',ended_at=now() WHERE id=$1", [
+        sessionId,
+      ]);
+      expect(await app.quiesceForUpdate()).toBe(true);
+      expect(
+        (await db.query('SELECT status FROM scheduled_meetings WHERE id=$1', [id])).rows[0]!.status,
+      ).toBe('live');
+    } finally {
+      app.resumeAfterUpdate();
+    }
+  });
   it('restricts diagnostics, checks, progress and changes to superadmins, including on LAN', async () => {
     const root = await login(),
       student = await login('testuser1');
