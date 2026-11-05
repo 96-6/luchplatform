@@ -6,6 +6,7 @@ import { ErrorBoundary } from './components/ErrorBoundary';
 import './styles.css';
 import { SecurityGate } from './auth/SecurityGate';
 import { AuthProvider } from './auth/AuthContext';
+import { ClientProtection } from './auth/ClientProtection';
 import { BrowserGate, BrowserWarningBanner } from './auth/BrowserGate';
 import { MeetingNavigationProvider } from './pages/meetings/MeetingNavigation';
 
@@ -17,10 +18,12 @@ const router = createBrowserRouter([
         <SecurityGate>
           <BrowserGate>
             <AuthProvider>
-              <MeetingNavigationProvider>
-                <BrowserWarningBanner />
-                <App />
-              </MeetingNavigationProvider>
+              <ClientProtection>
+                <MeetingNavigationProvider>
+                  <BrowserWarningBanner />
+                  <App />
+                </MeetingNavigationProvider>
+              </ClientProtection>
             </AuthProvider>
           </BrowserGate>
         </SecurityGate>

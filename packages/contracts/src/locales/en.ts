@@ -1,4 +1,26 @@
 export const english = {
+  'Повторить проверку': 'Try the check again',
+  'Роли не должны повторяться.': 'Roles must not be repeated.',
+  'Проверка завершена.': 'Check completed.',
+  'Настройки изменились. Обновите страницу.': 'Settings have changed. Refresh the page.',
+  'Браузер блокирует необходимые функции сайта. Разрешите JavaScript, cookies и ресурсы платформы, затем повторите проверку.':
+    'Your browser is blocking required site features. Allow JavaScript, cookies and platform resources, then try again.',
+  'Проверяем настройки браузера…': 'Checking browser settings…',
+  'Сменить аккаунт': 'Switch account',
+  'Защита функций браузера': 'Browser feature protection',
+  'Ограничение правого клика и F12': 'Right-click and F12 restrictions',
+  'Защита от блокировщиков': 'Blocker protection',
+  'Включить ограничение правого клика и F12': 'Enable right-click and F12 restrictions',
+  'Включить защиту от блокировщиков': 'Enable blocker protection',
+  'Ограничивает контекстное меню в содержимом страниц и сочетания открытия DevTools. Поля ввода, ссылки, кнопки и стандартное управление медиа сохраняются. Сайт не может полностью запретить инструменты разработчика браузера.':
+    'Restricts context menus in page content and DevTools keyboard shortcuts. Inputs, links, buttons and native media controls remain available. A website cannot fully disable browser developer tools.',
+  'Проверяет JavaScript, cookies, загрузку проверочного ресурса и признаки рекламной фильтрации. При отказе закрывает страницы и API выбранных ролей с HTTP 403. Не определяет все расширения: полностью контролируемый клиент может подделать веб-проверку.':
+    'Checks JavaScript, cookies, loading of a test resource and signs of ad filtering. Failed checks close pages and APIs for selected roles with HTTP 403. Cannot detect every extension: a fully controlled client can forge a web check.',
+  'Применять к ролям:': 'Apply to roles:',
+  'Обе защиты выключены по умолчанию. Роль определяется сервером после входа. Суперадмин исключён из ограничений для восстановления доступа и управления настройками.':
+    'Both protections are off by default. The server determines the role after sign-in. Superadmins are exempt so they can recover access and manage settings.',
+  'Сохранить защиту функций браузера': 'Save browser feature protection',
+  'Настройки защиты функций браузера сохранены.': 'Browser feature protection settings saved.',
   Система: 'System',
   Обновления: 'Updates',
   'Доступно обновление': 'An update is available',

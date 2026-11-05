@@ -57,6 +57,7 @@ import { CaptchaService } from './modules/security/captcha.js';
 import { NetworkService, type IpInspector } from './modules/security/network.js';
 import { ipAllowed, validateRanges } from './modules/security/policy.js';
 import { registerBrowserSecurity } from './modules/security/browsers.js';
+import { registerClientProtection } from './modules/security/client-protection-routes.js';
 import { installedBuild } from './modules/updates/build.js';
 import { UpdateSpool } from './modules/updates/spool.js';
 import { GitHubUpdates, type UpdateFetch } from './modules/updates/github.js';
@@ -282,6 +283,7 @@ export async function buildApp(
       },
     });
   });
+  await registerClientProtection(app, auth);
   await registerBrowserSecurity(app, auth);
   app.get('/api/v1/system', async (request) => ({
     data: { application: 'ЛУЧ', stage: 'assistant', devToolsEnabled: settings.ENABLE_DEV_TOOLS },

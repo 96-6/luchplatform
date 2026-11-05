@@ -1,3 +1,17 @@
+.client-protection-denied {
+  position: fixed;
+  inset: 0;
+  z-index: 10000;
+  overflow: auto;
+  display: grid;
+  place-items: center;
+  padding: 24px;
+  background: #f4f6f3;
+}
+.client-protection-denied > .panel {
+  width: min(100%, 680px);
+}
+
 :root {
   font-family:
     Inter,

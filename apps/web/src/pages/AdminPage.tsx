@@ -1,6 +1,7 @@
 import { MeetingFileSettings } from './meetings/MeetingExtras';
 import { MeetingRecordingSettings } from './meetings/MeetingRecordingSettings';
 import { BrowserSecuritySettings } from './BrowserSecuritySettings';
+import { ClientProtectionSettings } from './ClientProtectionSettings';
 import { BrowserManualAccessSettings } from './BrowserManualAccessSettings';
 import { UpdatesPanel, usePlatformUpdates } from './UpdatesPanel';
 import { SystemStatusPanel } from './SystemStatusPanel';
@@ -77,6 +78,7 @@ export function AdminPage() {
         <>
           <SecuritySettings />
           <BrowserSecuritySettings />
+          <ClientProtectionSettings />
           <BrowserManualAccessSettings />
           <MeetingRecordingSettings />
           <MeetingFileSettings />

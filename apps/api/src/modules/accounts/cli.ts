@@ -17,7 +17,10 @@ async function run() {
       await database.query(
         'UPDATE browser_policy SET outdated_enabled=false,enhanced_enabled=false,revision=revision+1,updated_at=now(),updated_by=NULL WHERE id=1',
       );
-      console.log('Network and browser access restrictions disabled.');
+      await database.query(
+        'UPDATE client_protection_policy SET interaction_enabled=false,blockers_enabled=false,revision=revision+1,updated_at=now(),updated_by=NULL WHERE id=1',
+      );
+      console.log('Network, browser and client access restrictions disabled.');
     } else if (process.argv[2] === 'seed-demo') {
       const users = await seedDemo(database, settings);
       const content = await seedDemoContent(database);

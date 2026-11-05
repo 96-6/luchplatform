@@ -50,7 +50,7 @@ beforeAll(async () => {
 });
 beforeEach(async () => {
   await db.exec(
-    'TRUNCATE users,content_packages CASCADE; INSERT INTO security_policy (id,captcha_enabled) VALUES (1,false)',
+    'TRUNCATE users,content_packages CASCADE; INSERT INTO client_protection_policy(id) VALUES(1); INSERT INTO security_policy (id,captcha_enabled) VALUES (1,false)',
   );
   await seedDemoContent(db);
 });

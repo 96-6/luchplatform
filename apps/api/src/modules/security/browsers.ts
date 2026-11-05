@@ -18,6 +18,7 @@ import { limitAttempts } from './rate.js';
 import { browserSignals, evaluateBrowser, type BrowserSignals } from './browsers-detection.js';
 import { BrowserManualAccess } from './browser-access.js';
 import { registerBrowserManualRoutes } from './browser-access-routes.js';
+import { CLIENT_PUBLIC_PATHS } from './client-protection-routes.js';
 
 type Decision = z.infer<typeof browserDecisionSchema>;
 type Assessment = {
@@ -331,6 +332,7 @@ export async function registerBrowserSecurity(app: FastifyInstance, auth: AuthSe
     reply.header('accept-ch', 'Sec-CH-UA-Full-Version-List');
     const path = request.url.split('?')[0]!;
     const publicPath = [
+      ...CLIENT_PUBLIC_PATHS,
       '/api/v1/security/bootstrap',
       '/api/v1/security/ping',
       '/api/v1/security/evaluate',
