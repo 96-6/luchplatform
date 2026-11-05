@@ -178,6 +178,10 @@ app.post('/__e2e/browser-policy-reset', async (request, reply) => {
   return reply.code(204).send();
 });
 for (const prefix of [
+  'client-protection-student',
+  'client-protection-tutor',
+  'client-blockers-student',
+  'client-blockers-tutor',
   'audit-updates-superadmin',
   'audit-status-superadmin',
   'audit-updates-student',

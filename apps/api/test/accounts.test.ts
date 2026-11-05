@@ -36,7 +36,7 @@ beforeAll(async () => {
 });
 beforeEach(async () => {
   await db.exec(
-    'TRUNCATE users CASCADE; TRUNCATE captcha_challenges,auth_rate_limits; INSERT INTO security_policy (id,captcha_enabled) VALUES (1,false)',
+    'TRUNCATE users CASCADE; TRUNCATE captcha_challenges,auth_rate_limits; INSERT INTO client_protection_policy(id) VALUES(1); INSERT INTO security_policy (id,captcha_enabled) VALUES (1,false)',
   );
 });
 afterEach(() => vi.restoreAllMocks());

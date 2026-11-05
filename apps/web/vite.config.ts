@@ -3,7 +3,12 @@ import { resolve, relative, isAbsolute, sep } from 'node:path';
 import { realpath } from 'node:fs/promises';
 import { defineConfig, loadEnv } from 'vite';
 import react from '@vitejs/plugin-react';
-import { pageErrorDocument, errorSchema, resolveLocale } from '@luch/contracts';
+import {
+  pageErrorDocument,
+  clientProtectionDocument,
+  errorSchema,
+  resolveLocale,
+} from '@luch/contracts';
 
 const root = fileURLToPath(new URL('../../', import.meta.url));
 const browserRoots = [
@@ -108,13 +113,15 @@ export default defineConfig(({ mode }) => {
               res.setHeader('Cache-Control', 'no-store');
               res.setHeader('Referrer-Policy', 'no-referrer');
               return res.end(
-                pageErrorDocument(
-                  response.status,
-                  error.success ? error.data.error.message : 'Не удалось открыть страницу.',
-                  error.success ? error.data.error.requestId : 'dev-page',
-                  locale,
-                  pathname === '/set-password' ? '/forgot-password' : '/register',
-                ),
+                error.success && error.data.error.code === 'CLIENT_CAPABILITIES_REQUIRED'
+                  ? clientProtectionDocument(error.data.error.requestId, locale)
+                  : pageErrorDocument(
+                      response.status,
+                      error.success ? error.data.error.message : 'Не удалось открыть страницу.',
+                      error.success ? error.data.error.requestId : 'dev-page',
+                      locale,
+                      pathname === '/set-password' ? '/forgot-password' : '/register',
+                    ),
               );
             } catch {
               res.statusCode = 503;

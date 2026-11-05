@@ -80,7 +80,7 @@ beforeAll(async () => {
 });
 beforeEach(async () => {
   await db.exec(
-    'TRUNCATE users CASCADE; INSERT INTO security_policy(id,captcha_enabled) VALUES(1,false) ON CONFLICT(id) DO UPDATE SET captcha_enabled=false; UPDATE platform_update_channel SET checked_at=NULL,next_check_at=NULL,checking_since=NULL,latest_commit=NULL,latest_fingerprint=NULL,latest_committed_at=NULL,last_error=NULL',
+    'TRUNCATE users CASCADE; INSERT INTO client_protection_policy(id) VALUES(1); INSERT INTO security_policy(id,captcha_enabled) VALUES(1,false) ON CONFLICT(id) DO UPDATE SET captcha_enabled=false; UPDATE platform_update_channel SET checked_at=NULL,next_check_at=NULL,checking_since=NULL,latest_commit=NULL,latest_fingerprint=NULL,latest_committed_at=NULL,last_error=NULL',
   );
   calls = 0;
   fail = false;
@@ -184,7 +184,7 @@ describe('platform update controls', () => {
     expect(status.statusCode, status.body).toBe(200);
     const data = systemStatusSchema.parse(status.json().data);
     expect(data.database.available && data.database.schemaCurrent).toBe(true);
-    expect(data.database.schemaVersion).toBe('027_platform_updates.sql');
+    expect(data.database.schemaVersion).toBe('028_client_protection.sql');
     expect(status.body).not.toContain('DATABASE_URL');
     expect(status.body).not.toContain(directory);
     for (const path of ['check', 'apply']) {
