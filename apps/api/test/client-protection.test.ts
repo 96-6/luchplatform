@@ -223,6 +223,8 @@ describe('role-scoped browser feature protection', () => {
     expect((await f.db.query('SELECT verified_until FROM client_capability_grants')).rows).toEqual(
       before,
     );
+    expect((await verify(e.headers, { ...e.input, visible: false })).statusCode).toBe(403);
+    expect((await get('/api/v1/system', e.headers)).statusCode).toBe(200);
   });
   it('fails closed for blocked resources or hidden probes and revokes a previously valid grant', async () => {
     const root = await f.active('superadmin'),
@@ -247,6 +249,13 @@ describe('role-scoped browser feature protection', () => {
     expect((await verify(next.headers, { ...next.input, visible: false })).statusCode).toBe(403);
     expect((await get('/api/v1/system', next.headers)).statusCode).toBe(403);
     expect((await verify(next.headers, next.input)).statusCode).toBe(403);
+    const recovered = await evidence({
+      ...student,
+      headers: { ...student.headers, cookie: e.headers.cookie! },
+    });
+    expect((await verify(recovered.headers, recovered.input)).statusCode).toBe(200);
+    expect((await verify(next.headers, { ...next.input, visible: false })).statusCode).toBe(403);
+    expect((await get('/api/v1/system', recovered.headers)).statusCode).toBe(200);
   });
   it('rejects proofs from other sessions, changed browsers, expired challenges and obsolete policies', async () => {
     const root = await f.active('superadmin'),

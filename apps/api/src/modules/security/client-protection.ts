@@ -210,6 +210,14 @@ export class ClientProtectionService {
         !this.auth.crypto.matches(hashToken(input.nonce), row.nonce_hash)
       )
         throw this.denied();
+      // Retries never change an already completed result or extend an existing grant.
+      if (row.consumed_at)
+        return Boolean(
+          input.visible &&
+          input.proof &&
+          this.auth.crypto.matches(input.proof, this.proof(row)) &&
+          (await this.verified(r, actor, p, tx)),
+        );
       if (
         !input.visible ||
         !row.resource_seen ||
@@ -220,14 +228,10 @@ export class ClientProtectionService {
           'DELETE FROM client_capability_grants WHERE session_id=$1 AND client_hash=$2',
           [actor.sessionId, row.client_hash],
         );
-        await tx.query('UPDATE client_capability_challenges SET consumed_at=$2 WHERE id=$1', [
-          row.id,
-          new Date(this.now()),
-        ]);
+        // A retry of a failed, older check must not revoke a newer successful grant.
+        await tx.query('DELETE FROM client_capability_challenges WHERE id=$1', [row.id]);
         return false;
       }
-      // A lost successful response may be retried, without extending an already issued grant.
-      if (row.consumed_at) return await this.verified(r, actor, p, tx);
       await tx.query('UPDATE client_capability_challenges SET consumed_at=$2 WHERE id=$1', [
         row.id,
         new Date(this.now()),
