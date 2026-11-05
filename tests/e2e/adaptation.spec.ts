@@ -148,12 +148,20 @@ test('mistakes and independent success produce different next tasks and persiste
   await page.reload();
   await expect(page.locator('[data-kind="correction"]')).toHaveCount(1);
   await page.getByRole('button', { name: 'Начать дополнительную практику', exact: true }).click();
-  // Both bank exercises were already viewed. New task-9 behavior reports exhaustion.
+  // Both bank exercises were already viewed; repeat practice must still be playable.
   await expect(
-    page.getByRole('alert').filter({ hasText: 'Ошибка генерации контента' }),
+    page.getByText(
+      'Продолжаем по сохранённому материалу. Знакомые задания могут повторяться для дополнительной практики.',
+      { exact: true },
+    ),
   ).toBeVisible();
-  const unchanged = await plan(page);
-  expect(unchanged.assignments.find((x) => x.id === next.id)!.status).toBe('pending');
+  const remedial = await run(page);
+  expect(remedial.run.cachedContent).toBe(true);
+  expect(remedial.current!.turn.hadPriorFeedback).toBe(true);
+  expect(remedial.attempts).toHaveLength(0);
+  const active = (await (await page.request.get(`/api/v1/plans/${a.plan.id}`)).json())
+    .data as PlanView;
+  expect(active.assignments.find((x) => x.id === next.id)!.status).toBe('active');
   const other = await browser.newContext({ locale: 'ru-RU', baseURL: 'http://127.0.0.1:3200' });
   try {
     const good = await other.newPage();

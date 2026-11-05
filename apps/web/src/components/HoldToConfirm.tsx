@@ -1,4 +1,4 @@
-import { useEffect, useRef, useState, type ReactNode } from 'react';
+import { useEffect, useId, useRef, useState, type ReactNode } from 'react';
 import { MEETING_BAN_HOLD_MS } from '@luch/contracts';
 import { t } from '../i18n';
 
@@ -17,6 +17,7 @@ export function HoldToConfirm<T>({
   cancel: () => void;
   valid?: boolean;
 }) {
+  const helpId = useId();
   const dialog = useRef<HTMLDialogElement>(null),
     held = useRef(false),
     generation = useRef(0),
@@ -108,8 +109,8 @@ export function HoldToConfirm<T>({
     <dialog
       ref={dialog}
       className="hold-confirmation-dialog"
-      aria-labelledby="hold-confirm-title"
-      aria-describedby="hold-confirm-help"
+      aria-label={title}
+      aria-describedby={helpId}
       onCancel={(e) => {
         e.preventDefault();
         if (!saving.current) {
@@ -118,9 +119,9 @@ export function HoldToConfirm<T>({
         }
       }}
     >
-      <h2 id="hold-confirm-title">{title}</h2>
+      <h2>{title}</h2>
       <fieldset disabled={phase !== 'idle'}>{children}</fieldset>
-      <p id="hold-confirm-help">
+      <p id={helpId}>
         {t(
           'Вы уверены? Для подтверждения удерживайте «Да» пять секунд. Короткое нажатие ничего не меняет.',
         )}
