@@ -178,7 +178,15 @@ export const roomStateSchema = z.object({
       deviceReportedAt: iso.nullable(),
     }),
   ),
-  waiting: z.array(z.object({ identity: uuid, userId: uuid, name: z.string(), createdAt: iso })),
+  waiting: z.array(
+    z.object({
+      identity: uuid,
+      userId: uuid,
+      name: z.string(),
+      createdAt: iso,
+      isGuest: z.boolean().default(false),
+    }),
+  ),
 });
 export const moderateMeetingSchema = z.strictObject({
   operationId: uuid,

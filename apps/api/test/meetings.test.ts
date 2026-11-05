@@ -982,6 +982,84 @@ describe('scheduler account lookup scale', () => {
 });
 
 describe('authenticated signalling admission', () => {
+  it.each(['account', 'session'])(
+    'closes an already-open gateway and removes its SFU peer after %s revocation',
+    async (kind) => {
+      const g = await entered(),
+        root = await f.active('superadmin');
+      const room = (
+        await f.db.query<{ room_name: string }>(
+          'SELECT room_name FROM scheduled_meetings WHERE id=$1',
+          [g.m.id],
+        )
+      ).rows[0]!.room_name;
+      const jwt = await ticket(g.student, g.s.session.id, room),
+        upstream = new WebSocketServer({ host: '127.0.0.1', port: 0 }),
+        original = f.settings.LIVEKIT_WS_URL;
+      await new Promise<void>((resolve) => upstream.once('listening', resolve));
+      const address = upstream.address();
+      if (typeof address === 'string') throw Error('Unexpected address');
+      f.settings.LIVEKIT_WS_URL = `ws://127.0.0.1:${address.port}`;
+      upstream.on('connection', (socket) =>
+        socket.on('message', (data, binary) => socket.send(data, { binary })),
+      );
+      let client: WebSocket | undefined;
+      try {
+        if (!f.app.server.listening) await f.app.listen({ host: '127.0.0.1', port: 0 });
+        const listener = f.app.server.address();
+        if (!listener || typeof listener === 'string') throw Error('Unexpected listener');
+        client = new WebSocket(
+          `ws://127.0.0.1:${listener.port}/api/v1/video/rtc?access_token=${encodeURIComponent(jwt)}`,
+          {
+            headers: {
+              cookie: g.student.headers.cookie,
+              origin: new URL(f.settings.APP_URL).origin,
+            },
+          },
+        );
+        await new Promise<void>((resolve, reject) => {
+          client!.once('open', resolve);
+          client!.once('error', reject);
+        });
+        const echo = new Promise<void>((resolve) => client!.once('message', () => resolve()));
+        client.send('ready');
+        await echo;
+        const closed = new Promise<void>((resolve, reject) => {
+          const timeout = setTimeout(() => reject(Error('Revoked gateway stayed open')), 7000);
+          client!.once('close', () => {
+            clearTimeout(timeout);
+            resolve();
+          });
+        });
+        if (kind === 'account')
+          await post(root, `/admin/accounts/${g.student.actor.user.id}`, {
+            isBlocked: true,
+            accessVerified: true,
+            blockReason: 'Call access revoked',
+          });
+        else
+          await f.db.query('UPDATE auth_sessions SET revoked_at=now() WHERE user_id=$1', [
+            g.student.actor.user.id,
+          ]);
+        await closed;
+        await expect
+          .poll(
+            async () =>
+              (await f.db.query('SELECT state FROM meeting_sessions WHERE id=$1', [g.s.session.id]))
+                .rows[0]?.state,
+          )
+          .toBe('removed');
+        await expect
+          .poll(() => video.calls.some((c) => c.kind === 'remove' && c.identity === g.s.session.id))
+          .toBe(true);
+      } finally {
+        client?.terminate();
+        for (const s of upstream.clients) s.terminate();
+        await new Promise<void>((resolve) => upstream.close(() => resolve()));
+        f.settings.LIVEKIT_WS_URL = original;
+      }
+    },
+  );
   async function ticket(user: Login, sid: string, room: string) {
     return new LiveKitVideo(f.settings).token(room, sid, user.actor.user.name, {
       audioAllowed: true,
@@ -1044,7 +1122,11 @@ describe('authenticated signalling admission', () => {
     });
     try {
       await mod(g.teacher, g.m.id, 'mute_audio', { targetId: g.s.session.id });
-      const base = await f.app.listen({ host: '127.0.0.1', port: 0 }),
+      const listener = f.app.server.address();
+      const base =
+          f.app.server.listening && listener && typeof listener !== 'string'
+            ? `http://127.0.0.1:${listener.port}`
+            : await f.app.listen({ host: '127.0.0.1', port: 0 }),
         url = `${base.replace(/^http/, 'ws')}/api/v1/video/rtc/v1?access_token=${encodeURIComponent(token)}&protocol=16`;
       const options = {
         headers: { cookie: g.student.headers.cookie, origin: new URL(f.settings.APP_URL).origin },

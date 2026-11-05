@@ -7,7 +7,7 @@ import {
   enrollAPI,
 } from './password.helpers';
 import { readFile } from 'node:fs/promises';
-import { expect, test, type Browser, type Page, type Playwright } from '@playwright/test';
+import { expect, test, type Browser, type Page, type PlaywrightWorkerArgs } from '@playwright/test';
 import { Secret, TOTP } from 'otpauth';
 import { contentPackageSchema, type RunView } from '@luch/contracts';
 import { resolve } from 'node:path';
@@ -86,7 +86,7 @@ export async function preparePlan(p: Page, language: 'ru' | 'en') {
   }
   return (await (await p.request.get(`/api/v1/diagnostics/${d.id}`)).json()).data.planId as string;
 }
-export async function videoBrowser(playwright: Playwright) {
+export async function videoBrowser(playwright: PlaywrightWorkerArgs['playwright']) {
   return playwright.chromium.launch({
     headless: !process.env.LUCH_VIDEO_TEST_ENV || process.env.LUCH_VIDEO_TEST_HEADLESS === 'true',
     ...(process.env.PLAYWRIGHT_EXECUTABLE_PATH

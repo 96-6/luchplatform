@@ -40,6 +40,7 @@ import { api, ApiError, setMeetingCsrf } from '../../lib/api';
 import { useResource } from '../../lib/useResource';
 import { ErrorState, LoadingState } from '../../components/States';
 import { MeetingChat } from './MeetingChat';
+import { GuestIpBanDialog, MeetingIpBans } from './MeetingBans';
 import { useMeetingNavigation } from './MeetingNavigation';
 import {
   MeetingVideoTrack,
@@ -233,6 +234,14 @@ function JoinedRoom({
     }
   }, [id, initialSession.id]);
   const self = state.data?.self;
+  const accessRevoked =
+    state.error instanceof ApiError && [401, 403].includes(state.error.status ?? 0);
+  useEffect(() => {
+    if (accessRevoked) {
+      setToken(null);
+      setTokenError(state.error);
+    }
+  }, [accessRevoked, state.error]);
   const admitted = self?.state === 'admitted' && state.data?.meeting.status === 'live';
   const { register } = useMeetingNavigation();
   const leaveRef = useRef<() => Promise<void>>(async () => {});
@@ -314,7 +323,7 @@ function JoinedRoom({
           <h2>{tr('Зал ожидания')}</h2>
           <p>{tr('Ожидайте допуска организатора. Камера и микрофон выключены.')}</p>
         </section>
-      ) : token && admitted ? (
+      ) : token && admitted && !accessRevoked ? (
         <LiveKitRoom
           key={epoch}
           serverUrl={token.serverUrl}
@@ -375,6 +384,8 @@ function Conference({
   const connection = useConnectionState(),
     { session } = useAuth();
   const [chatOpen, setChatOpen] = useState(false);
+  const [ipBan, setIpBan] = useState<{ id: string; name: string } | null>(null),
+    [banRevision, setBanRevision] = useState(0);
   const [pinned, setPinned] = useState<string | null>(null),
     [error, setError] = useState(''),
     [busy, setBusy] = useState(false),
@@ -638,6 +649,15 @@ function Conference({
                         >
                           {tr('Удалить из встречи')}
                         </button>
+                        {info.role === 'guest' && (
+                          <button
+                            className="danger"
+                            disabled={busy}
+                            onClick={() => setIpBan({ id: p.identity, name: info.name })}
+                          >
+                            {tr('Заблокировать гостевой IP')}
+                          </button>
+                        )}
                       </div>
                     </details>
                   )}
@@ -704,6 +724,15 @@ function Conference({
                         >
                           {tr('Отказать')}
                         </button>
+                        {p.isGuest && (
+                          <button
+                            className="danger"
+                            disabled={busy}
+                            onClick={() => setIpBan({ id: p.identity, name: p.name })}
+                          >
+                            {tr('Заблокировать гостевой IP')}
+                          </button>
+                        )}
                       </div>
                     </li>
                   ))}
@@ -727,6 +756,10 @@ function Conference({
                     ))}
                 </details>
               )}
+              <details>
+                <summary>{tr('Блокировки гостевых IP')}</summary>
+                <MeetingIpBans meetingId={data.meeting.id} revision={banRevision} />
+              </details>
             </section>
           </details>
         )}
@@ -744,6 +777,19 @@ function Conference({
           </p>
         )}
       </div>
+      {ipBan && (
+        <GuestIpBanDialog
+          meetingId={data.meeting.id}
+          sessionId={ipBan.id}
+          name={ipBan.name}
+          cancel={() => setIpBan(null)}
+          done={() => {
+            setIpBan(null);
+            setBanRevision((v) => v + 1);
+            void refresh();
+          }}
+        />
+      )}
       <aside
         className="meeting-chat-panel"
         aria-label={tr('Боковая панель чата')}

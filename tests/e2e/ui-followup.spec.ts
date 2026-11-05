@@ -1,3 +1,4 @@
+import { holdYes } from './hold.helpers';
 import {
   testPassword,
   apiPasswordLogin,
@@ -49,13 +50,22 @@ async function attemptLogin(page: Page, setup: { user: { email: string }; manual
   const response = await passwordUI(page, setup.user.email);
   if (response.ok()) await secondFactorUI(page, setup.user.email, setup.manualKey);
 }
-async function saveAccess(page: Page) {
+async function saveAccess(page: Page, confirmBan = false) {
   const saved = page.waitForResponse(
     (response) =>
       response.request().method() === 'POST' &&
       /\/api\/v1\/admin\/accounts\/[^/]+$/.test(new URL(response.url()).pathname),
   );
   await page.getByRole('button', { name: 'Сохранить доступ', exact: true }).click();
+  if (confirmBan) {
+    const confirmation = page.getByRole('dialog', { name: 'Заблокировать аккаунт?', exact: true });
+    await expect(confirmation).toBeVisible();
+    await confirmation
+      .getByRole('button', { name: 'Да, удерживать 5 секунд', exact: true })
+      .click();
+    await expect(confirmation).toBeVisible();
+    await holdYes(page, confirmation);
+  }
   expect((await saved).status()).toBe(200);
   await expect(page.getByRole('button', { name: 'Сохранить доступ', exact: true })).toBeEnabled();
 }
@@ -138,7 +148,7 @@ test('deactivation and a reasoned ban are managed in the account form and shown 
     await admin.getByLabel('Заблокировать аккаунт', { exact: true }).check();
     const reason = 'Нарушение правил <img src=x onerror=alert(1)>';
     await admin.getByLabel('Причина блокировки', { exact: true }).fill(reason);
-    await saveAccess(admin);
+    await saveAccess(admin, true);
     await expect(admin.getByLabel('Причина блокировки')).toHaveValue(reason);
     await attemptLogin(student, setup);
     await expect(student.getByRole('alert')).toContainText('Ваша учетная запись заблокирована');

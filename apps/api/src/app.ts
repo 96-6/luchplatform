@@ -7,6 +7,7 @@ import { registerOperationsRoutes } from './modules/operations/routes.js';
 import websocket from '@fastify/websocket';
 import { registerMeetingSignalling } from './modules/meetings/signalling.js';
 import { registerMeetingRoutes } from './modules/meetings/routes.js';
+import { registerMeetingBanRoutes } from './modules/meetings/ban-routes.js';
 import { MeetingFiles } from './modules/meetings/files.js';
 import { MeetingsService } from './modules/meetings/service.js';
 import { LiveKitVideo, type MeetingVideo } from './modules/meetings/adapter.js';
@@ -307,7 +308,6 @@ export async function buildApp(
   });
   if (settings.ENABLE_DEV_TOOLS) await registerProbeRoutes(app, database);
   await registerAuthRoutes(app, auth, captcha);
-  await registerAccountRoutes(app, auth);
   await registerTeacherRoutes(app, auth);
   await registerReportRoutes(app, auth, new ReportsService(database));
   const meetings = new MeetingsService(
@@ -316,7 +316,9 @@ export async function buildApp(
     Date.now,
     new MeetingFiles(database, resolve(projectRoot, settings.MEETING_FILE_DIRECTORY)),
   );
+  await registerAccountRoutes(app, auth, meetings);
   await registerMeetingRoutes(app, auth, meetings, settings.APP_ENV !== 'test');
+  await registerMeetingBanRoutes(app, auth, meetings);
   await registerOperationsRoutes(app, auth, new OperationsService(database, settings, meetings));
   if (options.testInstalledBuild && settings.APP_ENV !== 'test')
     throw Error('A build override is test-only.');

@@ -5,6 +5,8 @@ import { ClientProtectionSettings } from './ClientProtectionSettings';
 import { BrowserManualAccessSettings } from './BrowserManualAccessSettings';
 import { UpdatesPanel, usePlatformUpdates } from './UpdatesPanel';
 import { SystemStatusPanel } from './SystemStatusPanel';
+import { MeetingIpBans } from './meetings/MeetingBans';
+import { HoldToConfirm } from '../components/HoldToConfirm';
 import { t, dateLocale } from '../i18n';
 import { useEffect, useState, type FormEvent } from 'react';
 import { Link, useSearchParams } from 'react-router-dom';
@@ -54,6 +56,7 @@ export function AdminPage() {
           ['audit', t('Журнал действий')],
           ['system', t('Система')],
           ['updates', t('Обновления')],
+          ['meeting-bans', t('Блокировки гостевых IP')],
         ].map(([value, label]) => (
           <button
             role="tab"
@@ -70,7 +73,9 @@ export function AdminPage() {
           </button>
         ))}
       </div>
-      {tab === 'updates' ? (
+      {tab === 'meeting-bans' ? (
+        <MeetingIpBans />
+      ) : tab === 'updates' ? (
         <UpdatesPanel updates={updates} />
       ) : tab === 'system' ? (
         <SystemStatusPanel />
@@ -207,6 +212,7 @@ function AccountDetail({
   const [busy, setBusy] = useState(false);
   const [error, setError] = useState<Error | null>(null);
   const [message, setMessage] = useState('');
+  const [confirmBan, setConfirmBan] = useState(false);
   useEffect(() => {
     if (state.status === 'ready') {
       setBlocked(state.data.user.isBlocked);
@@ -216,8 +222,7 @@ function AccountDetail({
       setError(null);
     }
   }, [state]);
-  async function save(event: FormEvent) {
-    event.preventDefault();
+  async function save() {
     setBusy(true);
     setError(null);
     try {
@@ -225,10 +230,12 @@ function AccountDetail({
         body: { isBlocked: blocked, isActive: active, blockReason, accessVerified: verified },
       });
       setMessage(t('Доступ аккаунта обновлён.'));
+      setConfirmBan(false);
       refresh();
       onSaved();
     } catch (failure) {
       setError(failure as Error);
+      throw failure;
     } finally {
       setBusy(false);
     }
@@ -371,7 +378,10 @@ function AccountDetail({
       )}
       <form
         onSubmit={(event) => {
-          void save(event);
+          event.preventDefault();
+          if (blocked && state.status === 'ready' && !state.data.user.isBlocked)
+            setConfirmBan(true);
+          else void save().catch(() => {});
         }}
       >
         <label className="checkbox">
@@ -431,6 +441,20 @@ function AccountDetail({
           </button>
         </div>
       </form>
+      {confirmBan && (
+        <HoldToConfirm
+          title={t('Заблокировать аккаунт?')}
+          prepare={async () => null}
+          confirm={async () => save()}
+          cancel={() => setConfirmBan(false)}
+        >
+          <p>
+            {state.data.user.name} · {state.data.user.email}
+          </p>
+          <p>{blockReason}</p>
+          <p>{t('Текущие подключения этого аккаунта к видеовстречам будут завершены.')}</p>
+        </HoldToConfirm>
+      )}
       {error && (
         <p role="alert" className="error inline-message">
           {t(error.message)}

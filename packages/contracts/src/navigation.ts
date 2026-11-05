@@ -87,7 +87,9 @@ const patterns: {
     kind: 'admin',
     roles: ['superadmin'],
     query: z.strictObject({
-      tab: z.enum(['accounts', 'security', 'audit', 'system', 'updates']).optional(),
+      tab: z
+        .enum(['accounts', 'security', 'audit', 'system', 'updates', 'meeting-bans'])
+        .optional(),
     }),
   },
   { pattern: /^\/admin\/(content|learning)$/, kind: 'administration', roles: ['superadmin'] },

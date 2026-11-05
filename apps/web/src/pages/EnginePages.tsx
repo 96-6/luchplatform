@@ -318,7 +318,9 @@ function RunSession({ id }: { id: string }) {
             </h2>
             {view.run.cachedContent && (
               <p className="notice">
-                {t('Продолжаем по сохранённому материалу, который вы ещё не просматривали.')}
+                {t(
+                  'Продолжаем по сохранённому материалу. Знакомые задания могут повторяться для дополнительной практики.',
+                )}
               </p>
             )}
             {view.current.generatedExerciseId && (

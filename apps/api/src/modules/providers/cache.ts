@@ -3,7 +3,8 @@ import type { Actor } from '../auth/service.js';
 import { studentAccess } from '../diagnostics/profile.js';
 import { AppError } from '../../errors.js';
 
-// Only new remedial practice needs unseen content. Deliberate delayed reviews remain repeatable.
+// Prefer unseen remedial content, but keep practice available when providers are disabled.
+// The engine retains prior-feedback evidence when a bank question is deliberately repeated.
 export class CachedContentService {
   constructor(readonly db: Database) {}
   async ensureAvailable(actor: Actor, planId: string, assignmentId: string) {
@@ -66,15 +67,26 @@ export class CachedContentService {
             [x.package_id, x.package_version, x.skill_id, x.lesson_id, a.user_id],
           )
         ).rows[0];
-        if (!bank)
+        const available =
+          bank ??
+          (
+            await tx.query<{ id: string; version: number }>(
+              `SELECT e.id,e.exercise_version AS version FROM learning_exercises e
+             LEFT JOIN learning_content_views v ON v.user_id=$5 AND v.content_key='bank:'||e.package_id||':'||e.package_version::text||':'||e.id||':'||e.exercise_version::text
+             WHERE e.package_id=$1 AND e.package_version=$2 AND e.skill_id=$3 AND e.lesson_id=$4 AND e.purpose='practice'
+             ORDER BY v.first_viewed_at NULLS FIRST,e.position,e.id LIMIT 1`,
+              [x.package_id, x.package_version, x.skill_id, x.lesson_id, a.user_id],
+            )
+          ).rows[0];
+        if (!available)
           throw new AppError(
-            503,
-            'CONTENT_GENERATION_UNAVAILABLE',
-            'Ошибка генерации контента: подходящие сохранённые задания уже просмотрены, а новый материал сейчас недоступен. Повторите позже.',
+            409,
+            'PRACTICE_CONTENT_MISSING',
+            'В закреплённом уроке нет тренировочного задания для повторения. Обратитесь к преподавателю.',
           );
         await tx.query(
           'UPDATE plan_assignment_exercises SET exercise_id=$2,exercise_version=$3,generated_exercise_id=NULL WHERE assignment_id=$1',
-          [assignmentId, bank.id, bank.version],
+          [assignmentId, available.id, available.version],
         );
       }
       await tx.query('UPDATE plan_assignments SET cache_fallback=true WHERE id=$1', [assignmentId]);

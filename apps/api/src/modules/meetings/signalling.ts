@@ -8,6 +8,7 @@ import type { AuthService } from '../auth/service.js';
 import type { MeetingsService } from './service.js';
 
 import { meetingActor, type MeetingActor } from './identity.js';
+import { removeMeetingSessions } from './revocation.js';
 const maxBuffered = 1024 * 1024;
 type Context = { actor: MeetingActor; identity: string; room: string; token: string };
 
@@ -77,10 +78,12 @@ export async function registerMeetingSignalling(
         let ready = false,
           closed = false,
           buffered = 0;
+        let recheck: ReturnType<typeof setInterval> | undefined;
         const pending: { target: WebSocket; data: RawData; binary: boolean }[] = [];
         const close = () => {
           if (closed) return;
           closed = true;
+          if (recheck) clearInterval(recheck);
           pending.length = 0;
           upstreams.delete(upstream);
           if (client.readyState === WebSocket.OPEN) client.close(1008, 'Connection ended');
@@ -125,6 +128,43 @@ export async function registerMeetingSignalling(
               ready = true;
               for (const item of pending) send(item.target, item.data, item.binary);
               pending.length = 0;
+              let checking = false;
+              recheck = setInterval(() => {
+                if (checking || closed) return;
+                checking = true;
+                void (async () => {
+                  // Re-read credentials and guest IP policy; never rely on the actor captured at upgrade.
+                  const found = (
+                    await auth.database.query<{ meeting_id: string; state: string }>(
+                      'SELECT meeting_id,state FROM meeting_sessions WHERE id=$1',
+                      [context.identity],
+                    )
+                  ).rows[0];
+                  if (!found || found.state !== 'admitted') throw new Error('Admission revoked');
+                  const currentActor = await meetingActor(auth, request, found.meeting_id);
+                  if (
+                    currentActor.user.id !== context.actor.user.id ||
+                    currentActor.sessionId !== context.actor.sessionId
+                  )
+                    throw new Error('Credentials changed');
+                })()
+                  .catch(async () => {
+                    close();
+                    // Persist removal even if the SFU is temporarily unavailable; recovery retries it.
+                    try {
+                      await auth.database.transaction((tx) =>
+                        removeMeetingSessions(tx, [context.identity]),
+                      );
+                      await service.drain();
+                    } catch {
+                      app.log.warn('Meeting connection removal will retry.');
+                    }
+                  })
+                  .finally(() => {
+                    checking = false;
+                  });
+              }, 2000);
+              recheck.unref();
             })
             .catch(close);
         });

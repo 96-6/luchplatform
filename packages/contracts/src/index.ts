@@ -1,4 +1,5 @@
 export * from './reports.js';
+export * from './meeting-bans.js';
 export * from './browsers.js';
 export * from './browser-access.js';
 export * from './client-protection.js';

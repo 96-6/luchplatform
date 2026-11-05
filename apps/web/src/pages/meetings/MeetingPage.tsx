@@ -1,5 +1,6 @@
 import { MeetingChat } from './MeetingChat';
 import { MeetingInvitePanel } from './MeetingExtras';
+import { MeetingIpBans } from './MeetingBans';
 import { t, dateLocale } from '../../i18n';
 import { useRef, useState, type FormEvent } from 'react';
 import { Link, useParams } from 'react-router-dom';
@@ -132,6 +133,12 @@ function MeetingDetail({ id }: { id: string }) {
         )}
       </section>
       {m.kind === 'adhoc' && m.canManage && <MeetingInvitePanel meeting={m} />}
+      {m.canManage && (
+        <details>
+          <summary>{t('Блокировки гостевых IP')}</summary>
+          <MeetingIpBans meetingId={id} />
+        </details>
+      )}
       <MeetingChat id={id} readOnly />
       {editing && (
         <MeetingEditor
