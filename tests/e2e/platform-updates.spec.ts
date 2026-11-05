@@ -27,7 +27,7 @@ test('server diagnostics retain the last reading on connection loss and are link
   await login(page, 'audit-status-superadmin', 0, /\/admin$/);
   await page.getByRole('tab', { name: 'Система', exact: true }).click();
   await expect(page.getByText('Соединение установлено', { exact: false })).toBeVisible();
-  await expect(page.getByText('028_client_protection.sql', { exact: false })).toBeVisible();
+  await expect(page.getByText('029_meeting_ip_bans.sql', { exact: false })).toBeVisible();
   await page.route('**/api/v1/admin/system-status', (route) => route.abort('failed'));
   await page.getByRole('button', { name: 'Обновить состояние', exact: true }).click();
   await expect(page.getByRole('alert')).toContainText('Актуальное состояние неизвестно');
