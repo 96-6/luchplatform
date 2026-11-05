@@ -184,7 +184,7 @@ describe('platform update controls', () => {
     expect(status.statusCode, status.body).toBe(200);
     const data = systemStatusSchema.parse(status.json().data);
     expect(data.database.available && data.database.schemaCurrent).toBe(true);
-    expect(data.database.schemaVersion).toBe('027_platform_updates.sql');
+    expect(data.database.schemaVersion).toBe('028_client_protection.sql');
     expect(status.body).not.toContain('DATABASE_URL');
     expect(status.body).not.toContain(directory);
     for (const path of ['check', 'apply']) {

@@ -284,6 +284,11 @@ describe('role-scoped browser feature protection', () => {
     await verify(e.headers, e.input);
     await f.db.exec("UPDATE client_capability_grants SET verified_until=now()-interval '1 minute'");
     expect((await get('/api/v1/system', e.headers)).statusCode).toBe(403);
+    await f.db.exec("UPDATE client_capability_grants SET verified_until=now()+interval '1 minute'");
+    await f.db.query('UPDATE users SET is_blocked=true WHERE id=$1', [student.actor.user.id]);
+    expect((await get('/api/v1/engine/runs', e.headers)).statusCode).toBe(401);
+    await f.db.query('UPDATE users SET is_blocked=false WHERE id=$1', [student.actor.user.id]);
+    expect((await get('/api/v1/system', e.headers)).statusCode).toBe(200);
     const logout = await f.app.inject({
       method: 'POST',
       url: '/api/v1/auth/logout',
