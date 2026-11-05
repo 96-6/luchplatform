@@ -1,13 +1,6 @@
 // Shared by the server's 403 document and the React gate. No third-party requests or storage.
 const prefix = '/api/v1/security/client/';
-const text = (ru, en) => (document.documentElement.lang === 'en' ? en : ru);
-const failure = () =>
-  new Error(
-    text(
-      'Браузер блокирует необходимые функции сайта. Разрешите JavaScript, cookies и ресурсы платформы, затем повторите проверку.',
-      'Your browser is blocking required site features. Allow JavaScript, cookies and platform resources, then try again.',
-    ),
-  );
+const failure = () => new Error('CLIENT_CAPABILITIES_REQUIRED');
 async function request(path, body, signal) {
   const response = await fetch(prefix + path, {
     method: body ? 'POST' : 'GET',
@@ -121,13 +114,13 @@ if (document.body?.hasAttribute('data-client-check')) {
     if (busy) return;
     busy = true;
     button.disabled = true;
-    status.textContent = text('Проверяем настройки браузера…', 'Checking browser settings…');
+    status.textContent = status.dataset.progress;
     try {
       await checkClient({ force: true });
       // The location, including invitation and recovery parameters, is never sent to a redirect endpoint.
       location.reload();
     } catch {
-      status.textContent = failure().message;
+      status.textContent = document.getElementById('client-check-message').textContent;
       busy = false;
       button.disabled = false;
     }
