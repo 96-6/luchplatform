@@ -175,6 +175,16 @@ export function HoldToConfirm<T>({
             }
           }}
           onPointerLeave={stop}
+          onPointerMove={(e) => {
+            const bounds = e.currentTarget.getBoundingClientRect();
+            if (
+              e.clientX < bounds.left ||
+              e.clientX > bounds.right ||
+              e.clientY < bounds.top ||
+              e.clientY > bounds.bottom
+            )
+              stop();
+          }}
           onPointerCancel={stop}
           onPointerUp={stop}
           onBlur={stop}

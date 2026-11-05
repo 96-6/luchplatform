@@ -167,7 +167,7 @@ try {
   await atomic(resolve(initial, 'build-info.json'), { ...stamp, commit: null });
   const target = await targetVersion(
     '0.1.1',
-    '028',
+    '900',
     // Keep the native migration observable even on a runner faster than the UI's polling interval.
     "CREATE TABLE updater_fixture(value text NOT NULL); INSERT INTO updater_fixture VALUES('preserved');\n" +
       (native ? 'SELECT pg_sleep(3);\n' : ''),
@@ -359,7 +359,7 @@ try {
   await git(['checkout', 'main']);
   const broken = await targetVersion(
     '0.1.2',
-    '029',
+    '901',
     "UPDATE updater_fixture SET value='changed by failed update'; CREATE TABLE failed_update_marker(id integer);\n",
     true,
   );
@@ -420,8 +420,11 @@ try {
     null,
   );
   assert.equal(
-    (await db.query("SELECT count(*)::int AS n FROM schema_migrations WHERE version LIKE '029_%'"))
-      .rows[0].n,
+    (
+      await db.query(
+        "SELECT count(*)::int AS n FROM schema_migrations WHERE version='901_updater_fixture.sql'",
+      )
+    ).rows[0].n,
     0,
   );
   assert.equal(

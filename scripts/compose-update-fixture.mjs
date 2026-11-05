@@ -25,7 +25,7 @@ if (process.argv.includes('verify')) {
   lock.packages[''].version = pkg.version;
   await writeFile(resolve(root, 'package-lock.json'), JSON.stringify(lock, null, 2) + '\n');
   await writeFile(
-    resolve(root, 'apps/api/migrations/028_compose_updater_fixture.sql'),
+    resolve(root, 'apps/api/migrations/900_compose_updater_fixture.sql'),
     "CREATE TABLE compose_update_fixture(value text NOT NULL); INSERT INTO compose_update_fixture VALUES('persisted across containers');\n",
   );
   await command('git', ['-C', root, 'add', '.'], { quiet: true });

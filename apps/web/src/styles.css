@@ -2283,3 +2283,7 @@ button.danger {
 .meeting-ban-register {
   overflow-wrap: anywhere;
 }
+.meeting-ban-target-ip {
+  min-height: 3em;
+  overflow-wrap: anywhere;
+}

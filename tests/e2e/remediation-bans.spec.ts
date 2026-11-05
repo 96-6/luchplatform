@@ -9,7 +9,7 @@ import {
   preparePlan,
   signalAccepted,
 } from './meetings.helpers';
-import { holdYes } from './hold.helpers';
+import { holdYes, holdYesWithMouse } from './hold.helpers';
 import { contentPackageSchema, type RunView, type PlanView } from '@luch/contracts';
 import { readFile } from 'node:fs/promises';
 const bank = contentPackageSchema.parse(
@@ -286,7 +286,7 @@ test('guest IP ban removes real media and prevents a fresh anonymous identity fr
     await tile.getByRole('button', { name: 'Заблокировать гостевой IP', exact: true }).click();
     const dialog = teacher.getByRole('dialog', { name: 'Заблокировать гостевой IP', exact: true });
     await dialog.getByLabel('Причина блокировки', { exact: true }).fill('Invitation leaked');
-    await holdYes(teacher, dialog);
+    await holdYesWithMouse(teacher, dialog);
     await expect(tile).toHaveCount(0, { timeout: 15000 });
     await expect(guest.locator('.meeting-connection')).toHaveCount(0, { timeout: 15000 });
     const fresh = await browser.newContext(options),
