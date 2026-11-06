@@ -3,10 +3,13 @@ import type { User } from '@luch/contracts';
 import type { AuthService } from '../auth/service.js';
 import { hashToken } from '../auth/crypto.js';
 import { AppError } from '../../errors.js';
+import { assertGuestIpAllowed } from './bans.js';
+import { normalizeIp } from '../security/policy.js';
 export type MeetingActor = {
   user: { id: string; name: string; role: User['role'] | 'guest' };
   tokenHash: string;
   sessionId: string;
+  ip?: string;
 };
 export const isGuest = (actor: MeetingActor) => actor.user.role === 'guest';
 export const guestCookie = (production: boolean, id: string) =>
@@ -32,6 +35,7 @@ export async function guestActor(
       'MEETING_GUEST_REQUIRED',
       'Откройте приглашение, чтобы войти во встречу.',
     );
+  await assertGuestIpAllowed(auth.database, meetingId, request.ip);
   if (write) {
     const csrf = request.headers['x-meeting-csrf'];
     if (
@@ -44,6 +48,7 @@ export async function guestActor(
     user: { id: row.id, name: row.full_name, role: 'guest' },
     tokenHash: row.token_hash,
     sessionId: row.id,
+    ip: normalizeIp(request.ip),
   };
 }
 export async function meetingActor(
@@ -53,6 +58,7 @@ export async function meetingActor(
   write = false,
 ): Promise<MeetingActor> {
   const user = await auth.actor(request);
-  if (user) return auth.requireActor(request, undefined, write);
+  if (user)
+    return { ...(await auth.requireActor(request, undefined, write)), ip: normalizeIp(request.ip) };
   return guestActor(auth, request, meetingId, write);
 }

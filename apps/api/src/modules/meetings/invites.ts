@@ -10,6 +10,8 @@ import type { Actor, AuthService } from '../auth/service.js';
 import type { QueryExecutor } from '../../db/database.js';
 import { AppError } from '../../errors.js';
 import { token, hashToken } from '../auth/crypto.js';
+import { assertGuestIpAllowed } from './bans.js';
+import { normalizeIp } from '../security/policy.js';
 import {
   access,
   requireManager,
@@ -394,6 +396,7 @@ export class MeetingInvites {
           'MEETING_LOGIN_REQUIRED',
           'Организатор разрешил вход только зарегистрированным пользователям.',
         );
+      await assertGuestIpAllowed(tx, m.id, request.ip);
       if (!input.name) throw new AppError(400, 'MEETING_GUEST_NAME', 'Укажите имя для встречи.');
       const value = request.cookies[guestCookie(this.auth.settings.APP_ENV === 'production', m.id)];
       let guest = (
@@ -439,6 +442,10 @@ export class MeetingInvites {
         )
       ).rows[0]?.blocked_at;
       if (blocked) throw new AppError(403, 'MEETING_REMOVED', 'Организатор удалил вас из встречи.');
+      await tx.query('UPDATE meeting_guests SET last_ip=$2 WHERE id=$1', [
+        guest.id,
+        normalizeIp(request.ip),
+      ]);
       if (!i.reusable)
         await tx.query('UPDATE meeting_invites SET used_by_guest_id=$2 WHERE id=$1', [
           i.id,

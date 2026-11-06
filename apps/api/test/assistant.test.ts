@@ -551,7 +551,7 @@ describe('unseen cached content and exhaustion', () => {
     expect(run.run.cachedContent).toBe(true);
     expect(calls).toHaveLength(0);
   });
-  it('returns a content-generation error after all relevant bank items were viewed', async () => {
+  it('repeats pinned practice after bank exhaustion without losing attempts or claiming independent success', async () => {
     const user = await f.active(),
       { plan, assignment } = await correction(user, true);
     const before = (
@@ -563,16 +563,23 @@ describe('unseen cached content and exhaustion', () => {
       headers: user.headers,
       payload: {},
     });
-    expect(r.statusCode, r.body).toBe(503);
-    expect(r.json().error.code).toBe('CONTENT_GENERATION_UNAVAILABLE');
-    expect(r.json().error.message).toContain('уже просмотрены');
+    expect(r.statusCode, r.body).toBe(200);
+    const run = runViewSchema.parse(r.json().data);
+    expect(run.run.cachedContent).toBe(true);
+    expect(run.current!.turn.hadPriorFeedback).toBe(true);
     expect(
       (await f.db.query('SELECT * FROM engine_attempts WHERE user_id=$1', [user.actor.user.id]))
         .rows,
     ).toHaveLength(before);
     expect(
       (await f.plan(user, plan.plan.id)).assignments.find((a) => a.id === assignment.id)!.runId,
-    ).toBeNull();
+    ).toBe(run.run.id);
+    const answered = await f.answer(user, run, true);
+    expect(answered.current!.attempt!.independent).toBe(false);
+    expect(calls).toHaveLength(0);
+    const finished = await f.next(user, answered);
+    expect(finished.run.status).toBe('completed');
+    expect((await f.start(user, plan.plan.id, assignment.id)).run.id).toBe(run.run.id);
   });
   it('reuses a relevant generated variant for another learner when generation is disabled', async () => {
     const root = await f.active('superadmin'),

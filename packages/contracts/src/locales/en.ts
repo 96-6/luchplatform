@@ -1,4 +1,66 @@
 export const english = {
+  'Продолжаем по сохранённому материалу. Знакомые задания могут повторяться для дополнительной практики.':
+    'Continuing with saved material. Familiar questions may be repeated for additional practice.',
+  'Вы уверены? Для подтверждения удерживайте «Да» пять секунд. Короткое нажатие ничего не меняет.':
+    'Are you sure? Hold Yes for five seconds to confirm. A short press changes nothing.',
+  'Подтверждение блокировки': 'Ban confirmation',
+  'Подготавливаем подтверждение…': 'Preparing confirmation…',
+  'Удерживайте ещё {0} с': 'Keep holding for {0} s',
+  'Удерживайте «Да» 5 секунд': 'Hold Yes for 5 seconds',
+  'Да, удерживать 5 секунд': 'Yes, hold for 5 seconds',
+  Нет: 'No',
+  Да: 'Yes',
+  'Изменить блокировку гостевого IP': 'Edit guest IP ban',
+  'Заблокировать гостевой IP': 'Ban guest IP',
+  'Гость: {0}': 'Guest: {0}',
+  'IP-адрес': 'IP address',
+  'IP-адрес: {0}': 'IP address: {0}',
+  'Блокировка закрывает гостевой вход с этого IP во встречу и следующие встречи по тому же приглашению. Другие гости из общей сети тоже могут потерять доступ. Зарегистрированные аккаунты не блокируются по этому IP.':
+    'This ban blocks guest entry from this IP to the meeting and future meetings using the same invitation. Other guests on a shared network may also lose access. Registered accounts are not blocked by this IP ban.',
+  'Блокировка действует': 'Ban is active',
+  'База блокировок гостевых IP': 'Guest IP ban register',
+  'Суперадмин видит и изменяет все блокировки.': 'The superadmin can view and edit all bans.',
+  'Вы можете изменять свои блокировки. В карточке встречи организаторы также видят блокировки этого приглашения.':
+    'You can edit your own bans. Meeting organizers can also view bans for that invitation.',
+  'Обновить список блокировок': 'Refresh ban list',
+  'Добавить блокировку IP': 'Add IP ban',
+  'Блокировок гостевых IP пока нет.': 'No guest IP bans yet.',
+  Действует: 'Active',
+  Отозвана: 'Revoked',
+  'Причина: {0}': 'Reason: {0}',
+  'Автор: {0} · {1}': 'Created by: {0} · {1}',
+  'Изменил: {0} · {1}': 'Changed by: {0} · {1}',
+  'Изменить блокировку {0}': 'Edit ban {0}',
+  'Изменить блокировку': 'Edit ban',
+  'История блокировки': 'Ban history',
+  'Прежняя причина: {0}': 'Previous reason: {0}',
+  'Предыдущие блокировки': 'Older bans',
+  'Блокировки гостевых IP': 'Guest IP bans',
+  'Заблокировать аккаунт?': 'Ban this account?',
+  'Текущие подключения этого аккаунта к видеовстречам будут завершены.':
+    'This account’s current video meeting connections will be ended.',
+  'Гостевой вход с этого IP-адреса заблокирован организатором встречи.':
+    'Guest entry from this IP address has been blocked by the meeting organizer.',
+  'Укажите один корректный IPv4- или IPv6-адрес.': 'Enter one valid IPv4 or IPv6 address.',
+  'Изменять блокировку может её автор или суперадмин.':
+    'Only the ban owner or a superadmin can edit this ban.',
+  'Блокировка не найдена.': 'Ban not found.',
+  'Эта операция уже использована для другой блокировки.':
+    'This operation has already been used for another ban.',
+  'Подтверждение устарело. Повторите удержание кнопки.':
+    'Confirmation expired. Hold the button again.',
+  'Гость не найден во встрече.': 'Guest not found in this meeting.',
+  'IP-адрес гостя пока недоступен. Дождитесь его повторного подключения.':
+    'The guest’s IP address is not available yet. Wait for them to reconnect.',
+  'Блокировка уже изменена. Обновите список.': 'The ban has changed. Refresh the list.',
+  'Подтверждение не найдено.': 'Confirmation not found.',
+  'Для подтверждения удерживайте «Да» пять секунд.': 'Hold Yes for five seconds to confirm.',
+  'Для этого IP уже есть действующая блокировка в этом приглашении.':
+    'An active ban already exists for this IP and invitation.',
+  'Выберите гостя или укажите один IP-адрес.': 'Select a guest or enter one IP address.',
+  'В закреплённом уроке нет тренировочного задания для повторения. Обратитесь к преподавателю.':
+    'There is no practice question to repeat in the pinned lesson. Contact your teacher.',
+  'Гостевой IP': 'Guest IP',
   'Повторить проверку': 'Try the check again',
   'Роли не должны повторяться.': 'Roles must not be repeated.',
   'Проверка завершена.': 'Check completed.',

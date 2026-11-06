@@ -2245,3 +2245,45 @@ button.danger {
     margin-bottom: 0.7rem;
   }
 }
+.hold-confirmation-dialog {
+  width: min(94vw, 620px);
+  max-height: 90dvh;
+  overflow: auto;
+  border: 1px solid #dce6df;
+  border-radius: 16px;
+  padding: 24px;
+  color: inherit;
+  background: #fff;
+}
+.hold-confirmation-dialog::backdrop {
+  background: #102d2c99;
+}
+.hold-confirmation-dialog fieldset {
+  border: 0;
+  margin: 0;
+  padding: 0;
+  min-width: 0;
+}
+.hold-confirm-yes {
+  touch-action: none;
+  user-select: none;
+  min-width: 90px;
+}
+.hold-confirm-progress {
+  margin: 16px 0;
+  padding: 10px;
+  border-radius: 8px;
+  background: #edf3ef;
+}
+.meeting-ban-entry {
+  border-top: 1px solid #dce6df;
+  padding: 16px 0;
+  overflow-wrap: anywhere;
+}
+.meeting-ban-register {
+  overflow-wrap: anywhere;
+}
+.meeting-ban-target-ip {
+  min-height: 3em;
+  overflow-wrap: anywhere;
+}

@@ -15,8 +15,14 @@ import { AppError } from '../../errors.js';
 import { learningProgress } from '../engine/repository.js';
 import { AccountCredentials } from './credentials.js';
 import { TeacherRegistrationApproval } from './teacher-approval.js';
+import { revokeUserMeetingSessions } from '../meetings/revocation.js';
+import type { MeetingsService } from '../meetings/service.js';
 
-export async function registerAccountRoutes(app: FastifyInstance, auth: AuthService) {
+export async function registerAccountRoutes(
+  app: FastifyInstance,
+  auth: AuthService,
+  meetings?: Pick<MeetingsService, 'drain'>,
+) {
   const db = auth.database;
   const credentials = new AccountCredentials(db, auth.crypto);
   const teacherApproval = new TeacherRegistrationApproval(db);
@@ -182,11 +188,14 @@ export async function registerAccountRoutes(app: FastifyInstance, auth: AuthServ
         input.isActive === false ||
         input.isBlocked ||
         (policy.vpnCheckEnabled && !input.accessVerified)
-      )
+      ) {
         await auth.invalidateCredentials(tx, id);
+        await revokeUserMeetingSessions(tx, id);
+      }
       await audit(tx, actor.user.id, 'account.access_changed', id);
       return managementUser(result.rows[0]!);
     });
+    await meetings?.drain();
     return { data: user, requestId: request.id };
   });
   app.post('/api/v1/admin/accounts/:id/revoke-sessions', async (request) => {
@@ -196,8 +205,10 @@ export async function registerAccountRoutes(app: FastifyInstance, auth: AuthServ
     await db.transaction(async (tx) => {
       await tx.query('SELECT id FROM users WHERE id=$1 FOR UPDATE', [id]);
       await auth.invalidateCredentials(tx, id);
+      await revokeUserMeetingSessions(tx, id);
       await audit(tx, actor.user.id, 'sessions.revoked', id);
     });
+    await meetings?.drain();
     return { data: { message: 'Сессии аккаунта завершены.' }, requestId: request.id };
   });
   app.post('/api/v1/admin/teacher-students', async (request) => {

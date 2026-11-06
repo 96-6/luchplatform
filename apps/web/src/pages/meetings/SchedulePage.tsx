@@ -1,4 +1,5 @@
 import { AdhocMeetingEditor } from './MeetingExtras';
+import { MeetingIpBans } from './MeetingBans';
 import { t } from '../../i18n';
 import { useMemo, useRef, useState, type FormEvent } from 'react';
 import { Link, useNavigate, useSearchParams } from 'react-router-dom';
@@ -78,6 +79,12 @@ export function SchedulePage() {
   return (
     <>
       <h1>{t('Расписание')}</h1>
+      {['teacher', 'admin', 'superadmin'].includes(session.user!.role) && (
+        <details>
+          <summary>{t('Блокировки гостевых IP')}</summary>
+          <MeetingIpBans />
+        </details>
+      )}
       <p>
         {t('Время показано в часовом поясе ')}
         {zone}

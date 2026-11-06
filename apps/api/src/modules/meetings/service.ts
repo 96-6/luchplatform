@@ -10,6 +10,8 @@ import {
 } from '@luch/contracts';
 import type { Database, QueryExecutor } from '../../db/database.js';
 import { AppError } from '../../errors.js';
+import { MeetingBans, assertGuestIpAllowed } from './bans.js';
+import { removeMeetingSessions } from './revocation.js';
 import type { Actor } from '../auth/service.js';
 import { audit } from '../accounts/repository.js';
 import { canonicalJson } from '../content/service.js';
@@ -301,6 +303,7 @@ export class MeetingsService {
       await this.opLock(tx, actor, operationId);
       const a = await access(tx, actor, id, true),
         request = { id, ...(vanish ? { vanish: true } : {}) };
+      if (isGuest(actor) && actor.ip) await assertGuestIpAllowed(tx, id, actor.ip);
       const old = await oldOperation(tx, actor, operationId, 'join', request);
       if (old) return old.result_id!;
       if (!['scheduled', 'live'].includes(a.m.status) || this.now() > deadline(a.m)) throw closed();
@@ -347,6 +350,8 @@ export class MeetingsService {
           )
         ).rows[0]!;
       }
+      if (actor.ip)
+        await tx.query('UPDATE meeting_sessions SET remote_ip=$2 WHERE id=$1', [s.id, actor.ip]);
       if (a.canManage && a.m.status === 'scheduled')
         await tx.query(
           `UPDATE scheduled_meetings SET status='live',started_at=$2,starts_at=CASE WHEN kind='adhoc' THEN $2 ELSE starts_at END,ends_at=CASE WHEN kind='adhoc' AND duration_minutes IS NOT NULL THEN $2::timestamptz+duration_minutes*interval '1 minute' ELSE ends_at END,updated_at=$2,revision=revision+1 WHERE id=$1`,
@@ -423,6 +428,10 @@ export class MeetingsService {
       if (!found) throw new AppError(403, 'MEETING_NOT_ADMITTED', 'Подключение недоступно.');
       const a = await access(tx, actor, found.meeting_id, true),
         s = await session(tx, actor, sid, found.meeting_id);
+      if (isGuest(actor) && actor.ip) {
+        await assertGuestIpAllowed(tx, found.meeting_id, actor.ip);
+        await tx.query('UPDATE meeting_sessions SET remote_ip=$2 WHERE id=$1', [s.id, actor.ip]);
+      }
       if (s.vanish && actor.user.role !== 'superadmin') throw vanishDenied();
       if (
         a.m.room_name !== roomName ||
@@ -789,6 +798,7 @@ export class MeetingsService {
                 userId: s.user_id,
                 name: s.full_name,
                 createdAt: iso(s.created_at),
+                isGuest: Boolean(s.guest_id),
               }))
           : [],
       };
@@ -1033,16 +1043,19 @@ export class MeetingsService {
     await this.db.transaction(async (tx) => {
       const revoked = (
         await tx.query<{ id: string; meeting_id: string }>(
-          `SELECT s.id,s.meeting_id FROM meeting_sessions s JOIN users u ON u.id=s.user_id JOIN scheduled_meetings m ON m.id=s.meeting_id WHERE s.vanish AND s.state='admitted' AND (u.role<>'superadmin' OR NOT u.is_active OR u.is_blocked) ORDER BY m.id,s.id FOR UPDATE OF m,s SKIP LOCKED`,
+          `SELECT s.id,s.meeting_id FROM meeting_sessions s JOIN users u ON u.id=s.user_id WHERE s.state IN ('waiting','admitted') AND (NOT u.is_active OR u.is_blocked OR (s.vanish AND u.role<>'superadmin')) ORDER BY s.id FOR UPDATE OF s SKIP LOCKED`,
         )
       ).rows;
-      for (const s of revoked) {
-        await tx.query("UPDATE meeting_sessions SET state='removed',ended_at=$2 WHERE id=$1", [
-          s.id,
-          new Date(this.now()),
-        ]);
-        await command(tx, s.meeting_id, 'remove', { identity: s.id }, this.now());
-      }
+      await removeMeetingSessions(
+        tx,
+        revoked.map((s) => s.id),
+        this.now(),
+      );
+      await new MeetingBans(this.db, this.now).enforce(tx);
+      await tx.query(
+        'DELETE FROM meeting_ban_confirmations WHERE consumed_at IS NULL AND expires_at<$1',
+        [new Date(this.now() - 86400000)],
+      );
       const rows = (
         await tx.query<{ id: string }>(
           `SELECT id FROM scheduled_meetings WHERE status='live' AND ends_at IS NOT NULL AND ((kind='scheduled' AND ends_at<$1) OR (kind='adhoc' AND ends_at<=$2)) ORDER BY id FOR UPDATE SKIP LOCKED`,
