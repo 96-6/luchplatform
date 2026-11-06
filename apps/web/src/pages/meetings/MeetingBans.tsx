@@ -1,4 +1,4 @@
-import { useEffect, useRef, useState } from 'react';
+import { useEffect, useId, useRef, useState } from 'react';
 import {
   meetingBanConfirmationSchema,
   meetingIpBanSchema,
@@ -27,6 +27,7 @@ export function GuestIpBanDialog({
   done: () => void;
   cancel: () => void;
 }) {
+  const reasonId = useId();
   const [ip, setIp] = useState(existing?.ip ?? ''),
     [reason, setReason] = useState(existing?.reason ?? ''),
     [active, setActive] = useState(existing?.active ?? true);
@@ -94,18 +95,17 @@ export function GuestIpBanDialog({
           'Блокировка закрывает гостевой вход с этого IP во встречу и следующие встречи по тому же приглашению. Другие гости из общей сети тоже могут потерять доступ. Зарегистрированные аккаунты не блокируются по этому IP.',
         )}
       </p>
-      <label>
-        {t('Причина блокировки')}
-        <textarea
-          value={reason}
-          maxLength={1000}
-          required
-          onChange={(e) => {
-            setReason(e.target.value);
-            changed();
-          }}
-        />
-      </label>
+      <label htmlFor={reasonId}>{t('Причина блокировки')}</label>
+      <textarea
+        id={reasonId}
+        value={reason}
+        maxLength={1000}
+        required
+        onChange={(e) => {
+          setReason(e.target.value);
+          changed();
+        }}
+      />
       {existing && (
         <label className="checkbox">
           <input

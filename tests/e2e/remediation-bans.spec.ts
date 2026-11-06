@@ -185,6 +185,9 @@ test('IP ban registry ignores clicks and partial holds, records owners/history a
     .getByRole('button', { name: 'Edit ban 192.0.2.42', exact: true })
     .click();
   const edit = page.getByRole('dialog', { name: 'Edit guest IP ban', exact: true });
+  await expect(edit.getByLabel('Reason for blocking', { exact: true })).toHaveValue(
+    'Leaked invitation <script>',
+  );
   await edit.getByLabel('Ban is active', { exact: true }).uncheck();
   await edit.getByLabel('Reason for blocking', { exact: true }).fill('Accidental ban revoked');
   await page.screenshot({ path: 'test-results/guest-ip-ban-mobile.png', fullPage: true });
