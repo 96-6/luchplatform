@@ -22,6 +22,7 @@ assert.ok(
   'Use an isolated development/test database.',
 );
 const db = await createDatabase(settings);
+const guestIp = '192.0.2.44';
 try {
   const crypto = new AccountCrypto(settings.AUTH_ENCRYPTION_KEY),
     auth = new AuthService(
@@ -69,7 +70,7 @@ try {
       joinOperation = randomUUID(),
       cookie = {};
     const joined = await invites.redeem(
-      { cookies: {}, headers: {} },
+      { ip: guestIp, cookies: {}, headers: {} },
       {
         setCookie(name, value) {
           cookie[name] = value;
@@ -81,6 +82,7 @@ try {
       user: { id: joined.guest.id, name: joined.guest.name, role: 'guest' },
       sessionId: joined.guest.id,
       tokenHash: '',
+      ip: guestIp,
     };
     await meetings.join(guest, id, randomUUID());
     let policy = await files.policy();
@@ -128,8 +130,17 @@ try {
     assert.equal(current.kind, 'adhoc');
     assert.equal(current.endsAt, null);
     assert.deepEqual(await invites.read(teacher, saved.id), saved.invitation);
+    assert.equal(saved.guest.ip, guestIp);
+    const addresses = (
+      await db.query(
+        `SELECT g.last_ip,s.remote_ip FROM meeting_guests g JOIN meeting_sessions s ON s.guest_id=g.id
+       WHERE g.id=$1 AND s.meeting_id=$2 AND s.state='admitted'`,
+        [saved.guest.user.id, saved.id],
+      )
+    ).rows;
+    assert.deepEqual(addresses, [{ last_ip: guestIp, remote_ip: guestIp }]);
     const replay = await invites.redeem(
-      { cookies: saved.cookie, headers: {} },
+      { ip: guestIp, cookies: saved.cookie, headers: {} },
       { setCookie() {} },
       { operationId: saved.joinOperation, token: saved.token, name: saved.guest.user.name },
     );
@@ -177,7 +188,7 @@ try {
     assert.equal(policy.largeFileMb, 50);
     assert.equal(policy.retentionDays, 10);
     console.log(
-      'Meeting file restart verified: stable invite and guest, unchanged attachment deadline, original bytes, idempotent upload/message, persisted policy, expired download 410 and physical cleanup with chat history retained.',
+      'Meeting file restart verified: stable invite and guest IPs, unchanged attachment deadline, original bytes, idempotent upload/message, persisted policy, expired download 410 and physical cleanup with chat history retained.',
     );
   }
 } finally {
